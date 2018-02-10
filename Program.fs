@@ -9,4 +9,3 @@ let main argv =
     /// test the initProjectLexer code
     let test = parseLine None (WA 0u)
     0 // return an integer exit code
-    // Test branch
