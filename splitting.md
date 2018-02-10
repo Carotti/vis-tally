@@ -1,13 +1,11 @@
 # Splitting
 
 ## Doug
-- `MOV`
 - `LSL`
 - `LSR`
 - `ASR`
 - `ROR`
 - `RRX`
-- `MVN`
 - `STR`
 - `LDR`
 - `STRB`
@@ -16,6 +14,8 @@
 - `LDM`
 
 ## Chris
+- `MOV`
+- `MVN`
 - `ADD`
 - `ADC`
 - `SUB`
@@ -26,6 +26,7 @@
 - `EOR`
 - `BIC`
 - `ORR`
+
 - `CMP`
 - `CMN`
 - `TST`
