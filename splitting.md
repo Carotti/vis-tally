@@ -1,0 +1,40 @@
+# Splitting
+
+## Doug
+- `LSL`
+- `LSR`
+- `ASR`
+- `ROR`
+- `RRX`
+- `STR`
+- `LDR`
+- `STM`
+- `LDM`
+- `END`
+
+## Chris
+- `MOV`
+- `MVN`
+- `ADD`
+- `ADC`
+- `SUB`
+- `SBC`
+- `RSB`
+- `RSC`
+- `AND`
+- `EOR`
+- `BIC`
+- `ORR`
+
+## Tom
+- `CMP`
+- `CMN`
+- `TST`
+- `TEQ`
+- `B`
+- `BL`
+- `DCD`
+- `DCB`
+- `ADR`
+- `FILL`
+- `EQU`
