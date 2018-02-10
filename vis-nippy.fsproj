@@ -4,7 +4,11 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="initProjectLexer.fs" />
+    <Compile Include="CommonData.fs" />
+    <Compile Include="CommonLex.fs" />
+    <Compile Include="DP.fs" />
+    <Compile Include="Memory.fs" />
+    <Compile Include="CommonTop.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
