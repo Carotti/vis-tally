@@ -2,15 +2,50 @@ module DP
     open CommonData
     open CommonLex
 
-    // change these types as required
+    /// Enum type for all possible rotation values.
+    /// TODO: Turn into type-safe DU + Map
+    type RotVal =
+        | Rot0 = 0      | Rot2 = 2      | Rot4 = 4      | Rot6 = 6
+        | Rot8 = 8      | Rot10 = 10    | Rot12 = 12    | Rot14 = 14  
+        | Rot16 = 16    | Rot18 = 18    | Rot20 = 20    | Rot22 = 22 
+        | Rot24 = 24    | Rot26 = 26    | Rot28 = 28    | Rot30 = 30 
 
-    /// instruction (dummy: must change)
-    type Instr =  {DPDummy: Unit}
+    /// Literal type for allowed literals.
+    ///  `K` is the underlying byte.
+    ///  `R` is the rotation that is applied to `K`
+    type Literal =
+        {
+            K: byte;
+            R: RotVal;
+        }
+        
+    /// Shift operands for the shift instructions `SIns`.
+    type SOp =
+        | Const 
+        | Regs 
+   
+    /// Shift instructions that require operands and are compatible with the
+    ///  flexiable second operand. `RRX` is not included since it does not
+    ///  require any further operands.
+    type SInstr =
+        | LSL
+        | LSR
+        | ASR
+        | ROR
 
+    type FelxOp2 =
+        | Lit       of Literal
+        | Reg       of RName
+        | Shifted   of RName * SInstr * SOp
+        | RRX       of RName 
+
+    type Instr =
+        Add of rDest:RName * rOp1:RName * op2:FelxOp2
+       
     /// parse error (dummy, but will do)
     type ErrInstr = string
 
-    /// sample specification for set of instructions
+    /// **sample** specification for set of instructions
     /// very incomplete!
     let dPSpec = {
         InstrC = DP
