@@ -55,17 +55,19 @@ module DP
     /// the result is None if the opcode does not match
     /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
-        let parse' (instrC, (root,suffix,pCond)) =
+        let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
 
-            let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
-            // this does the real work of parsing
-            // dummy return for now
+        // this does the real work of parsing
+        let parseShift suffix pCond : Result<Parse<Instr>,string> = 
+            // test here
+            let test : InstrShift = {rd = R1; shifter = (Reg {rs = R2})}
+            let test2 : InstrShift = {rd = R1; shifter = (RegExp {rm = R2; exp = 8u})}
             Ok { 
                 // Normal (non-error) return from result monad
                 // This is the instruction determined from opcode, suffix and parsing
                 // the operands. Not done in the sample.
                 // Note the record type returned must be written by the module author.
-                PInstr={}
+                PInstr = LSL test
 
 
                 // This is normally the line label as contained in
@@ -86,7 +88,14 @@ module DP
                 // has already calculated condition already in the opcode map.
                 // this part never changes
                 PCond = pCond 
-                }
+            }
+        let listOfInstr = 
+            Map.ofList [
+                "LSL", parseShift;
+            ]
+        let parse' (_instrC, (root,suffix,pCond)) =
+           listOfInstr.[root] suffix pCond
+
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
 
