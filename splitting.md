@@ -8,9 +8,10 @@
 - `RRX`
 - `STR`
 - `LDR`
+- `STRB`
+- `LDRB`
 - `STM`
 - `LDM`
-- `END`
 
 ## Chris
 - `MOV`
@@ -26,15 +27,18 @@
 - `BIC`
 - `ORR`
 
-## Tom
 - `CMP`
 - `CMN`
 - `TST`
 - `TEQ`
+
+## Tom
 - `B`
 - `BL`
 - `DCD`
 - `DCB`
 - `ADR`
+- `LDR=`
 - `FILL`
 - `EQU`
+- `END`
