@@ -18,6 +18,8 @@ let qpl lst = lst |> List.map (qp)
 let main argv =
     /// test the initProjectLexer code
     let test = parseLine None (WA 0u)
+    let (a b) = 10
+    qp a
     opCodes |> qp
 
     
