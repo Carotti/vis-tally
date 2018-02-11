@@ -8,6 +8,7 @@
     <Compile Include="CommonLex.fs" />
     <Compile Include="DP.fs" />
     <Compile Include="Memory.fs" />
+    <Compile Include="Misc.fs" />
     <Compile Include="CommonTop.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
