@@ -2,21 +2,44 @@ module DP
     open CommonData
     open CommonLex
 
-    /// Enum type for all possible rotation values.
-    /// TODO: Turn into type-safe DU + Map
-    type RotVal =
-        | Rot0 = 0      | Rot2 = 2      | Rot4 = 4      | Rot6 = 6
-        | Rot8 = 8      | Rot10 = 10    | Rot12 = 12    | Rot14 = 14  
-        | Rot16 = 16    | Rot18 = 18    | Rot20 = 20    | Rot22 = 22 
-        | Rot24 = 24    | Rot26 = 26    | Rot28 = 28    | Rot30 = 30 
+    [<Struct>]
+    type RVal =
+        | Rot0     | Rot2     | Rot4     | Rot6
+        | Rot8     | Rot10    | Rot12    | Rot14  
+        | Rot16    | Rot18    | Rot20    | Rot22 
+        | Rot24    | Rot26    | Rot28    | Rot30
 
+    let RNums =
+        Map.ofList [
+            (Rot0, 0);   (Rot2, 2);      
+            (Rot4, 4);   (Rot6, 6);
+            (Rot8, 8);   (Rot10, 10);    
+            (Rot12, 12); (Rot14, 14);  
+            (Rot16, 16); (Rot18, 18);    
+            (Rot20, 20); (Rot22, 22); 
+            (Rot24, 24); (Rot26, 26);    
+            (Rot28, 28); (Rot30, 30);
+        ]
+    
+    let RVals =
+        Map.ofList [
+            (0, Rot0);   (2, Rot2);      
+            (4, Rot4);   (6, Rot6);
+            (8, Rot8);   (10, Rot10);    
+            (12, Rot12); (14, Rot14);  
+            (16, Rot16); (18, Rot18);    
+            (20, Rot20); (22, Rot22); 
+            (24, Rot24); (26, Rot26);    
+            (28, Rot28); (30, Rot30);
+    ]
+    
     /// Literal type for allowed literals.
     ///  `K` is the underlying byte.
     ///  `R` is the rotation that is applied to `K`.
     type Literal =
         {
             K: byte;
-            R: RotVal;
+            R: RVal;
         }
         
     /// Possible shift operands for the shift instructions `SIns`.
