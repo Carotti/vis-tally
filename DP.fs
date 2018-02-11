@@ -12,17 +12,17 @@ module DP
 
     /// Literal type for allowed literals.
     ///  `K` is the underlying byte.
-    ///  `R` is the rotation that is applied to `K`
+    ///  `R` is the rotation that is applied to `K`.
     type Literal =
         {
             K: byte;
             R: RotVal;
         }
         
-    /// Shift operands for the shift instructions `SIns`.
+    /// Possible shift operands for the shift instructions `SIns`.
     type SOp =
-        | Const 
-        | Regs 
+        | Const of uint32
+        | Regs  of RName
    
     /// Shift instructions that require operands and are compatible with the
     ///  flexiable second operand. `RRX` is not included since it does not
@@ -33,14 +33,20 @@ module DP
         | ASR
         | ROR
 
-    type FelxOp2 =
+    // Flexible shift sub-instruction format within the flexiable second operand.
+    type FS2Form = {rOp2:RName; sInstr:SInstr; sOp:SOp}
+
+    type FlexOp2 =
         | Lit       of Literal
         | Reg       of RName
-        | Shifted   of RName * SInstr * SOp
-        | RRX       of RName 
+        | Shifted   of FS2Form
+        | RRX       of RName
+
+    /// Instruction format for three-operand data processing instructions. 
+    type DP3Form = {rDest:RName; rOp1:RName; op2:FlexOp2} 
 
     type Instr =
-        Add of rDest:RName * rOp1:RName * op2:FelxOp2
+        | ADD of DP3Form
        
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -62,38 +68,28 @@ module DP
     /// the result is None if the opcode does not match
     /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
-        let parse' (instrC, (root,suffix,pCond)) =
+        let (WA la) = ls.LoadAddr
 
-            let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
-            // this does the real work of parsing
-            // dummy return for now
-            Ok { 
-                // Normal (non-error) return from result monad
-                // This is the instruction determined from opcode, suffix and parsing
-                // the operands. Not done in the sample.
-                // Note the record type returned must be written by the module author.
-                PInstr={DPDummy=()}; 
+        let parseADD suffix pCond =
+            Ok {
+                // Example values just to see if it type checks
+                // TODO: parse operands to get rOp1 and op2
+                // TODO: check op2 to see if it is compatible with FlexOp2
+                // TODO: create instruction in format to 'run'
+                PInstr  = ADD ( {rDest = R10; rOp1 = R12; op2 = Reg (R12)} );
+                PLabel  = ls.Label |> Option.map (fun lab -> lab, la);
+                PSize   = 4u;
+                PCond   = pCond
+            }
 
+        let parseFuncs =
+            Map.ofList [
+                "ADD", parseADD;
+            ]
 
-                // This is normally the line label as contained in
-                // ls together with the label's value which is normally
-                // ls.LoadAddr. Some type conversion is needed since the
-                // label value is a number and not necessarily a word address
-                // it does not have to be div by 4, though it usually is
-                PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
-
-
-                // this is the number of bytes taken by the instruction
-                // word loaded into memory. For arm instructions it is always 4 bytes. 
-                // For data definition DCD etc it is variable.
-                //  For EQU (which does not affect memory) it is 0
-                PSize = 4u; 
-
-                // the instruction condition is detected in the opcode and opCodeExpand                 
-                // has already calculated condition already in the opcode map.
-                // this part never changes
-                PCond = pCond 
-                }
+        let parse' (_instrC, (root,suffix,pCond)) =
+            parseFuncs.[root] suffix pCond
+            
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
 
