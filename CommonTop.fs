@@ -11,12 +11,14 @@ module CommonTop
     type Instr =
         | IMEM of Memory.Instr
         | IDP of DP.Instr
+        | IMISC of Misc.Instr
     
     /// allows different modules to return different error info
     /// by default all return string so this is not needed
     type ErrInstr =
         | ERRIMEM of Memory.ErrInstr
         | ERRIDP of DP.ErrInstr
+        | ERRMISC of Misc.ErrInstr
         | ERRTOPLEVEL of string
 
     /// Note that Instr in Mem and DP modules is NOT same as Instr in this module
@@ -29,6 +31,7 @@ module CommonTop
         match ld with
         | Memory.IMatch pa -> pConv IMEM ERRIMEM pa
         | DP.IMatch pa -> pConv IDP ERRIDP pa
+        | Misc.IMatch pa -> pConv IMISC ERRMISC pa
         | _ -> None
     
     
