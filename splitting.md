@@ -26,7 +26,6 @@
 - `EOR`
 - `BIC`
 - `ORR`
-
 - `CMP`
 - `CMN`
 - `TST`
