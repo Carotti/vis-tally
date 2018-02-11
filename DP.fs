@@ -6,10 +6,37 @@ module DP
     open CommonData
     open CommonLex
 
-    // change these types as required
+    /// ***Rs*** is the register containing the shift value for register-controlled shifts. 
+    /// Rm must be in the range r0-r7.
+    type RegShift = {rs: RName}
+    /// ***Rm*** is the source register for immediate shifts. 
+    /// Rm must be in the range r0-r7.
+    /// ***expr*** is the immediate shift value. It is an expression evaluating (at assembly time) to an integer in the range:
+    /// note: 0-31 if op is LSL
+    ///       1-32 otherwise. 
+    type RegExpShift = {rm: RName; exp: uint32}
+    /// Both types of shift 
+    /// op, rd, rs
+    /// op, rd, rm, #expr
+    type ShiftType = 
+        | Reg of RegShift
+        | RegExp of RegExpShift
 
-    /// instruction (dummy: must change)
-    type Instr =  {DPDummy: Unit}
+
+    /// ***Rd*** is the destination register. It is also the source register for register-controlled shifts.
+    /// Rd must be in the range r0-r7.
+    /// ***Rs*** is the register containing the shift value for register-controlled shifts. 
+    /// Rm must be in the range r0-r7.
+    /// ***Rm*** is the source register for immediate shifts. 
+    /// Rm must be in the range r0-r7.
+    /// ***expr*** is the immediate shift value. It is an expression evaluating (at assembly time) to an integer in the range:
+    /// note: 0-31 if op is LSL
+    ///       1-32 otherwise. 
+    type InstrShift =  {rd: RName; shifter: ShiftType}
+
+    type Instr = 
+        | LSL of InstrShift
+        | LSR of InstrShift
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -18,8 +45,8 @@ module DP
     /// very incomplete!
     let dPSpec = {
         InstrC = DP
-        Roots = ["ADD";"SUB"]
-        Suffixes = [""; "S"]
+        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX"]
+        Suffixes = ["";"S"]
     }
 
     /// map of all possible opcodes recognised
@@ -41,7 +68,7 @@ module DP
                 // This is the instruction determined from opcode, suffix and parsing
                 // the operands. Not done in the sample.
                 // Note the record type returned must be written by the module author.
-                PInstr={DPDummy=()}; 
+                PInstr={}
 
 
                 // This is normally the line label as contained in
