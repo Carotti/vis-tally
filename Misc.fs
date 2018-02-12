@@ -6,9 +6,6 @@ module Misc
     open CommonData
     open CommonLex
     open System.Text.RegularExpressions
-    open Expecto.Flip
-    open System.Text.RegularExpressions
-    open System
 
     // Types for data declaration instructions
     type InstrDCD = {Label : string ; values : uint32 list}
@@ -53,43 +50,42 @@ module Misc
             | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
             | false -> None
 
+        /// Match, parse and evaluate literals and symbols
         let (|PrimExpr|_|) txt =
             match txt with  
             | RegexPrefix "[0-9]+" (num, rst) -> (uint32 num, rst) |> Ok |> Some
             | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) ->
                 match ls.SymTab with
-                | Some symTab ->
+                | Some symTab -> 
                     match (Map.containsKey var symTab) with
                     | true -> (symTab.[var], rst) |> Ok |> Some
-                    | false -> "Symbol not declared" |> Error |> Some
+                    | false -> sprintf "Symbol '%s' not declared" var |> Error |> Some
                 | None -> "No Symbol table exists" |> Error |> Some
             | _ -> None
 
-        let (|Expr|_|) txt =
-            match txt with 
-            | PrimExpr (Ok (num, rst)) -> (num, rst) |> Ok |> Some
-            | PrimExpr (Error x) -> x |> Error |> Some
-            | _ -> None
-
-        // Returns a list of expressions comma seperated in txt
-        let rec parseExprList txt : uint32 list =
-            match txt with
-            | Expr (exp, rst) ->
+        /// Returns an list of the evaluated expressions in txt
+        let rec parseExprList txt : Result<uint32 list, string> =
+            let exprBinder (exp, rst) =
                 match rst with
-                | RegexPrefix "," (_, rst') -> exp :: (parseExprList rst')
-                | "" -> [exp]
-                | _ -> []
-            | _ -> []
+                | RegexPrefix "," (_, rst') -> Result.map (fun lst -> exp :: lst) (parseExprList rst')
+                | "" -> Ok [exp]
+                | x -> sprintf "Unknown expression at '%s'" x |> Error
+            match txt with
+            | PrimExpr x -> Result.bind exprBinder x
+            | _ -> "Bad expression list" |> Error
 
         let parseDCD _suffix pCond : Result<Parse<Instr>,string> = 
             match ls.Label with
             | Some x -> 
-                Ok { 
-                    PInstr = DCD {Label = x ; values = parseExprList ls.Operands}; 
-                    PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
-                    PSize = 4u; 
-                    PCond = pCond 
-                }
+                match parseExprList ls.Operands with
+                | Ok vals ->
+                    Ok { 
+                        PInstr = DCD {Label = x ; values = vals}; 
+                        PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
+                        PSize = 4u; 
+                        PCond = pCond 
+                    }
+                | Error x -> Error x
             | None -> Error "Missing DCD directive label"
 
 
