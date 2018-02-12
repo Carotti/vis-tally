@@ -10,6 +10,6 @@ let main _argv =
     let symTable : SymbolTable = Map.ofList [
                                     "foo", 10u;
                                 ]
-    let test = parseLine (Some symTable) (WA 16u) "FOO DCD foo, foo"
+    let test = parseLine (Some symTable) (WA 16u) "FOO DCD 3 - 5 + 5"
     printfn "%A" test
     0 // return an integer exit code
