@@ -87,13 +87,10 @@ module Misc
                 match txt with  
                 | LabelExpr x -> Some x
                 | LiteralExpr x -> Some x
-                | RegexPrefix "\(" (_, rst) ->
-                    match rst with
-                    | Expr (Ok (exp, rst' : string)) ->
-                        match rst'.StartsWith ")" with
-                        | true -> Ok (exp, rst'.[1..]) |> Some
-                        | false -> sprintf "Unmatched bracket at '%s'" rst' |> Error |> Some
-                    | _ -> Error "Unknown bracketed expression" |> Some
+                | RegexPrefix "\(" (_, Expr (Ok (exp, rst : string))) ->
+                    match rst.StartsWith ")" with
+                    | true -> Ok (exp, rst.[1..]) |> Some
+                    | false -> sprintf "Unmatched bracket at '%s'" rst |> Error |> Some
                 | _ -> None
 
             /// Higher order active pattern for defining binary operators
@@ -104,10 +101,10 @@ module Misc
                 match txt with
                 | NextExpr (Ok (lVal, rhs)) ->
                     match rhs with
-                    | RegexPrefix reg (_, rst) ->
-                        match rst with
-                        | BinExpr (|NextExpr|_|) reg op x -> Result.map (fun (rVal, rst') -> op lVal rVal, rst') x |> Some
-                        | _ -> None
+                    | RegexPrefix reg (_, BinExpr (|NextExpr|_|) reg op x)
+                        -> Result.map (fun (rVal, rst') -> op lVal rVal, rst') x |> Some
+                    // Can't nest this AP because its the
+                    // "pass-through" to the next operator
                     | _ -> Ok (lVal, rhs) |> Some
                 | _ -> None
 
