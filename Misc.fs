@@ -62,13 +62,22 @@ module Misc
                 | None -> "No Symbol table exists" |> Error |> Some
             | _ -> None
 
-        /// Match, parse and evaluate literals
+        /// Match, parse, evaluate and validate literals
         let (|LiteralExpr|_|) txt = 
+            let validLiteral (x, rst) =
+                let rec validLiteral' r =
+                    let rotRight (y : uint32) n = (y >>> n) ||| (y <<< (32 - n))
+                    match (rotRight x r < 256u, r > 30) with
+                    | _, true -> sprintf "Invalid Literal '%d'" x |> Error
+                    | true, _ -> Ok (x, rst)
+                    | false, false -> validLiteral' (r + 2)
+                validLiteral' 0
+            let ret = Ok >> (Result.bind validLiteral) >> Some
             match txt with
             | RegexPrefix "[0-9]+" (num, rst) 
             | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
-            | RegexPrefix "&[0-9a-fA-F]+" (num, rst)
-            | RegexPrefix "0b[0-1]+" (num, rst) -> (uint32 num, rst) |> Ok |> Some
+            | RegexPrefix "0b[0-1]+" (num, rst) -> (uint32 num, rst) |> ret
+            | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> (uint32 ("0x" + num.[1..]), rst) |> ret
             | _ -> None
 
         /// Match, parse and evaluate literals and symbols
@@ -78,10 +87,27 @@ module Misc
             | LiteralExpr x -> Some x
             | _ -> None
 
-        let (|Expr|_|) txt =
+        /// Higher order active pattern for defining binary operators
+        /// NextExpr is the active pattern of the operator with the next
+        /// highest precedence. reg is the regex which matches this operator
+        /// op is the operation it performs
+        let rec (|BinExpr|_|) (|NextExpr|_|) reg op txt =
             match txt with
-            | PrimExpr x -> Some x
+            | NextExpr (Ok (lVal, rhs)) ->
+                match rhs with
+                | RegexPrefix reg (_, rst) ->
+                    match rst with
+                    | BinExpr (|NextExpr|_|) reg op (Ok (rVal, rst')) -> Ok (op lVal rVal, rst') |> Some
+                    | BinExpr (|NextExpr|_|) reg op (Error x) -> Error x |> Some
+                    | _ -> None
+                | _ -> Ok (lVal, rhs) |> Some
             | _ -> None
+
+        // Define active patterns for the binary operators
+        // Order of precedence: Add, Sub, Mul
+        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) "\*" (*)
+        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) "\-" (-)
+        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) "\+" (+)
 
         /// Returns an list of the evaluated expressions in txt
         let rec parseExprList txt : Result<uint32 list, string> =
@@ -91,7 +117,7 @@ module Misc
                 | "" -> Ok [exp]
                 | x -> sprintf "Unknown expression at '%s'" x |> Error
             match txt with
-            | Expr x -> Result.bind exprBinder x
+            | AddExpr x -> Result.bind exprBinder x
             | _ -> "Bad expression list" |> Error
 
         let parseDCD _suffix pCond : Result<Parse<Instr>,string> = 

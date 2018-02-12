@@ -1,3 +1,3 @@
-let x = "0b101011"
+let x = "&ff3"
 
 printfn "%A" (uint32 x)
