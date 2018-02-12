@@ -6,7 +6,6 @@
 module CommonLex
 
     open CommonData
-    open System.Data
     
     /// ARM execution conditions
     type Condition =
