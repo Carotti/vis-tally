@@ -50,10 +50,9 @@ module Misc
             | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
             | false -> None
 
-        /// Match, parse and evaluate literals and symbols
-        let (|PrimExpr|_|) txt =
-            match txt with  
-            | RegexPrefix "[0-9]+" (num, rst) -> (uint32 num, rst) |> Ok |> Some
+        /// Match, parse and evaluate symbols
+        let (|LabelExpr|_|) txt =
+            match txt with 
             | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) ->
                 match ls.SymTab with
                 | Some symTab -> 
@@ -61,6 +60,27 @@ module Misc
                     | true -> (symTab.[var], rst) |> Ok |> Some
                     | false -> sprintf "Symbol '%s' not declared" var |> Error |> Some
                 | None -> "No Symbol table exists" |> Error |> Some
+            | _ -> None
+
+        /// Match, parse and evaluate literals
+        let (|LiteralExpr|_|) txt = 
+            match txt with
+            | RegexPrefix "[0-9]+" (num, rst) 
+            | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
+            | RegexPrefix "&[0-9a-fA-F]+" (num, rst)
+            | RegexPrefix "0b[0-1]+" (num, rst) -> (uint32 num, rst) |> Ok |> Some
+            | _ -> None
+
+        /// Match, parse and evaluate literals and symbols
+        let (|PrimExpr|_|) txt =
+            match txt with  
+            | LabelExpr x -> Some x
+            | LiteralExpr x -> Some x
+            | _ -> None
+
+        let (|Expr|_|) txt =
+            match txt with
+            | PrimExpr x -> Some x
             | _ -> None
 
         /// Returns an list of the evaluated expressions in txt
@@ -71,7 +91,7 @@ module Misc
                 | "" -> Ok [exp]
                 | x -> sprintf "Unknown expression at '%s'" x |> Error
             match txt with
-            | PrimExpr x -> Result.bind exprBinder x
+            | Expr x -> Result.bind exprBinder x
             | _ -> "Bad expression list" |> Error
 
         let parseDCD _suffix pCond : Result<Parse<Instr>,string> = 
@@ -87,7 +107,6 @@ module Misc
                     }
                 | Error x -> Error x
             | None -> Error "Missing DCD directive label"
-
 
         // Map roots to the functions which parse them
         let parseFuncs = 
