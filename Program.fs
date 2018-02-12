@@ -2,10 +2,14 @@
 module Program
 open CommonTop
 open CommonData
+open CommonLex
 
 [<EntryPoint>]
 let main _argv =
     /// test the initProjectLexer code
-    let test = parseLine None (WA 16u) "FOO DCD 16, 17, 18"
+    let symTable : SymbolTable = Map.ofList [
+                                    "foo", 10u;
+                                ]
+    let test = parseLine (Some symTable) (WA 16u) "FOO DCD foo, foo"
     printfn "%A" test
     0 // return an integer exit code
