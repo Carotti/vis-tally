@@ -46,7 +46,6 @@ module DP
 
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
-
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
         
