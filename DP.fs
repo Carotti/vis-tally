@@ -6,14 +6,25 @@ module DP
     open CommonData
     open CommonLex
 
+    type RotAmount =
+        | RotAmt0 = 0   | RotAmt2 = 2   | RotAmt4 = 4   | RotAmt6 = 6 
+        | RotAmt8 = 8   | RotAmt10 = 10 | RotAmt12 = 12 | RotAmt14 = 14 
+        | RotAmt16 = 16 | RotAmt18 = 18 | RotAmt20 = 20 | RotAmt22 = 22 
+        | RotAmt24 = 24 | RotAmt26 = 26 | RotAmt28 = 28 | RotAmt30 = 30
+
+    [<Struct>]
+    type LiteralValue = {value: byte; rot: RotAmount}
+
     /// ***Rs*** is the register containing the shift value for register-controlled shifts. 
     /// Rm must be in the range r0-r7.
+    [<Struct>]
     type RegShift = {rs: RName}
     /// ***Rm*** is the source register for immediate shifts. 
     /// Rm must be in the range r0-r7.
     /// ***expr*** is the immediate shift value. It is an expression evaluating (at assembly time) to an integer in the range:
     /// note: 0-31 if op is LSL
     ///       1-32 otherwise. 
+    [<Struct>]
     type RegExpShift = {rm: RName; exp: uint32}
     /// Both types of shift 
     /// op, rd, rs
@@ -37,6 +48,7 @@ module DP
     type Instr = 
         | LSL of InstrShift
         | LSR of InstrShift
+        | ASR of InstrShift
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -45,7 +57,7 @@ module DP
     /// very incomplete!
     let dPSpec = {
         InstrC = DP
-        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX"]
+        Roots = ["LSL";"LSR";"ASR";"RRX";"ROR"]
         Suffixes = ["";"S"]
     }
 
@@ -60,36 +72,22 @@ module DP
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
 
+        let (|ParseRegex|_|) regex str =
+           let m = Regex(regex).Match(str)
+           if m.Success
+           then Some (List.tail [ for x in m.Groups -> x.Value ])
+           else None
+
         // this does the real work of parsing
         let parseShift suffix pCond : Result<Parse<Instr>,string> = 
             // test here
             let test : InstrShift = {rd = R1; shifter = (Reg {rs = R2})}
             let test2 : InstrShift = {rd = R1; shifter = (RegExp {rm = R2; exp = 8u})}
             Ok { 
-                // Normal (non-error) return from result monad
-                // This is the instruction determined from opcode, suffix and parsing
-                // the operands. Not done in the sample.
-                // Note the record type returned must be written by the module author.
+
                 PInstr = LSL test
-
-
-                // This is normally the line label as contained in
-                // ls together with the label's value which is normally
-                // ls.LoadAddr. Some type conversion is needed since the
-                // label value is a number and not necessarily a word address
-                // it does not have to be div by 4, though it usually is
                 PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
-
-
-                // this is the number of bytes taken by the instruction
-                // word loaded into memory. For arm instructions it is always 4 bytes. 
-                // For data definition DCD etc it is variable.
-                //  For EQU (which does not affect memory) it is 0
                 PSize = 4u; 
-
-                // the instruction condition is detected in the opcode and opCodeExpand                 
-                // has already calculated condition already in the opcode map.
-                // this part never changes
                 PCond = pCond 
             }
         let listOfInstr = 
