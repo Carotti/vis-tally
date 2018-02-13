@@ -3,7 +3,6 @@ module DP
     open CommonData
     open CommonLex
     open System.Text.RegularExpressions
-    open FsCheck
 
     type RotAmount =
         | RotAmt0 = 0   | RotAmt2 = 2   | RotAmt4 = 4   | RotAmt6 = 6 
@@ -14,46 +13,28 @@ module DP
     [<Struct>]
     type LiteralValue = {value: byte; rot: RotAmount}
 
-    /// ***Rs*** is the register containing the shift value for register-controlled shifts. 
-    /// Rm must be in the range r0-r7.
-    [<Struct>]
-    type RegShift = {rs: RName}
-    /// ***Rm*** is the source register for immediate shifts. 
-    /// Rm must be in the range r0-r7.
-    /// ***expr*** is the immediate shift value. It is an expression evaluating (at assembly time) to an integer in the range:
-    /// note: 0-31 if op is LSL
-    ///       1-32 otherwise. 
-    [<Struct>]
-    type RegExpShift = {rm: RName; exp: uint32}
-    /// Both types of shift 
-    /// op, rd, rs
-    /// op, rd, rm, #expr
     type ShiftType = 
-        | Reg of RegShift
-        | RegExp of RegExpShift
+        | Rs of RName
+        | N of uint32
+        | Empty       // None type here for RRX
 
-
-    /// ***Rd*** is the destination register. It is also the source register for register-controlled shifts.
-    /// Rd must be in the range r0-r7.
-    /// ***Rs*** is the register containing the shift value for register-controlled shifts. 
-    /// Rm must be in the range r0-r7.
-    /// ***Rm*** is the source register for immediate shifts. 
-    /// Rm must be in the range r0-r7.
-    /// ***expr*** is the immediate shift value. It is an expression evaluating (at assembly time) to an integer in the range:
-    /// note: 0-31 if op is LSL
-    ///       1-32 otherwise. 
-    type InstrShift =  {rd: RName; shifter: ShiftType}
+    /// op{S}{cond} Rd, Rm, Rs
+    /// op{S}{cond} Rd, Rm, #N
+    /// RRX{S}{cond} Rd, Rm
+    type InstrShift =  {Rd: RName; Rm: RName; shifter: ShiftType}
 
     type Instr = 
-        | LSL of InstrShift
-        | LSR of InstrShift
-        | ASR of InstrShift
+        | LSL of InstrShift // 0-31
+        | LSR of InstrShift // 1-32
+        | ASR of InstrShift // 1-32
+        | ROR of InstrShift // 1-31
+        | RRX of InstrShift
 
     /// sample specification for set of instructions
     /// very incomplete!
     let dPSpec = {
         InstrC = DP
-        Roots = ["LSL";"LSR";"ASR";"RRX";"ROR"]
+        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX"]
         Suffixes = ["";"S"]
     }
 
@@ -68,21 +49,30 @@ module DP
     /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
-
+        
         let (|ParseRegex|_|) regex str =
            let m = Regex(regex).Match(str)
            if m.Success
-           then Some (List.tail [ for x in m.Groups -> x.Value ])
+           then Some (m.Groups.[1].Value)
            else None
 
+        let (|LiteralMatch|_|) str =
+            let uintOption = uint32 >> Some
+            match str with 
+            | ParseRegex "^#(0[xX][0-9a-fA-F]+)$" hex -> hex |> uintOption
+            | ParseRegex "^#(0&[0-9a-fA-F]+)$" hex -> hex |> uintOption
+            | ParseRegex "^#(0[bB][0-1]+)$" bin -> bin |> uintOption
+            | ParseRegex "^#([0-9]+)$" dec -> dec |> uintOption
+            | _ -> None
+        
         // this does the real work of parsing
         let parseShift suffix pCond : Result<Parse<Instr>,string> = 
             // test here
-            let test : InstrShift = {rd = R1; shifter = (Reg {rs = R2})}
-            let test2 : InstrShift = {rd = R1; shifter = (RegExp {rm = R2; exp = 8u})}
+            let regregreg : InstrShift = {Rd = R1; Rm = R2; shifter = (Rs R3)}
+            let regregn : InstrShift = {Rd = R1; Rm = R2; shifter = (N 5u)}
+            let regreg : InstrShift = {Rd = R1; Rm = R2; shifter = Empty}
             Ok { 
-
-                PInstr = LSL test
+                PInstr = LSL regregreg
                 PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                 PSize = 4u; 
                 PCond = pCond 
