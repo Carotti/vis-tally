@@ -42,11 +42,6 @@ module DP
     let opCodes = opCodeExpand dPSpec
   
 
-    /// main function to parse a line of assembler
-    /// ls contains the line input
-    /// and other state needed to generate output
-    /// the result is None if the opcode does not match
-    /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
         
