@@ -97,10 +97,15 @@ module Expressions
         let testBinaryOp opName op f =
             let testFmt fmt (a1 : uint32) (a2 : uint32) =
                 okExprParse None (sprintf fmt a1 op a2) = Some (f a1 a2)
+            let testBin fmt (a1 : uint32) (a2 : uint32) = 
+                let rec bin (a : uint32) =
+                    let bit = string (a % 2u)
+                    match a with 
+                    | 0u | 1u -> bit
+                    | _ -> bin (a / 2u) + bit
+                okExprParse None (sprintf fmt (bin a1) op (bin a2)) = Some (f a1 a2)
             testList opName [
-                testProperty "Signed Decimal numbers" <|
-                    testFmt ("%d %s %d")
-                testProperty "Unsigned Decimal numbers" <|
+                testProperty "Decimal numbers" <|
                     testFmt ("%u %s %u")
                 testProperty "Lowercase Hexadecimal numbers prefix 0x" <|
                     testFmt ("0x%x %s 0x%x")
@@ -110,6 +115,8 @@ module Expressions
                     testFmt ("&%x %s &%x")
                 testProperty "Uppercase Hexadecimal numbers prefix &" <|
                     testFmt ("&%X %s &%X")
+                testProperty "Binary numbers" <|
+                    testBin ("0b%s %s 0b%s")
             ]
 
         testList "Numerical Binary Operator Tests" [
