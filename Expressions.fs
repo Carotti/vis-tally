@@ -5,8 +5,8 @@ module Expressions
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
     let (|RegexPrefix|_|) pat txt =
-        // Match from start
-        let m = Regex.Match (txt, "^" + pat)
+        // Match from start, ignore whitespace
+        let m = Regex.Match (txt, "^[\\s]*" + pat + "[\\s]*")
         match m.Success with
         | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
         | false -> None
@@ -17,11 +17,13 @@ module Expressions
         let (|LabelExpr|_|) txt =
             match txt with 
             | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) ->
+                // Remove whitespace from variable name!
+                let varName = Regex.Replace(var, "[\\s]*", "")
                 match st with
                 | Some symTab -> 
-                    match (Map.containsKey var symTab) with
-                    | true -> (symTab.[var], rst) |> Ok |> Some
-                    | false -> sprintf "Symbol '%s' not declared" var |> Error |> Some
+                    match (Map.containsKey varName symTab) with
+                    | true -> (symTab.[varName], rst) |> Ok |> Some
+                    | false -> sprintf "Symbol '%s' not declared" varName |> Error |> Some
                 | None -> "No Symbol table exists" |> Error |> Some
             | _ -> None
 
@@ -34,16 +36,17 @@ module Expressions
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> (uint32 ("0x" + num.[1..]), rst) |> Ok |> Some
             | _ -> None
 
+
         /// Active pattern matching either labels, literals
         /// or a bracketed expression (recursively defined)
         let (|PrimExpr|_|) txt =
             match txt with  
             | LabelExpr x -> Some x
             | LiteralExpr x -> Some x
-            | RegexPrefix "\(" (_, Expr st (Ok (exp, rst : string)) ) ->
-                match rst.StartsWith ")" with
-                | true -> Ok (exp, rst.[1..]) |> Some
-                | false -> sprintf "Unmatched bracket at '%s'" rst |> Error |> Some
+            | RegexPrefix "\(" (_, Expr st (Ok (exp, rst)) ) ->
+                match rst with
+                | RegexPrefix "\)" (_, rst') -> Ok (exp, rst') |> Some
+                | _ -> sprintf "Unmatched bracket at '%s'" rst |> Error |> Some
             | _ -> None
 
         /// Higher order active pattern for defining binary operators
@@ -61,14 +64,11 @@ module Expressions
                 | _ -> Ok (lVal, rhs) |> Some
             | _ -> None
 
-        /// Create an operator regex which ignores surrounding whitespace
-        let wsOp reg = "[\\s]*" + reg + "[\\s]*"
-
         // Define active patterns for the binary operators
         // Order of precedence: Add, Sub, Mul
-        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) (wsOp "\*") (*)
-        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) (wsOp "\-") (-)
-        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) (wsOp "\+") (+)
+        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) "\*" (*)
+        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) "\-" (-)
+        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) "\+" (+)
 
         match expTxt with
         | AddExpr x -> Some x
@@ -214,6 +214,9 @@ module Expressions
                 unitTest "6" None 0u "0xffFFffFF - 0b11111111111111111111111111111111"
                 unitTest "7" None 16u "0xFFFFFFFF + 17"
                 unitTest "8" None 0xFFFFFFFFu "0xF0F0F0F0 + 0x0F0F0F0F"
+                unitTest "9" None 17u "( 17 )"
+                unitTest "10" None 27u "(\t27\t)\t"
+                unitTest "11" None 19u "19 "
             ]
             testList "Unit Symbols" [
                 unitTest "1" ts 192u "a"
