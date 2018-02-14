@@ -1,6 +1,6 @@
 module Expressions
     open System.Text.RegularExpressions
-    open Expecto    
+    open Expecto
 
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
@@ -42,9 +42,9 @@ module Expressions
                 | true -> Ok >> (Result.bind validLiteral) >> Some
                 | false-> Ok >> Some
             match txt with
-            | RegexPrefix "[0-9]+" (num, rst) 
             | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
-            | RegexPrefix "0b[0-1]+" (num, rst) -> (uint32 num, rst) |> ret
+            | RegexPrefix "0b[0-1]+" (num, rst)
+            | RegexPrefix "[0-9]+" (num, rst) -> (uint32 num, rst) |> ret
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> (uint32 ("0x" + num.[1..]), rst) |> ret
             | _ -> None
 
@@ -85,12 +85,36 @@ module Expressions
         | AddExpr x -> Some x
         | _ -> None
 
-    let okExprParse txt syms = 
-        match txt with
-        | Expr false syms (Ok (ans, "")) -> Some ans
-        | _ -> None
-
     [<Tests>]
     let exprPropertyTests = 
-      testProperty "Basic addition" <|
-         fun (x : uint32, y : uint32) -> okExprParse (sprintf "%u + %u" x y) None = Some (x + y)
+        let okExprParse syms txt = 
+            match txt with
+            | Expr false syms (Ok (ans, "")) -> Some ans
+            | _ -> None
+
+        /// Test all possible number representations of a binary
+        /// operation
+        let testBinaryOp opName op f =
+            let testFmt fmt (a1 : uint32) (a2 : uint32) =
+                okExprParse None (sprintf fmt a1 op a2) = Some (f a1 a2)
+            testList opName [
+                testProperty "Signed Decimal numbers" <|
+                    testFmt ("%d %s %d")
+                testProperty "Unsigned Decimal numbers" <|
+                    testFmt ("%u %s %u")
+                testProperty "Lowercase Hexadecimal numbers prefix 0x" <|
+                    testFmt ("0x%x %s 0x%x")
+                testProperty "Uppercase Hexadecimal numbers prefix 0x" <|
+                    testFmt ("0x%X %s 0x%X")
+                testProperty "Lowercase Hexadecimal numbers prefix &" <|
+                    testFmt ("&%x %s &%x")
+                testProperty "Uppercase Hexadecimal numbers prefix &" <|
+                    testFmt ("&%X %s &%X")
+            ]
+
+        testList "Numerical Binary Operator Tests" [
+            testBinaryOp "Addition" "+" (+)
+            testBinaryOp "Subtraction" "-" (-)
+            testBinaryOp "Multiplication" "*" (*)
+        ]
+

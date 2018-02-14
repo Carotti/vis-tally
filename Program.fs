@@ -16,6 +16,6 @@ module Program
             let symTable : SymbolTable = Map.ofList [
                                             "foo", 10u;
                                         ]
-            let test = parseLine (Some symTable) (WA 16u) "FOO DCD (((((5 + 2) * 3) + 4) * 1) - 6)"
+            let test = parseLine (Some symTable) (WA 16u) "FOO DCD 0x5 + 0xC"
             printfn "%A" test
             0 // return an integer exit code
