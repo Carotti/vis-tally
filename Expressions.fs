@@ -217,6 +217,7 @@ module Expressions
                 unitTest "9" None 17u "( 17 )"
                 unitTest "10" None 27u "(\t27\t)\t"
                 unitTest "11" None 19u "19 "
+                unitTest "12" None 21u "\t21\t"
             ]
             testList "Unit Symbols" [
                 unitTest "1" ts 192u "a"
@@ -232,6 +233,11 @@ module Expressions
                 unitTest "11" ts 0u "n0thing * bigNum"
                 unitTest "12" ts 17123u "(moo)"
                 unitTest "13" ts 17123u "((((moo))))"
+                unitTest "14" ts 192u "\ta"
+                unitTest "15" ts 192u "a\t"
+                unitTest "16" ts 192u " a"
+                unitTest "17" ts 192u "a "
+                unitTest "18" ts 192u "\ta "
             ]
         ]
 
