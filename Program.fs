@@ -13,14 +13,20 @@ let qpl lst = lst |> List.map (qp)
 // maccth helper functions, to delete 
 ////////////////////////////////////////////////////////////////////////////////
 
-
 [<EntryPoint>]
 let main argv =
     /// test the initProjectLexer code
-    let test = parseLine None (WA 0u)
-    let (a b) = 10
-    qp a
-    opCodes |> qp
+    let instrLst = [
+        "ADD R1, R2, #0xf000000f";
+        "ADD R2, R4, #0xf8000007";
+
+    ]
+
+    List.map (parseLine None (WA 0u)) instrLst
+    |> qpl
+    // let test = parseLine None (WA 0u) "ADD R1, R2,  #0xf000000f"
+    // test |> qp
+
 
     
 
