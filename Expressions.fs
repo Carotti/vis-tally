@@ -222,8 +222,13 @@ module Expressions
                 unitTest "4" ts 199u "a+&7"
                 unitTest "5" ts 199u "&7 + a"
                 unitTest "6" ts 199u "&7+a"
-                unitTest "7" ts 384u "a + a"
-                unitTest "8" ts 33224u "8 + J * a"
+                unitTest "7" ts 199u "&7\t+\ta"
+                unitTest "8" ts 199u "a\t+\t&7"
+                unitTest "9" ts 384u "a + a"
+                unitTest "10" ts 33224u "8 + J * a"
+                unitTest "11" ts 0u "n0thing * bigNum"
+                unitTest "12" ts 17123u "(moo)"
+                unitTest "13" ts 17123u "((((moo))))"
             ]
         ]
 
