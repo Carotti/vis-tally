@@ -139,15 +139,27 @@ module Expressions
             ((appFmt lit1) + o1.op + (appFmt lit2) + o2.op + (appFmt lit3))
             |> expEqual None res
 
+        /// Check any literal nested in a lot of brackets still evaluates
+        /// correctly
         let bracketNest lit =
             "((((((((" + (appFmt lit) + "))))))))"
             |> expEqual None lit.value
 
+        /// Simple check for any uint32 mapped to symbol 'testSymbol123'
         let symbol x = 
             let table = Map.ofList [
                             "testSymbol123", x
                         ]
             expEqual (Some table) x "testSymbol123"
+
+        /// Unit Test constructor
+        let unitTest name syms res txt =
+            let expected = 
+                match txt with
+                | Expr syms (Ok (ans, "")) -> Some ans
+                | _ -> None
+            testCase name <| fun () ->
+                Expect.equal (Some res) expected txt
 
         testList "Expression Parsing" [
             testProperty "Literals are the same" literal
@@ -175,6 +187,13 @@ module Expressions
                 <| bracketNest
             testProperty "Symbol"
                 <| symbol
+            testList "Unit Literals" [
+                unitTest "Unit1" None 24u       "(6 + 2) * 3"
+                unitTest "Unit2" None 16u       "27 - (9 + 2)"
+                unitTest "Unit3" None 7u        "25 - (2 * 9)"
+                unitTest "Unit4" None 35u       "(6 - 2) * (3 + 4) + 7"
+                unitTest "Unit5" None 1473u     "((0b111 * 0xff) - ((16 + 0xA)*(12)))"
+            ]
         ]
 
 
