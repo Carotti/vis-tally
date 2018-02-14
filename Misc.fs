@@ -6,7 +6,6 @@ module Misc
     open CommonData
     open CommonLex
     open Expressions
-    open System.ComponentModel.DataAnnotations
 
     // Types for data declaration instructions
     type InstrDCD = {Label : string ; values : uint32 list}
