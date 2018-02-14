@@ -1,7 +1,6 @@
 module Expressions
     open System.Text.RegularExpressions
     open Expecto
-    open System.Threading.Tasks
 
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
@@ -100,36 +99,65 @@ module Expressions
                             Binary, binFormatter
                         ]
 
-    /// Record for any kind of test literal
     type TestLiteral = {value : uint32 ; fmt : LiteralFormat}
 
     /// Apply the format of a TestLiteral to its value
     let appFmt x = litFormatters.[x.fmt] x.value
 
+    type BinaryOperator = {op : string ; f : (uint32 -> uint32 -> uint32)}
+    let add = {op = "+" ; f = (+)}
+    let subtract = {op = "-" ; f = (-)}
+    let multiply = {op = "*" ; f = (*)}
+
     [<Tests>]
     let exprPropertyTests = 
-
         /// Attempt to parse txt with Expr
         /// Check res matches the evaluated expression
-        let expEqual syms txt res =
+        let expEqual syms res txt =
             match txt with
             | Expr syms (Ok (ans, "")) when ans = res -> true
             | _ -> false
 
         /// Check a formatted literal evaluates to itself
         let litIsSame lit =
-            expEqual None (appFmt lit) lit.value
+            expEqual None lit.value (appFmt lit)
 
         /// Check a formatted binary operation evaluates to its result
-        let binOpIsSame op f lit1 lit2 =
-            expEqual None ((appFmt lit1) + op + (appFmt lit2)) (f lit1.value lit2.value)
+        let binOpIsSame o lit1 lit2 =
+            ((appFmt lit1) + o.op + (appFmt lit2))
+            |> expEqual None (o.f lit1.value lit2.value)
+
+        /// Check a formatted expression with 2 operators evaluates correctly
+        /// If first is true, op1 should have higher precedence than op2
+        let precedenceIsSame o1 o2 first lit1 lit2 lit3 = 
+            let res =
+                match first with
+                | true -> (o2.f (o1.f lit1.value lit2.value) lit3.value)
+                | false -> (o1.f lit1.value (o2.f lit2.value lit3.value))
+            ((appFmt lit1) + o1.op + (appFmt lit2) + o2.op + (appFmt lit3))
+            |> expEqual None res
 
         testList "Expression Parsing" [
             testProperty "Literals are the same" litIsSame
             testList "Literal Binary Operators" [
-                testProperty "Addition" <| binOpIsSame "+" (+)
-                testProperty "Subtraction" <| binOpIsSame "-" (-)
-                testProperty "Multiplication" <| binOpIsSame "*" (*)
+                testProperty "Addition" 
+                    <| binOpIsSame add
+                testProperty "Subtraction" 
+                    <| binOpIsSame subtract
+                testProperty "Multiplication" 
+                    <| binOpIsSame multiply
+            ]
+            testList "Operator Precedence" [
+                testProperty "Multiplication then Addition" 
+                    <| precedenceIsSame multiply add true
+                testProperty "Multiplication then Subtraction"
+                    <| precedenceIsSame multiply subtract true
+                testProperty "Addition then Multiplication"
+                    <| precedenceIsSame add multiply false
+                testProperty "Subtraction then Multiplication"
+                    <| precedenceIsSame subtract multiply false
+                testProperty "Addition then Subtraction"
+                    <| precedenceIsSame add subtract // Don't care about precedence here
             ]
         ]
 
