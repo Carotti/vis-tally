@@ -71,6 +71,8 @@ module Expressions
         | AddExpr x -> Some x
         | _ -> None
 
+    // *** Everything below here is just used for testing the expression module ***
+
     /// DUT of possible literal format representations
     type LiteralFormat =
         | Decimal
@@ -119,17 +121,17 @@ module Expressions
             | _ -> false
 
         /// Check a formatted literal evaluates to itself
-        let litIsSame lit =
+        let literal lit =
             expEqual None lit.value (appFmt lit)
 
         /// Check a formatted binary operation evaluates to its result
-        let binOpIsSame o lit1 lit2 =
+        let binOp o lit1 lit2 =
             ((appFmt lit1) + o.op + (appFmt lit2))
             |> expEqual None (o.f lit1.value lit2.value)
 
         /// Check a formatted expression with 2 operators evaluates correctly
         /// If first is true, op1 should have higher precedence than op2
-        let precedenceIsSame o1 o2 first lit1 lit2 lit3 = 
+        let precedence o1 o2 first lit1 lit2 lit3 = 
             let res =
                 match first with
                 | true -> (o2.f (o1.f lit1.value lit2.value) lit3.value)
@@ -137,28 +139,42 @@ module Expressions
             ((appFmt lit1) + o1.op + (appFmt lit2) + o2.op + (appFmt lit3))
             |> expEqual None res
 
+        let bracketNest lit =
+            "((((((((" + (appFmt lit) + "))))))))"
+            |> expEqual None lit.value
+
+        let symbol x = 
+            let table = Map.ofList [
+                            "testSymbol123", x
+                        ]
+            expEqual (Some table) x "testSymbol123"
+
         testList "Expression Parsing" [
-            testProperty "Literals are the same" litIsSame
-            testList "Literal Binary Operators" [
+            testProperty "Literals are the same" literal
+            testList "Binary Operators" [
                 testProperty "Addition" 
-                    <| binOpIsSame add
+                    <| binOp add
                 testProperty "Subtraction" 
-                    <| binOpIsSame subtract
+                    <| binOp subtract
                 testProperty "Multiplication" 
-                    <| binOpIsSame multiply
+                    <| binOp multiply
             ]
             testList "Operator Precedence" [
                 testProperty "Multiplication then Addition" 
-                    <| precedenceIsSame multiply add true
+                    <| precedence multiply add true
                 testProperty "Multiplication then Subtraction"
-                    <| precedenceIsSame multiply subtract true
+                    <| precedence multiply subtract true
                 testProperty "Addition then Multiplication"
-                    <| precedenceIsSame add multiply false
+                    <| precedence add multiply false
                 testProperty "Subtraction then Multiplication"
-                    <| precedenceIsSame subtract multiply false
+                    <| precedence subtract multiply false
                 testProperty "Addition then Subtraction"
-                    <| precedenceIsSame add subtract // Don't care about precedence here
+                    <| precedence add subtract // Don't care about precedence here
             ]
+            testProperty "Literal in Nested Brackets"
+                <| bracketNest
+            testProperty "Symbol"
+                <| symbol
         ]
 
 
