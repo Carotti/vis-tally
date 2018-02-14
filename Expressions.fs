@@ -1,5 +1,6 @@
 module Expressions
     open System.Text.RegularExpressions
+    open Expecto    
 
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
@@ -36,7 +37,7 @@ module Expressions
                     | true, _ -> Ok (x, rst)
                     | false, false -> validLiteral' (r + 2)
                 validLiteral' 0
-            let ret = 
+            let ret =
                 match restricted with
                 | true -> Ok >> (Result.bind validLiteral) >> Some
                 | false-> Ok >> Some
@@ -83,3 +84,13 @@ module Expressions
         match expTxt with
         | AddExpr x -> Some x
         | _ -> None
+
+    let okExprParse txt syms = 
+        match txt with
+        | Expr false syms (Ok (ans, "")) -> Some ans
+        | _ -> None
+
+    [<Tests>]
+    let exprPropertyTests = 
+      testProperty "Basic addition" <|
+         fun (x : uint32, y : uint32) -> okExprParse (sprintf "%u + %u" x y) None = Some (x + y)
