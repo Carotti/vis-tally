@@ -85,43 +85,53 @@ module Expressions
         | AddExpr x -> Some x
         | _ -> None
 
+    type LitFormat = {name : string ; fmt : (uint32 -> string)}
+
     [<Tests>]
     let exprPropertyTests = 
+        /// Attempt to parse txt with Expr
+        /// Either return uint32 result else None
         let okExprParse syms txt = 
             match txt with
             | Expr false syms (Ok (ans, "")) -> Some ans
             | _ -> None
 
-        /// Test all possible number representations of a binary
-        /// operation
-        let testBinaryOp opName op f =
-            let testFmt fmt (a1 : uint32) (a2 : uint32) =
-                okExprParse None (sprintf fmt a1 op a2) = Some (f a1 a2)
-            let testBin fmt (a1 : uint32) (a2 : uint32) = 
-                let rec bin (a : uint32) =
-                    let bit = string (a % 2u)
-                    match a with 
-                    | 0u | 1u -> bit
-                    | _ -> bin (a / 2u) + bit
-                okExprParse None (sprintf fmt (bin a1) op (bin a2)) = Some (f a1 a2)
-            testList opName [
-                testProperty "Decimal numbers" <|
-                    testFmt ("%u %s %u")
-                testProperty "Lowercase Hexadecimal numbers prefix 0x" <|
-                    testFmt ("0x%x %s 0x%x")
-                testProperty "Uppercase Hexadecimal numbers prefix 0x" <|
-                    testFmt ("0x%X %s 0x%X")
-                testProperty "Lowercase Hexadecimal numbers prefix &" <|
-                    testFmt ("&%x %s &%x")
-                testProperty "Uppercase Hexadecimal numbers prefix &" <|
-                    testFmt ("&%X %s &%X")
-                testProperty "Binary numbers" <|
-                    testBin ("0b%s %s 0b%s")
-            ]
-
-        testList "Numerical Binary Operator Tests" [
-            testBinaryOp "Addition" "+" (+)
-            testBinaryOp "Subtraction" "-" (-)
-            testBinaryOp "Multiplication" "*" (*)
+        /// Format a uint32 into the binary format
+        let binFormatter x =
+            let rec bin (a : uint32) =
+                let bit = string (a % 2u)
+                match a with 
+                | 0u | 1u -> bit
+                | _ -> bin (a / 2u) + bit
+            sprintf "0b%s" (bin x)
+        
+        let litFormats = [
+            {name = "Decimal"; fmt = sprintf "%u"}
+            {name = "Lowercase 0x Hexadecimal"; fmt = sprintf "0x%x"}
+            {name = "Uppercase 0x Hexadecimal"; fmt = sprintf "0x%X"}
+            {name = "Lowercase & Hecadecimal"; fmt = sprintf "&%x"}
+            {name = "Uppercase & Hexadecimal"; fmt = sprintf "&%X"}
+            {name = "Binary"; fmt = binFormatter}
         ]
+
+        /// Test all possible combinations of number representations
+        /// For a particular binary operator
+        let testBinaryOp opName op f =
+            let testFmt fmt1 fmt2 a1 a2 =
+                okExprParse None ((fmt1 a1) + op + (fmt2 a2)) = Some (f a1 a2)
+            let makePropTest (x, y) =
+                testProperty (x.name + " by " + y.name) (testFmt x.fmt y.fmt)
+            litFormats
+                |> List.allPairs litFormats
+                |> List.map makePropTest
+                |> testList opName
+
+        testList "Expression Parsing" [
+            testList "Literal Binary Operator" [
+                testBinaryOp "Addition" "+" (+)
+                testBinaryOp "Subtraction" "-" (-)
+                testBinaryOp "Multiplication" "*" (*)
+            ]
+        ]
+
 
