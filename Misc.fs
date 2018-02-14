@@ -49,7 +49,7 @@ module Misc
                 | "" -> Ok [exp]
                 | x -> sprintf "Unknown expression at '%s'" x |> Error
             match txt with
-            | Expr true ls.SymTab x -> Result.bind exprBinder x
+            | Expr ls.SymTab x -> Result.bind exprBinder x
             | _ -> "Bad expression list" |> Error
 
         let parseDCD _suffix pCond : Result<Parse<Instr>,string> = 

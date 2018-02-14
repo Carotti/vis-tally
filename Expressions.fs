@@ -12,9 +12,7 @@ module Expressions
         | false -> None
 
     /// Active pattern for matching mathematical expressions
-    /// restricted indicates whether or not literals are restricted
-    /// to those which can be reprented by 1 byte RORed an even no
-    let rec (|Expr|_|) restricted st expTxt =
+    let rec (|Expr|_|) st expTxt =
         /// Match, parse and evaluate symbols
         let (|LabelExpr|_|) txt =
             match txt with 
@@ -29,23 +27,11 @@ module Expressions
 
         /// Match, parse, evaluate and validate literals
         let (|LiteralExpr|_|) txt = 
-            let validLiteral (x, rst) =
-                let rec validLiteral' r =
-                    let rotRight (y : uint32) n = (y >>> n) ||| (y <<< (32 - n))
-                    match (rotRight x r < 256u, r > 30) with
-                    | _, true -> sprintf "Invalid Literal '%d'" x |> Error
-                    | true, _ -> Ok (x, rst)
-                    | false, false -> validLiteral' (r + 2)
-                validLiteral' 0
-            let ret =
-                match restricted with
-                | true -> Ok >> (Result.bind validLiteral) >> Some
-                | false-> Ok >> Some
             match txt with
             | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
             | RegexPrefix "0b[0-1]+" (num, rst)
-            | RegexPrefix "[0-9]+" (num, rst) -> (uint32 num, rst) |> ret
-            | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> (uint32 ("0x" + num.[1..]), rst) |> ret
+            | RegexPrefix "[0-9]+" (num, rst) -> (uint32 num, rst) |> Ok |> Some
+            | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> (uint32 ("0x" + num.[1..]), rst) |> Ok |> Some
             | _ -> None
 
         /// Active pattern matching either labels, literals
@@ -54,7 +40,7 @@ module Expressions
             match txt with  
             | LabelExpr x -> Some x
             | LiteralExpr x -> Some x
-            | RegexPrefix "\(" (_, Expr restricted st (Ok (exp, rst : string)) ) ->
+            | RegexPrefix "\(" (_, Expr st (Ok (exp, rst : string)) ) ->
                 match rst.StartsWith ")" with
                 | true -> Ok (exp, rst.[1..]) |> Some
                 | false -> sprintf "Unmatched bracket at '%s'" rst |> Error |> Some
@@ -93,7 +79,7 @@ module Expressions
         /// Either return uint32 result else None
         let okExprParse syms txt = 
             match txt with
-            | Expr false syms (Ok (ans, "")) -> Some ans
+            | Expr syms (Ok (ans, "")) -> Some ans
             | _ -> None
 
         /// Format a uint32 into the binary format
