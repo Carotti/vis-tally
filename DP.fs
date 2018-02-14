@@ -158,9 +158,9 @@ module DP
                                                     rOp1 = regNames.[rOp1'];
                                                     fOp2 = Lit({b = (fst litVal); r = (RotVals.[litVal |> snd])})
                                                     }) litVal
-                    | _ -> Error "fuck you "
+                    | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
                     // this will grow as the other forms of flexOp2 are implemented
-                | _ -> Error "gello"
+                | _ -> Error "Syntax error. Instruction format is incorrect."
             
             // ("the operands are", operands)
             // |> qp
@@ -173,7 +173,6 @@ module DP
                     // TODO: parse operands to get rOp1 and op2
                     // TODO: check op2 to see if it is compatible with FlexOp2
                     // TODO: create instruction in format to 'run'
-
                     PInstr  = ADD(ops);
                     PLabel  = ld.Label |> Option.map (fun lab -> lab, la);
                     PSize   = 4u;
