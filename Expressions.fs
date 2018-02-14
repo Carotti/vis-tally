@@ -1,6 +1,7 @@
 module Expressions
     open System.Text.RegularExpressions
     open Expecto
+    open System.Threading.Tasks
 
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
@@ -71,62 +72,64 @@ module Expressions
         | AddExpr x -> Some x
         | _ -> None
 
-    type LitFormat = {name : string ; fmt : (uint32 -> string)}
+    /// DUT of possible literal format representations
+    type LiteralFormat =
+        | Decimal
+        | LowerHex0 // Lowercase prefixed with 0x
+        | UpperHex0 // Uppercase prefixed with 0x
+        | LowerHexA // Lowercase prefixed with &
+        | UpperHexA // Uppercase prefixed with &
+        | Binary
+
+    /// Format a uint32 into the binary format
+    let binFormatter x =
+        let rec bin (a : uint32) =
+            let bit = string (a % 2u)
+            match a with 
+            | 0u | 1u -> bit
+            | _ -> bin (a / 2u) + bit
+        sprintf "0b%s" (bin x)
+
+    /// Map DUT of literal formats to functions which do formatting
+    let litFormatters = Map.ofList [
+                            Decimal, sprintf "%u"
+                            LowerHex0, sprintf "0x%x"
+                            UpperHex0, sprintf "0x%X"
+                            LowerHexA, sprintf "&%x"
+                            UpperHexA, sprintf "&%X"
+                            Binary, binFormatter
+                        ]
+
+    /// Record for any kind of test literal
+    type TestLiteral = {value : uint32 ; fmt : LiteralFormat}
+
+    /// Apply the format of a TestLiteral to its value
+    let appFmt x = litFormatters.[x.fmt] x.value
 
     [<Tests>]
     let exprPropertyTests = 
+
         /// Attempt to parse txt with Expr
-        /// Either return uint32 result else None
-        let okExprParse syms txt = 
+        /// Check res matches the evaluated expression
+        let expEqual syms txt res =
             match txt with
-            | Expr syms (Ok (ans, "")) -> Some ans
-            | _ -> None
+            | Expr syms (Ok (ans, "")) when ans = res -> true
+            | _ -> false
 
-        /// Format a uint32 into the binary format
-        let binFormatter x =
-            let rec bin (a : uint32) =
-                let bit = string (a % 2u)
-                match a with 
-                | 0u | 1u -> bit
-                | _ -> bin (a / 2u) + bit
-            sprintf "0b%s" (bin x)
-        
-        let litFormats = [
-            {name = "Decimal"; fmt = sprintf "%u"}
-            {name = "Lowercase 0x Hexadecimal"; fmt = sprintf "0x%x"}
-            {name = "Uppercase 0x Hexadecimal"; fmt = sprintf "0x%X"}
-            {name = "Lowercase & Hecadecimal"; fmt = sprintf "&%x"}
-            {name = "Uppercase & Hexadecimal"; fmt = sprintf "&%X"}
-            {name = "Binary"; fmt = binFormatter}
-        ]
+        /// Check a formatted literal evaluates to itself
+        let litIsSame lit =
+            expEqual None (appFmt lit) lit.value
 
-        /// Check that all formats of a literal parse to be the same value
-        /// as the literal itself
-        let testLiteral =
-            let testLitFmt fmt a =
-                okExprParse None (fmt a) = Some a
-            litFormats
-                |> List.map (fun x -> testProperty x.name (testLitFmt x.fmt))
-
-        /// Test all possible combinations of number representations
-        /// for a particular binary operator that the parsed result is
-        /// the same as the operation itself
-        let testBinaryOp opName op f =
-            let testBinFmt fmt1 fmt2 a1 a2 =
-                okExprParse None ((fmt1 a1) + op + (fmt2 a2)) = Some (f a1 a2)
-            let makePropTest (x, y) =
-                testProperty (x.name + " by " + y.name) (testBinFmt x.fmt y.fmt)
-            litFormats
-                |> List.allPairs litFormats
-                |> List.map makePropTest
-                |> testList opName
+        /// Check a formatted binary operation evaluates to its result
+        let binOpIsSame op f lit1 lit2 =
+            expEqual None ((appFmt lit1) + op + (appFmt lit2)) (f lit1.value lit2.value)
 
         testList "Expression Parsing" [
-            testList "Literals" testLiteral
+            testProperty "Literals are the same" litIsSame
             testList "Literal Binary Operators" [
-                testBinaryOp "Addition" "+" (+)
-                testBinaryOp "Subtraction" "-" (-)
-                testBinaryOp "Multiplication" "*" (*)
+                testProperty "Addition" <| binOpIsSame "+" (+)
+                testProperty "Subtraction" <| binOpIsSame "-" (-)
+                testProperty "Multiplication" <| binOpIsSame "*" (*)
             ]
         ]
 
