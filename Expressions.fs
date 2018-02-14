@@ -114,20 +114,30 @@ module Expressions
             {name = "Binary"; fmt = binFormatter}
         ]
 
+        /// Check that all formats of a literal parse to be the same value
+        /// as the literal itself
+        let testLiteral =
+            let testLitFmt fmt a =
+                okExprParse None (fmt a) = Some a
+            litFormats
+                |> List.map (fun x -> testProperty x.name (testLitFmt x.fmt))
+
         /// Test all possible combinations of number representations
-        /// For a particular binary operator
+        /// for a particular binary operator that the parsed result is
+        /// the same as the operation itself
         let testBinaryOp opName op f =
-            let testFmt fmt1 fmt2 a1 a2 =
+            let testBinFmt fmt1 fmt2 a1 a2 =
                 okExprParse None ((fmt1 a1) + op + (fmt2 a2)) = Some (f a1 a2)
             let makePropTest (x, y) =
-                testProperty (x.name + " by " + y.name) (testFmt x.fmt y.fmt)
+                testProperty (x.name + " by " + y.name) (testBinFmt x.fmt y.fmt)
             litFormats
                 |> List.allPairs litFormats
                 |> List.map makePropTest
                 |> testList opName
 
         testList "Expression Parsing" [
-            testList "Literal Binary Operator" [
+            testList "Literals" testLiteral
+            testList "Literal Binary Operators" [
                 testBinaryOp "Addition" "+" (+)
                 testBinaryOp "Subtraction" "-" (-)
                 testBinaryOp "Multiplication" "*" (*)
