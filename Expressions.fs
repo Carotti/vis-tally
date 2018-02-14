@@ -5,8 +5,8 @@ module Expressions
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
     let (|RegexPrefix|_|) pat txt =
-        // Match from start, also don't care about whitespace
-        let m = Regex.Match (txt, "^[\\s]*" + pat + "[\\s]*")
+        // Match from start
+        let m = Regex.Match (txt, "^" + pat)
         match m.Success with
         | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
         | false -> None
@@ -61,11 +61,14 @@ module Expressions
                 | _ -> Ok (lVal, rhs) |> Some
             | _ -> None
 
+        /// Create an operator regex which ignores surrounding whitespace
+        let wsOp reg = "[\\s]*" + reg + "[\\s]*"
+
         // Define active patterns for the binary operators
         // Order of precedence: Add, Sub, Mul
-        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) "\*" (*)
-        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) "\-" (-)
-        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) "\+" (+)
+        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) (wsOp "\*") (*)
+        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) (wsOp "\-") (-)
+        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) (wsOp "\+") (+)
 
         match expTxt with
         | AddExpr x -> Some x
@@ -154,12 +157,27 @@ module Expressions
 
         /// Unit Test constructor
         let unitTest name syms res txt =
-            let expected = 
+            let ans = 
                 match txt with
                 | Expr syms (Ok (ans, "")) -> Some ans
                 | _ -> None
             testCase name <| fun () ->
-                Expect.equal (Some res) expected txt
+                Expect.equal ans (Some res) txt
+
+        /// Example symbol table used for unit tests
+        let ts = Map.ofList [
+                        "a", 192u
+                        "moo", 17123u
+                        "J", 173u
+                        "fOO", 402u
+                        "Bar", 19721u
+                        "z1", 139216u
+                        "rock74", 16u
+                        "Nice1", 0xF0F0F0F0u
+                        "Nice2", 0x0F0F0F0Fu
+                        "bigNum", 0xFFFFFFFFu
+                        "n0thing", 0u
+                    ] |> Some
 
         testList "Expression Parsing" [
             testProperty "Literals are the same" literal
@@ -188,11 +206,24 @@ module Expressions
             testProperty "Symbol"
                 <| symbol
             testList "Unit Literals" [
-                unitTest "Unit1" None 24u       "(6 + 2) * 3"
-                unitTest "Unit2" None 16u       "27 - (9 + 2)"
-                unitTest "Unit3" None 7u        "25 - (2 * 9)"
-                unitTest "Unit4" None 35u       "(6 - 2) * (3 + 4) + 7"
-                unitTest "Unit5" None 1473u     "((0b111 * 0xff) - ((16 + 0xA)*(12)))"
+                unitTest "1" None 24u "(6 + 2) * 3"
+                unitTest "2" None 16u "27 - (9 + 2)"
+                unitTest "3" None 7u  "25 - (2 * 9)"
+                unitTest "4" None 35u "(6 - 2) * (3 + 4) + 7"
+                unitTest "5" None 1473u "((0b111 * 0xff) - ((16 + 0xA)*(12)))"
+                unitTest "6" None 0u "0xffFFffFF - 0b11111111111111111111111111111111"
+                unitTest "7" None 16u "0xFFFFFFFF + 17"
+                unitTest "8" None 0xFFFFFFFFu "0xF0F0F0F0 + 0x0F0F0F0F"
+            ]
+            testList "Unit Symbols" [
+                unitTest "1" ts 192u "a"
+                unitTest "2" ts 173u "J"
+                unitTest "3" ts 199u "a + &7"
+                unitTest "4" ts 199u "a+&7"
+                unitTest "5" ts 199u "&7 + a"
+                unitTest "6" ts 199u "&7+a"
+                unitTest "7" ts 384u "a + a"
+                unitTest "8" ts 33224u "8 + J * a"
             ]
         ]
 

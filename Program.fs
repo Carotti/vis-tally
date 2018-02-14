@@ -7,15 +7,25 @@ module Program
     open CommonData
     open CommonLex
 
+    let ts = Map.ofList [
+                    "a", 192u
+                    "moo", 17123u
+                    "J", 173u
+                    "fOO", 402u
+                    "Bar", 19721u
+                    "z1", 139216u
+                    "rock74", 16u
+                    "Nice1", 0xF0F0F0F0u
+                    "Nice2", 0x0F0F0F0Fu
+                    "bigNum", 0xFFFFFFFFu
+                    "n0thing", 0u
+                ] |> Some
+
     [<EntryPoint>]
     let main argv =
         match argv with
         | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
         | _ ->
-            /// test the initProjectLexer code
-            let symTable : SymbolTable = Map.ofList [
-                                            "foo", 10u;
-                                        ]
-            let test = parseLine (Some symTable) (WA 16u) "FOO DCD 1 * 1 - 0"
+            let test = parseLine ts (WA 16u) "FOO DCD a + J"
             printfn "%A" test
             0 // return an integer exit code
