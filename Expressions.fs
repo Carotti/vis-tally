@@ -67,7 +67,7 @@ module Expressions
             | RegexPrefix "[0-9]+" (num, rst) -> 
                 (uint32 num |> Literal, rst) |> Ok |> Some
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
-                (uint32 ("0x" + (removeWs num).[1..]) |> Literal, rst) |> Ok |> Some
+                ("0x" + (removeWs num).[1..] |> uint32 |> Literal, rst) |> Ok |> Some
             | _ -> None
 
         /// Active pattern matching either labels, literals
