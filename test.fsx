@@ -18,7 +18,7 @@ let (|LiteralMatch|_|) str =
     | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> uintOption
     | ParseRegex "#([0-9]+)" dec -> dec |> uintOption
     | ParseRegex "([rR][0-9]+)" reg -> reg |> Some
-            | _ -> None // Literal was not valid
+    | _ -> None // Literal was not valid
 
 match "#0b234" with
 | LiteralMatch out -> out |> printfn "%A"
