@@ -16,7 +16,7 @@ module Memory
 
     let memSpec = {
         InstrC = MEM
-        Roots = ["LDR";"STR"]
+        Roots = ["LDR";"STR";"STM";"LDM"]
         Suffixes = [""; "B"]
     }
 

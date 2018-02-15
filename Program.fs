@@ -13,8 +13,8 @@ let main argv =
     let instrLst = [
         "LSL R0, R1, #2";
         "LSL r0, r1, #0b101";
-        "LSL r0, r1, #0x5";
-        "LSL r0, r1, r114";
+        "LSL r0, r1, #0xe";
+        "LSL r0, r1, #&f";
         "LSL R0, R1, R2"; 
     ]
 
