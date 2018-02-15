@@ -3,7 +3,7 @@ module DP
     open CommonData
     open CommonLex
     open System.Text.RegularExpressions
-    open FsCheck
+    open Expecto
 
     type RotAmount =
         | RotAmt0 = 0   | RotAmt2 = 2   | RotAmt4 = 4   | RotAmt6 = 6 
@@ -57,10 +57,9 @@ module DP
                 match r with
                 | a when (Map.containsKey a regNames) -> Rs (regNames.[a]) |> Some
                 | _ -> None
-                
             match str with 
             | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> optionN
-            | ParseRegex "#(0[&][0-9a-fA-F]+)" hex -> hex |> optionN
+            | ParseRegex "#&([0-9a-fA-F]+)" hex -> ("0x" + hex) |> optionN
             | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> optionN
             | ParseRegex "#([0-9]+)" dec -> dec |> optionN
             | ParseRegex "([rR][0-9]+)" reg -> reg |> optionRs
@@ -122,3 +121,7 @@ module DP
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
+
+    // [<Tests>]
+    // let shiftPropertyTests =
+    //     let parseCheck inp ans 
