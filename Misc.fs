@@ -7,6 +7,8 @@ module Misc
     open CommonLex
     open Expressions
 
+    // Both DCD and DCB don't have their expressions 
+    // evaluated until simulation
     type DCDInstr = {label : string ; values : uint32}
     type DCBInstr = {label : string ; values : byte}
 
@@ -55,22 +57,6 @@ module Misc
             match (x |> byte |> uint32) = x with
             | true -> Ok ()
             | false -> sprintf "Cannot fit '%d' into 1 byte of memory" x |> Error
-
-        /// Returns an list of the evaluated expressions in txt
-        /// Validator is a function that will verify whether the 
-        /// result of each expression matches some condition
-        let rec parseExprList txt validator : Result<uint32 list, string> =
-            let exprBinder (exp, rst) =
-                Result.bind (fun () ->
-                    match rst with
-                    | RegexPrefix "," (_, rst') -> 
-                        Result.map (fun lst -> exp :: lst) (parseExprList rst' validator)
-                    | "" -> Ok [exp]
-                    | x -> sprintf "Unknown expression at '%s'" x |> Error
-                ) (validator exp)
-            match txt with
-            | Expr ls.SymTab x -> Result.bind exprBinder x
-            | x -> sprintf "Unrecognized expression list '%s'" x |> Error
 
         match ls.OpCode with
         | "DCD" -> None
