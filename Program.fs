@@ -65,6 +65,9 @@ let expectoConfig = { Expecto.Tests.defaultConfig with
                         parallelWorkers = 6 // try increasing this if CPU use is less than 100%
                 }
 
+let qp item = printfn "%A" item
+let qpl lst = List.map (qp) lst
+
 [<EntryPoint>]
 let main argv =
 
