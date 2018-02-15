@@ -41,43 +41,65 @@ module Misc
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr
 
-        let validEncoding x =
+        /// Check if x can be rotated right in a 32 bit word
+        let rotateOk x =
             let rec validEncoding' r =
                 let rotRight (x : uint32) n = (x >>> n) ||| (x <<< (32 - n))
                 match rotRight x r < 256u, r > 30 with
-                | _, true -> false
-                | true, false -> true
+                | _, true -> sprintf "Cannot rotate '%d' within a 32 bit word" x |> Error
+                | true, false -> Ok ()
                 | false, false -> validEncoding' (r + 2)
             validEncoding' 0
 
+        /// Check if x is small enough to be a byte
+        let byteOk x =
+            match (x |> byte |> uint32) = x with
+            | true -> Ok ()
+            | false -> sprintf "Cannot fit '%d' into 1 byte of memory" x |> Error
+
         /// Returns an list of the evaluated expressions in txt
-        let rec parseExprList txt : Result<uint32 list, string> =
+        /// Validator is a function that will verify whether the 
+        /// result of each expression matches some condition
+        let rec parseExprList txt validator : Result<uint32 list, string> =
             let exprBinder (exp, rst) =
-                match validEncoding exp with
-                | true ->
+                match validator exp with
+                | Ok () ->
                     match rst with
                     | RegexPrefix "," (_, rst') -> 
-                        Result.map (fun lst -> exp :: lst) (parseExprList rst')
+                        Result.map (fun lst -> exp :: lst) (parseExprList rst' validator)
                     | "" -> Ok [exp]
                     | x -> sprintf "Unknown expression at '%s'" x |> Error
-                | false -> sprintf "Invalid encoded expression evaluates to '%d'" exp |> Error
+                | Error err -> Error err
             match txt with
             | Expr ls.SymTab x -> Result.bind exprBinder x
             | _ -> "Bad expression list" |> Error
 
-        let parseDCD _suffix pCond : Result<Parse<Instr>,string> = 
+        /// For constructing DCD/DCB/EQU instructions
+        let makeDC ins =
+            Ok {
+                PInstr = ins; 
+                PLabel = None; 
+                PSize = 0u; 
+                PCond = Cal;
+            }
+
+        let parseDCD _suffix _pCond : Result<Parse<Instr>,string> = 
             match ls.Label with
             | Some x -> 
-                match parseExprList ls.Operands with
-                | Ok vals ->
-                    Ok { 
-                        PInstr = DCD {Label = x ; values = vals}; 
-                        PLabel = None ; 
-                        PSize = 0u; 
-                        PCond = pCond 
-                    }
+                match parseExprList ls.Operands rotateOk with
+                | Ok vals -> DCD {Label = x ; values = vals} |> makeDC; 
                 | Error x -> Error x
             | None -> Error "Missing DCD directive label"
+
+        let parseDCB _suffix _pCond : Result<Parse<Instr>,string> = 
+            match ls.Label with
+            | Some x -> 
+                match parseExprList ls.Operands byteOk with
+                | Ok vals -> 
+                    let bytes = List.map byte vals
+                    DCB {Label = x; values = bytes} |> makeDC
+                | Error x -> Error x
+            | None -> Error "Missing DCB directive label"
 
         // Map roots to the functions which parse them
         let parseFuncs = 
