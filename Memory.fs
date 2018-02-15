@@ -1,15 +1,26 @@
 
 
 module Memory
-
+    open CommonData
     open CommonLex
+    open Expecto
 
-    /// sample specification for set of instructions
+    type OffsetType =
+        | ImmOffset of uint32
+        | Empty
 
-    // change these types as required
+    [<Struct>]
+    type Address = {addrReg: RName; offset: OffsetType}
+    
+    type PostIndex =
+        | N of uint32
+        | Empty
 
-    /// instruction (dummy: must change)
-    type Instr =  {MemDummy: Unit}
+    [<Struct>]
+    type InstrMem = {valReg: RName; addr: Address; postOffset: PostIndex}
+
+    type Instr = 
+        | LDR of InstrMem
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -29,10 +40,23 @@ module Memory
     /// the result is None if the opcode does not match
     /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
+        let parseLoad suffix pCond : Result<Parse<Instr>,string> = 
+            Ok { 
+                PInstr={MemDummy=()};
+                PLabel = None ; 
+                PSize = 4u; 
+                PCond = pCond 
+              }
+
+    
+        let listOfInstr = 
+            Map.ofList [
+                "LDR", parseLoad;
+            ]
+
         let parse' (instrC, (root,suffix,pCond)) =
-            // this does the real work of parsing
-            // dummy return for now
-            Ok { PInstr={MemDummy=()}; PLabel = None ; PSize = 4u; PCond = pCond }
+            listOfInstr.[root] suffix pCond
+
         Map.tryFind ls.OpCode opCodes
         |> Option.map parse'
 
