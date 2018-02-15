@@ -11,14 +11,21 @@ module Expressions
         | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
         | false -> None
 
+    /// Active pattern for matching labels
+    /// Also removes any whitespace from around the label
+    let (|LabelExpr|_|) txt =
+        match txt with 
+        | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) -> 
+            // Remove whitespace from the label
+            (Regex.Replace(var, "[\\s]*", ""), rst) |> Some
+        | _ -> None
+
     /// Active pattern for matching mathematical expressions
     let rec (|Expr|_|) st expTxt =
         /// Match, parse and evaluate symbols
-        let (|LabelExpr|_|) txt =
+        let (|LabelExprEval|_|) txt =
             match txt with 
-            | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) ->
-                // Remove whitespace from variable name!
-                let varName = Regex.Replace(var, "[\\s]*", "")
+            | LabelExpr (varName, rst) ->
                 match st with
                 | Some symTab -> 
                     match (Map.containsKey varName symTab) with
@@ -41,7 +48,7 @@ module Expressions
         /// or a bracketed expression (recursively defined)
         let (|PrimExpr|_|) txt =
             match txt with  
-            | LabelExpr x -> Some x
+            | LabelExprEval x -> Some x
             | LiteralExpr x -> Some x
             | RegexPrefix "\(" (_, Expr st (Ok (exp, rst)) ) ->
                 match rst with

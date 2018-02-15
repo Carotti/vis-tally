@@ -9,6 +9,7 @@
     <Compile Include="Expressions.fs" />
     <Compile Include="DP.fs" />
     <Compile Include="Memory.fs" />
+    <Compile Include="Branch.fs" />
     <Compile Include="Misc.fs" />
     <Compile Include="CommonTop.fs" />
     <Compile Include="Program.fs" />
