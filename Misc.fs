@@ -9,8 +9,7 @@ module Misc
 
     // Both DCD and DCB don't have their expressions 
     // evaluated until simulation
-    type DCDInstr = {label : string ; values : uint32}
-    type DCBInstr = {label : string ; values : byte}
+    type DataInstr = {label : string ; values : Expression list}
 
     type FILLValSize = One | Two | Four
     type FILLVal = {value : uint32 ; valueSize : FILLValSize Option}
@@ -18,8 +17,8 @@ module Misc
 
     /// instruction (dummy: must change)
     type Instr =
-    | DCD of DCDInstr
-    | DCB of DCBInstr
+    | DCD of DataInstr
+    | DCB of DataInstr
     | FILL of FILLInstr
     | EQU // No information about EQU is needed
 
