@@ -70,35 +70,18 @@ let qpl lst = List.map (qp) lst
 
 [<EntryPoint>]
 let main argv =
+    /// test the initProjectLexer code
+    let instrLst = [
+        // "LSL R0, R1, #2";
+        // "LSL r0, r1, #0b101";
+        // "LSL r0, r1, #0xe";
+        // "LSL r0, r1, #&f";
+        // "LSL R0, R1, R2"; 
+        "RRX R0, R1";
+    ]
 
-    let rec keyHandler() =
-        printfn "Enter..."
-        printfn "         'p' for a parsing REPL"
-        printfn "         'e' for an execution REPL"
-        printfn "      or 't' to run some cool tests"
-        let key = System.Console.ReadKey()
-        match key.KeyChar with
-        | 'p'   ->
-            "ready to REPL..." |> (printfn "%s")
-            parseREPL()
-            0
-        | 'e'   ->
-            "ready to REPL..." |> (printfn "%s")
-            let dp = initialiseDP false false false false [0u]
-            exeREPL dp
-            0 
-        | 't'   ->
-            initCaches testParas
-            let rc = runTestsInAssembly expectoConfig [||]
-            finaliseCaches testParas
-            System.Console.ReadKey() |> ignore
-            0
-        |  _    -> keyHandler()
-
-
-    keyHandler()
-
-    
-  
-
-
+    List.map (parseLine None (WA 0u)) instrLst
+    |> qpl
+    |> ignore
+    0 // return an integer exit code
+    // This is a test
