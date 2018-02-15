@@ -2,6 +2,7 @@ module DP
     open CommonData
     open CommonLex
     open System.Text.RegularExpressions
+    open FsCheck
 
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -77,6 +78,11 @@ module DP
     /// Instruction format for three-operand data processing instructions. 
     type DP3Form = {rDest:RName; rOp1:RName; fOp2:FlexOp2} 
 
+    /// Instruction format for the first two operands of the hree-operand data
+    ///  processing instructions. 
+    type DP2Form = {rDest:RName; rOp1: RName}
+ 
+
     type Instr =
         | ADD of DP3Form
        
@@ -89,13 +95,28 @@ module DP
         Suffixes = [""; "S"]
     }
 
-
-
+    /// Constructs an operand record of type `DP3Form` from registers specified as strings.
     let consDP3 rDest' rOp1' fOp2' =
         {rDest = regNames.[rDest']; rOp1 = regNames.[rOp1']; fOp2 = fOp2'}
+
+    /// Constructs an operand record of type `DP2Form` from registers specified as strings.
+    let consDP2 rDest' rOp1' =
+        {rDest = regNames.[rDest']; rOp1 = regNames.[rOp1']}
+
+    /// Joins a `DP2Form` and a `FlexOp2` to create a  t`DP3Form`.
+    let joinDP dp2 fOp2' =
+        {rDest = dp2.rDest; rOp1 = dp2.rOp1; fOp2 = fOp2'}
+
+    let partialDP rDest' rOp1' fOp2' =
+        let dp2 = consDP2 rDest' rOp1'
+        joinDP dp2 fOp2'
+         
     
-    let consLit b' r' =
-        {b = b'; r = RotVals.[r']}
+    /// Constructs a literal record of type `Literal` from a rotation values specified as an integer.
+    let consLit (b', r') =
+        Lit({b = b'; r = RotVals.[r']})
+    
+
         
                                                    
 
@@ -110,6 +131,7 @@ module DP
     let parse (ld: LineData) : Result<Parse<Instr>,string> option =
     
         let checkReg regStr = Map.containsKey regStr regNames
+        
         let checkRegs regLst = regLst |> List.fold (fun s r -> s && (checkReg r)) true
 
         let checkLiteral (lit:uint32) =
@@ -154,10 +176,8 @@ module DP
                 | [rDest'; rOp1'; op2'] when (checkRegs [rDest'; rOp1']) ->
                     match op2' with
                     | LitMatch (litVal) ->
-                        Result.map (fun litVal -> { rDest = regNames.[rDest'];
-                                                    rOp1 = regNames.[rOp1'];
-                                                    fOp2 = Lit({b = (fst litVal); r = (RotVals.[litVal |> snd])})
-                                                    }) litVal
+                        let dp2 = partialDP rDest' rOp1'
+                        litVal |> Result.map (consLit >> dp2)
                     | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
                     // this will grow as the other forms of flexOp2 are implemented
                 | _ -> Error "Syntax error. Instruction format is incorrect."
