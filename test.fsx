@@ -2,10 +2,7 @@
 let a = 13
 let b = 147
 
-let myFormatter x =
-    match x with
-    | 13 -> "Unlucky!"
-    | y -> string y
-
-printfn "%s" (myFormatter a)
-printfn "%s" (myFormatter b)
+match foo with
+| moo -> {a = 4 ; b = 9}
+| blah -> {a = 5 ; b = 8}
+| thingy -> {a = 6 ; b = 7}

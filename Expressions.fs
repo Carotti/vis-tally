@@ -11,13 +11,16 @@ module Expressions
         | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
         | false -> None
 
+    /// Remove all whitespace from a matched string
+    let removeWs txt = Regex.Replace (txt, "[\\s]*", "")
+
     /// Active pattern for matching labels
     /// Also removes any whitespace from around the label
     let (|LabelExpr|_|) txt =
         match txt with 
         | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) -> 
             // Remove whitespace from the label
-            (Regex.Replace(var, "[\\s]*", ""), rst) |> Some
+            (removeWs var, rst) |> Some
         | _ -> None
 
     type Expression =
@@ -27,11 +30,14 @@ module Expressions
         | Label of string
         | Literal of uint32
 
+    /// Evaluate exp against the symbol table syms
+    /// Returns a list of errors in the expression or 
+    /// a uint32 result of the evaluated expression
     let rec eval syms exp =
         let doBinary op x y = 
             match (eval syms x), (eval syms y) with
             | Ok resX, Ok resY -> op resX resY |> Ok
-            | Error a, Error b -> a + b |> Error
+            | Error a, Error b -> a @ b |> Error
             | Error a, _ -> Error a
             | _, Error b -> Error b
         match exp with
@@ -42,7 +48,7 @@ module Expressions
         | Label x ->
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
-                | false -> sprintf "Symbol '%s' not declared" x |> Error
+                | false -> [sprintf "Symbol '%s' not declared" x] |> Error
 
     /// Active pattern for matching expressions
     /// Returns an Expression AST
@@ -61,8 +67,7 @@ module Expressions
             | RegexPrefix "[0-9]+" (num, rst) -> 
                 (uint32 num |> Literal, rst) |> Ok |> Some
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
-                // This one is a bit hacky, fix this at some point..
-                (uint32 ("0x" + num.[1..]) |> Literal, rst) |> Ok |> Some
+                (uint32 ("0x" + (removeWs num).[1..]) |> Literal, rst) |> Ok |> Some
             | _ -> None
 
         /// Active pattern matching either labels, literals
@@ -252,6 +257,7 @@ module Expressions
                 unitTest "10" Map.empty 27u "(\t27\t)\t"
                 unitTest "11" Map.empty 19u "19 "
                 unitTest "12" Map.empty 21u "\t21\t"
+                unitTest "13" Map.empty 5u " &5"
             ]
             testList "Unit Symbols" [
                 unitTest "1" ts 192u "a"
