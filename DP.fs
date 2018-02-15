@@ -24,6 +24,7 @@ module DP
     /// op{S}{cond} Rd, Rm, Rs
     /// op{S}{cond} Rd, Rm, #N
     /// RRX{S}{cond} Rd, Rm
+    [<Struct>]
     type InstrShift =  {Rd: RName; Rm: RName; shifter: ShiftType}
 
     type Instr = 
@@ -44,13 +45,18 @@ module DP
         Suffixes = ["";"S"]
     }
 
+                        
+    let regregreg : InstrShift = {Rd = R1; Rm = R2; shifter = (Rs R3)}
+    let regregn : InstrShift = {Rd = R1; Rm = R2; shifter = (N 5u)}
+    let regreg : InstrShift = {Rd = R1; Rm = R2; shifter = Empty}
+
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
         
         let (|ParseRegex|_|) regex str =
-           let m = Regex(regex).Match(str)
+           let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
            if m.Success
            then Some (m.Groups.[1].Value)
            else None
@@ -58,18 +64,43 @@ module DP
         let (|LiteralMatch|_|) str =
             let uintOption = uint32 >> Some
             match str with 
-            | ParseRegex "^#(0[xX][0-9a-fA-F]+)$" hex -> hex |> uintOption
-            | ParseRegex "^#(0&[0-9a-fA-F]+)$" hex -> hex |> uintOption
-            | ParseRegex "^#(0[bB][0-1]+)$" bin -> bin |> uintOption
-            | ParseRegex "^#([0-9]+)$" dec -> dec |> uintOption
-            | _ -> None
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> uintOption
+            | ParseRegex "#(0&[0-9a-fA-F]+)" hex -> hex |> uintOption
+            | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> uintOption
+            | ParseRegex "#([0-9]+)" dec -> dec |> uintOption
+            | ParseRegex "([rR][0-9]+)" reg -> reg |> Some
+            | _ -> None // Literal was not valid
         
         // this does the real work of parsing
         let parseShift suffix pCond : Result<Parse<Instr>,string> = 
-            // test here
-            let regregreg : InstrShift = {Rd = R1; Rm = R2; shifter = (Rs R3)}
-            let regregn : InstrShift = {Rd = R1; Rm = R2; shifter = (N 5u)}
-            let regreg : InstrShift = {Rd = R1; Rm = R2; shifter = Empty}
+            let regsExist rLst = 
+                rLst 
+                |> List.fold (fun b r -> b && (Map.containsKey r regNames)) true
+
+            let checkValid opList =
+                match opList with
+                | [dest; op1; _] when (regsExist [dest; op1]) -> true
+                | _ -> false     
+
+            let splitOps =                          
+                let nospace = ls.Operands.Replace(" ", "")                                    
+                nospace.Split([|','|])              
+                |> Array.map (fun r -> r.ToUpper())    
+                |> List.ofArray
+
+            let parseOp2 =
+                match splitOps with
+                | [dest; op1; op2] when (checkValid splitOps) ->
+                    match op2 with
+                    | LiteralMatch txt -> 
+                        Result.map (fun txt -> 
+                            {Rd = regNames.[dest]; Rm = regNames.[op1]; shifter = }
+                            )
+                    | _ -> None
+                | _ -> 
+                
+                
+
             Ok { 
                 PInstr = LSL regregreg
                 PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
