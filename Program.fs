@@ -25,6 +25,6 @@ module Program
         match argv with
         | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
         | _ ->
-            let test = parseLine ts (WA 16u) "FOO DCD a - J"
+            let test = parseLine ts (WA 16u) "FOO DCDEQ a - J"
             printfn "%A" test
             0 // return an integer exit code
