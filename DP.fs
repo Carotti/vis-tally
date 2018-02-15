@@ -8,6 +8,9 @@ module DP
     open System.Text.RegularExpressions
     open Expecto
 
+    let qp item = printfn "%A" item
+    let qpl lst = List.map (qp) lst
+
     type RotAmount =
         | RotAmt0 = 0   | RotAmt2 = 2   | RotAmt4 = 4   | RotAmt6 = 6 
         | RotAmt8 = 8   | RotAmt10 = 10 | RotAmt12 = 12 | RotAmt14 = 14 
@@ -79,7 +82,8 @@ module DP
             
             let checkValid opList =
                 match opList with
-                | [dest; op1; _] when (regsExist [dest; op1]) -> true
+                | [dest; op1; _] when (regsExist [dest; op1]) -> true // ASR, LSL, LSR ROR
+                | [dest; op1] when (regsExist [dest; op1]) -> true // RRX
                 | _ -> false
 
             let splitOps =                          
@@ -88,14 +92,28 @@ module DP
                 |> Array.map (fun r -> r.ToUpper())    
                 |> List.ofArray
 
-            let operands =
+            let ops =
                 match splitOps with
+                | [dest; op1] when (checkValid splitOps) ->
+                    Result.map (fun x -> 
+                        {
+                            Rd = regNames.[dest];
+                            Rm = regNames.[op1];
+                            shifter = Empty
+                        }) (Ok Empty) // RRX
                 | [dest; op1; op2] when (checkValid splitOps) ->
                     match op2 with
                     | LiteralMatch regOrNum -> 
-                        Result.map (fun regOrNum -> {Rd = regNames.[dest]; Rm = regNames.[op1]; shifter = regOrNum}) (Ok regOrNum)
+                        Result.map (fun regOrNum -> 
+                            {
+                                Rd = regNames.[dest]; 
+                                Rm = regNames.[op1]; 
+                                shifter = regOrNum
+                            }) (Ok regOrNum) // ASR, LSL, LSR ROR
                     | _ -> Error "Did not match"
-                | _ -> Error "Split bollocked"
+                | _ ->
+                    qp splitOps
+                    Error "Split bollocked"
 
             let makeLSL ops = 
                 Ok { 
@@ -111,12 +129,22 @@ module DP
                     PSize = 4u; 
                     PCond = pCond 
                 }
+            let makeRRX ops = 
+                Ok { 
+                    PInstr = RRX ops
+                    PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
+                    PSize = 4u; 
+                    PCond = pCond 
+                }
 
-            Result.bind makeLSL operands
+            Result.bind makeRRX ops
         let listOfInstr = 
             Map.ofList [
                 "LSL", parseShift;
+                "LSR", parseShift;
                 "ASR", parseShift;
+                "ROR", parseShift;
+                "RRX", parseShift;
             ]
         let parse' (_instrC, (root,suffix,pCond)) =
            listOfInstr.[root] suffix pCond

@@ -1,6 +1,7 @@
 open System
 open System.Text.RegularExpressions
 open System.Linq
+open System.Linq
 
 let qp item = printfn "%A" item
 
@@ -25,9 +26,9 @@ match "#0b234" with
 | _ -> "nope" |> printfn "%A"
 
 
-let str = "r0, r1, #2"
-let nospace = str.Replace(" ", "")
-nospace.Split([|','|])
-|> Array.map (fun r -> r.ToUpper())
-|> List.ofArray
-
+let str = "r0, r1"
+                        
+let nospace = str.Replace(" ", "")                                    
+nospace.Split([|','|])              
+|> Array.map (fun r -> r.ToUpper())    
+|> List.ofArray |> qp
