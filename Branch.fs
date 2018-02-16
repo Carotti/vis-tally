@@ -8,9 +8,15 @@ module Branch
     open Expressions
     open Execution
 
+    // Symbols become uint32 when they are resolved
+    type Symbol =
+        | SymUnresolved of string
+        | SymResolved of uint32
+        
+    // Type returned after parsing
     type Instr =
-        | B of string
-        | BL of string
+        | B of Symbol
+        | BL of Symbol
         | END
 
     type ErrRunTime =
@@ -22,6 +28,17 @@ module Branch
         | ParseError of string
         | RuntimeError of ErrRunTime
 
+    /// Resolve the symbols for an instruction which requires it
+    let resolve ins (syms : SymbolTable) =
+        let lookup which sym =
+            match syms.ContainsKey sym with
+            | true -> which (SymResolved syms.[sym]) |> Ok
+            | false -> sprintf "Symbol '%s' doesn't exist" sym |> Error
+        match ins with
+        | B (SymUnresolved sym) -> lookup B sym
+        | BL (SymUnresolved sym) -> lookup BL sym
+        | _ -> "Symbol does not need resolving" |> Error
+
     // Branch instructions have no suffixes
     let branchSpec = {
         InstrC = BRANCH
@@ -30,7 +47,7 @@ module Branch
     }
 
     /// Execute a Branch instruction
-    let execute dp (ins : Parse<Instr>) (syms : SymbolTable) =
+    let execute dp (ins : Parse<Instr>) =
         let nxt = dp.Regs.[R15] + 4u // Address of the next instruction
         match condExecute ins dp with
         | false -> 
@@ -39,19 +56,21 @@ module Branch
             |> Ok
         | true ->
             match ins.PInstr with
-            | B label -> 
+            | B (SymUnresolved _)
+            | BL (SymUnresolved _) -> 
+                failwithf "Trying to execute an unresolved label"
+            | B (SymResolved addr) -> 
                 dp 
-                |> updateReg R15 syms.[label] 
+                |> updateReg R15 addr
                 |> Ok
-            | BL label ->
+            | BL (SymResolved addr) ->
                 dp
-                |> updateReg R15 syms.[label]
-                |> updateReg R14 5u
+                |> updateReg R15 addr
+                |> updateReg R14 nxt
                 |> Ok
             | END ->
                 EXIT |> Error
                 
-
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand branchSpec
 
@@ -63,8 +82,8 @@ module Branch
                 Ok { 
                     PInstr = 
                         match root with
-                        | "B" -> B l
-                        | "BL" -> BL l
+                        | "B" -> B (SymUnresolved l)
+                        | "BL" -> BL (SymUnresolved l)
                         | "END" -> END
                         | _ -> failwithf "Unexpected root in Misc.parse"
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
@@ -78,3 +97,5 @@ module Branch
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
+
+    

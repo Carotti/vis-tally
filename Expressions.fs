@@ -49,13 +49,6 @@ module Expressions
     /// Active pattern for matching expressions
     /// Returns an Expression AST
     let rec (|Expr|_|) expTxt =
-        /// Match, parse and evaluate symbols
-        let (|LabelExprEval|_|) txt =
-            match txt with 
-            | LabelExpr (varName, rst) -> (Label varName, rst) |> Some
-            | _ -> None
-
-        /// Match, parse, evaluate and validate literals
         let (|LiteralExpr|_|) txt = 
             match txt with
             | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
@@ -70,7 +63,7 @@ module Expressions
         /// or a bracketed expression (recursively defined)
         let (|PrimExpr|_|) txt =
             match txt with  
-            | LabelExprEval x -> Some x
+            | LabelExpr (lab, rst) -> (Label lab, rst) |> Some
             | LiteralExpr x -> Some x
             | RegexPrefix "\(" (_, Expr (exp, RegexPrefix "\)" (_, rst)) ) -> (exp, rst) |> Some
             | _ -> None
