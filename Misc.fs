@@ -8,18 +8,23 @@ module Misc
     open Expressions
     open Expecto
 
+    type SymbolExp =
+        | ExpUnresolved of Expression
+        | ExpResolved of uint32
+
     // Both DCD and DCB don't have their expressions 
     // evaluated until simulation
 
-    type FILLVal = {value : Expression ; valueSize : int}
-    type FILLInstr = {numBytes : Expression ; fillWith : FILLVal Option}
+    type FILLVal = {value : SymbolExp ; valueSize : int}
+    type FILLInstr = {numBytes : SymbolExp ; fillWith : FILLVal Option}
 
     /// instruction (dummy: must change)
     type Instr =
-    | DCD of Expression list
-    | DCB of Expression list
+    | Phase1Dummy // Return this if we are on phase 1 of parsing
+    | DCD of SymbolExp list
+    | DCB of SymbolExp list
     | FILL of FILLInstr
-    | EQU of Expression
+    | EQU of string * SymbolExp
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -29,7 +34,7 @@ module Misc
 
     let parseExpr txt =
         match txt with
-        | Expr (exp, "") -> Ok exp
+        | Expr (exp, "") -> exp |> ExpUnresolved |> Ok
         | _ -> sprintf "Invalid expression '%s'" txt |> Error
 
     let rec parseExprList txt =
@@ -37,8 +42,8 @@ module Misc
         | Expr (exp, rst) ->
             match rst with
             | RegexPrefix "," (_, rst') -> 
-                Result.map (fun lst -> exp :: lst) (parseExprList rst')
-            | "" -> Ok [exp]
+                Result.map (fun lst -> (ExpUnresolved exp) :: lst) (parseExprList rst')
+            | "" -> Ok [ExpUnresolved exp]
             | _ -> sprintf "Invalid Expression '%s'" txt |> Error
         | _ -> sprintf "Bad expression list '%s'" txt |> Error
 
@@ -78,8 +83,8 @@ module Misc
             let parseEQU' lab =
                 Result.bind (fun exp ->
                     Ok {
-                        PInstr = EQU exp;
-                        PLabel = Some (lab, la);
+                        PInstr = EQU (lab, exp);
+                        PLabel = None;
                         PSize = 0u;
                         PCond = Cal;
                     }
@@ -92,13 +97,15 @@ module Misc
                 | Expr (num, rst) -> 
                     match rst with
                     | "" ->
-                        FILL {numBytes = num; fillWith = None} |> Ok
+                        FILL {numBytes = ExpUnresolved num; fillWith = None} |> Ok
                     | RegexPrefix "," (_, Expr (v, rst')) ->
                         match rst' with
                         | "" ->
-                            FILL {numBytes = num; fillWith = Some {value = v; valueSize = 1}} |> Ok
+                            FILL {numBytes = ExpUnresolved num; fillWith = 
+                                Some {value = ExpUnresolved v; valueSize = 1}} |> Ok
                         | RegexPrefix "," (_, RegexPrefix "[124]" (vs, "")) ->
-                            FILL {numBytes = num; fillWith = Some {value = v; valueSize = int vs}} |> Ok
+                            FILL {numBytes = ExpUnresolved num; fillWith = 
+                                Some {value = ExpUnresolved v; valueSize = int vs}} |> Ok
                         | _ -> sprintf "Invalid fill value size '%s'" rst' |> Error
                     | _ -> sprintf "Invalid fill value expression '%s'" rst |> Error
                 | _ -> sprintf "Invalid fill expression '%s'" ls.Operands |> Error
@@ -120,3 +127,5 @@ module Misc
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
+
+    // *** Everything below here is just used for testing the expression module ***
