@@ -107,18 +107,21 @@ module DP
     let consDP2 rDest' rOp1' =
         {rDest = regNames.[rDest']; rOp1 = regNames.[rOp1']}
 
-    /// Joins a `DP2Form` and a `FlexOp2` to create a  t`DP3Form`.
+    /// Joins a `DP2Form` and a `FlexOp2` to create a `DP3Form`.
     let joinDP dp2 fOp2' =
         {rDest = dp2.rDest; rOp1 = dp2.rOp1; fOp2 = fOp2'}
 
+    /// Creates a `DP2Form` from `rDest'` and `rOp1'`. Joins the `DP2Form` to a 
+    ///  `FlexOp2` to create a `DP3Form`.
     let partialDP rDest' rOp1' fOp2' =
         let dp2 = consDP2 rDest' rOp1'
         joinDP dp2 fOp2'
     
-    /// Constructs a literal record of type `Literal` from a rotation values specified as an integer.
+    /// Constructs a literal record of type `Literal` from a rotation values specified as an `int`.
     let consLit (b', r') =
         Lit({b = b'; r = RotVals.[r']})
 
+    /// Constructs a register name of type `RName` from a register specified as a `string`.
     let consReg reg =
         regNames.[reg]
     
@@ -140,7 +143,7 @@ module DP
       
         let checkRegs regLst = regLst |> List.fold (fun s r -> s && (checkReg r)) true
 
-        let checkLiteral (lit:uint32) =
+        let checkLiteral lit =
             let rotMask n = (0xFFu >>> n) ||| (0xFFu <<< 32 - n)
             [0..2..30] 
             |> List.map (fun r -> rotMask r, r)
@@ -173,14 +176,17 @@ module DP
         let (|RegMatch|_|) txt =
             match txt with
             | ParseRegex "([R][\d][0-5]?)" reg ->
-                reg |> Ok |> Result.map(consReg) |> Some
+                reg |> consReg |> Ok |> Some
             | _ ->
                 // "Not a valid flexible second operand register." |> qp
                 None
-
-
-
-
+        
+        let (|RrxMatch|_|) (reg, txt) =
+            match txt with
+            | ParseRegex "(RRX)" rrx ->
+                reg |> consReg |> Ok |> Some
+            | _ ->
+                None
 
         let (WA la) = ld.LoadAddr
 
@@ -201,13 +207,13 @@ module DP
                         reg |> Result.map (Reg >> dp2)
 
                     | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
-                    // this will grow as the other forms of flexOp2 are implemented
+                | [rDest'; rOp1'; rOp2'; extn] when (checkRegs [rDest'; rOp1'; rOp2']) ->
+                    match (rOp2', extn) with
+                    | RrxMatch reg ->
+                        let dp2 = partialDP rDest' rOp1'
+                        reg |> Result.map (RRX >> dp2)
+                    | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
                 | _ -> Error "Syntax error. Instruction format is incorrect."
-            
-            // ("the operands are", operands)
-            // |> qp
-
-            // type DP3Form = {rDest:RName; rOp1:RName; op2:FlexOp2} 
             
             let makeAdd ops =
                 Ok {
