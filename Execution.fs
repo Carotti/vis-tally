@@ -2,27 +2,31 @@ module Execution
     open CommonData
     open CommonLex
 
-    /// f will be called on ins if the condition in ins
-    /// is met by the flags in data else g is called
-    let condExecute f g ins data =
+    /// Return a new datapath with reg rX set to value
+    let updateReg rX value dp =
+        let updater reg old =
+            match reg with
+            | x when x = rX -> value
+            | _ -> old
+        {dp with Regs = Map.map updater dp.Regs}
+
+    /// Return whether or not an instruction should be executed
+    let condExecute ins (data : DataPath<'INS>) =
         let (n, c, z, v) = (data.Fl.N, data.Fl.C, data.Fl.Z, data.Fl.V)
-        let sw = function
-            | true -> f ins data // Condition true
-            | false -> g ins data // Condition false
         match ins.PCond with
-        | Cal -> sw true
-        | Cnv -> sw false
-        | Ceq -> sw z
-        | Cne -> sw (not z)
-        | Chs -> sw c
-        | Clo -> sw (not c)
-        | Cmi -> sw n
-        | Cpl -> sw (not n)
-        | Cvs -> sw v
-        | Cvc -> sw (not v)
-        | Chi -> sw (c && not z)
-        | Cls -> sw (not c || z)
-        | Cge -> sw (n = v)
-        | Clt -> sw (n <> v)
-        | Cgt -> sw (not z && (n = v))
-        | Cle -> sw (z || (n <> v))
+        | Cal -> true
+        | Cnv -> false
+        | Ceq -> z
+        | Cne -> (not z)
+        | Chs -> c
+        | Clo -> (not c)
+        | Cmi -> n
+        | Cpl -> (not n)
+        | Cvs -> v
+        | Cvc -> (not v)
+        | Chi -> (c && not z)
+        | Cls -> (not c || z)
+        | Cge -> (n = v)
+        | Clt -> (n <> v)
+        | Cgt -> (not z && (n = v))
+        | Cle -> (z || (n <> v))
