@@ -32,6 +32,14 @@ module DP
     /// parse error (dummy, but will do)
     type ErrInstr = string
 
+    let constructShift rd rm sh = 
+        Result.map (fun x -> 
+            {
+                Rd = regNames.[rd];
+                Rm = regNames.[rm];
+                shifter = sh
+            })
+
     /// sample specification for set of instructions
     /// very incomplete!
     let dPSpec = {
@@ -90,49 +98,26 @@ module DP
             let ops =
                 match splitOps with
                 | [dest; op1] when (checkValid splitOps) ->
-                    Result.map (fun x -> 
-                        {
-                            Rd = regNames.[dest];
-                            Rm = regNames.[op1];
-                            shifter = Empty
-                        }) (Ok Empty) // RRX
+                    (Ok Empty) |> constructShift dest op1 Empty // RRX
                 | [dest; op1; op2] when (checkValid splitOps) ->
                     match op2 with
                     | Op2Match regOrNum -> 
-                        Result.map (fun regOrNum -> 
-                            {
-                                Rd = regNames.[dest]; 
-                                Rm = regNames.[op1]; 
-                                shifter = regOrNum
-                            }) (Ok regOrNum) // ASR, LSL, LSR ROR
+                        (Ok regOrNum) |> constructShift dest op1 regOrNum // ASR, LSL, LSR ROR
                     | _ -> Error "Did not match"
                 | _ ->
                     qp splitOps
                     Error "Split bollocked"
 
-            let makeLSL ops = 
+            let make instr ops = 
                 Ok { 
-                    PInstr = LSL ops
-                    PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
-                    PSize = 4u; 
-                    PCond = pCond 
-                }
-            let makeASR ops = 
-                Ok { 
-                    PInstr = LSL ops
-                    PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
-                    PSize = 4u; 
-                    PCond = pCond 
-                }
-            let makeRRX ops = 
-                Ok { 
-                    PInstr = RRX ops
+                    PInstr = instr ops
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
 
-            Result.bind makeRRX ops
+            Result.bind (make RRX) ops
+            
         let listOfInstr = 
             Map.ofList [
                 "LSL", parseShift;
