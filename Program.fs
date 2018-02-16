@@ -82,6 +82,8 @@ let main argv =
         "LDR r0, [r1]";
         "LDR r0, [r1, #4]";
         "LDR r0, [r1, #0x7]";
+        "LDR r0, [r1, #&8]";
+        "LDR r0, [r1, #0b10110]"
     ]
 
     List.map (parseLine None (WA 0u)) instrLst

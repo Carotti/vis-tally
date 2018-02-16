@@ -41,9 +41,13 @@ let (|ParseRegex|_|) regex str =
 
 let (|MemMatch|_|) str =
     match str with 
+    // [r12]
     | ParseRegex "\[([rR][0-9]{1,2})\]" pre -> pre |> Some
+    // [r12
     | ParseRegex "\[([rR][0-9]{1,2})" pre -> pre |> Some
+    // r12]
     | ParseRegex "([rR][0-9]{1,2})\]" pre -> pre |> Some
+    
     | _ -> "poop" |> Some
 
 match "r12]" with

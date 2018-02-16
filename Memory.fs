@@ -3,7 +3,6 @@ module Memory
     open CommonLex
     open Expecto
     open System.Text.RegularExpressions
-    open System.Xml.Linq
 
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
@@ -72,7 +71,10 @@ module Memory
             | _ -> "mem fail" |> Some
         
         let (|OffsetMatch|_|) str =
-            let optionN n = ImmOffset (uint32 n) |> Some
+            let optionBang b = 
+                ImmOffset (uint32 b) |> Some // Somehow also construct postIndex with b
+            let optionN n = 
+                ImmOffset (uint32 n) |> Some
             let optionR r = 
                 match r with
                 | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
@@ -81,24 +83,11 @@ module Memory
             | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
             | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> optionN
             | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> optionN
+            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> optionN
+            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> optionN
             | _ -> 
                 qp "offset match fail"
                 None
-
-        // let (|Op2Match|_|) str =
-        //     let optionN n = N (uint32 n) |> Some
-        //     let optionRs r = 
-        //         match r with
-        //         | a when (Map.containsKey a regNames) -> Rs (regNames.[a]) |> Some
-        //         | _ -> None
-        //     match str with 
-        //     | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> optionN
-        //     | ParseRegex "#&([0-9a-fA-F]+)" hex -> ("0x" + hex) |> optionN
-        //     | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> optionN
-        //     | ParseRegex "#([0-9]+)" dec -> dec |> optionN
-        //     | ParseRegex "([rR][0-9]+)" reg -> reg |> optionRs
-        //     | _ -> None // Literal was not valid
-
 
         let parseLoad suffix pCond : Result<Parse<Instr>,string> = 
             
@@ -142,14 +131,14 @@ module Memory
                     qp splitOps
                     Error "Split bollocked"
 
-            let makeLDR ops = 
+            let make instr ops = 
                 Ok { 
-                    PInstr= LDR (ops);
+                    PInstr= instr (ops);
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            Result.bind makeLDR ops
+            Result.bind (make LDR) ops
 
     
         let listOfInstr = 
