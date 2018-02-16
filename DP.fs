@@ -110,11 +110,13 @@ module DP
     let partialDP rDest' rOp1' fOp2' =
         let dp2 = consDP2 rDest' rOp1'
         joinDP dp2 fOp2'
-         
     
     /// Constructs a literal record of type `Literal` from a rotation values specified as an integer.
     let consLit (b', r') =
         Lit({b = b'; r = RotVals.[r']})
+
+    let consReg reg =
+        regNames.[reg]
     
 
         
@@ -131,7 +133,7 @@ module DP
     let parse (ld: LineData) : Result<Parse<Instr>,string> option =
     
         let checkReg regStr = Map.containsKey regStr regNames
-        
+      
         let checkRegs regLst = regLst |> List.fold (fun s r -> s && (checkReg r)) true
 
         let checkLiteral (lit:uint32) =
@@ -161,8 +163,20 @@ module DP
             | ParseRegex "#([0-9]+)" num ->
                 num |> uint32 |> Some |> Option.map (checkLiteral)
             | _ ->
-                // "Not a valid literal. Literal expression problems." |> qp 
+                // "Not a valid literal. Literal expression problems." |> qp
                 None
+        
+        let (|RegMatch|_|) txt =
+            match txt with
+            | ParseRegex "([R][\d][0-5]?)" reg ->
+                reg |> Ok |> Result.map(consReg) |> Some
+            | _ ->
+                // "Not a valid flexible second operand register." |> qp
+                None
+
+
+
+
 
         let (WA la) = ld.LoadAddr
 
@@ -175,9 +189,13 @@ module DP
                 |> function
                 | [rDest'; rOp1'; op2'] when (checkRegs [rDest'; rOp1']) ->
                     match op2' with
-                    | LitMatch (litVal) ->
+                    | LitMatch litVal ->
                         let dp2 = partialDP rDest' rOp1'
                         litVal |> Result.map (consLit >> dp2)
+                    | RegMatch reg ->
+                        let dp2 = partialDP rDest' rOp1'
+                        reg |> Result.map (Reg >> dp2)
+
                     | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
                     // this will grow as the other forms of flexOp2 are implemented
                 | _ -> Error "Syntax error. Instruction format is incorrect."
