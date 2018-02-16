@@ -7,6 +7,8 @@ module DP
     open CommonLex
     open System.Text.RegularExpressions
     open Expecto
+    open System.ComponentModel.Design.Serialization
+    open System.Net.NetworkInformation
 
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
@@ -48,17 +50,30 @@ module DP
         Suffixes = ["";"S"]
     }
 
+    let shiftTypeMap = 
+        Map.ofList [
+            "LSL", LSL;
+            "LSR", LSR;
+            "ASR", ASR;
+            "ROR", ROR;
+            "RRX", RRX
+        ]
+
     let regValid r =
         Map.containsKey r regNames
 
     let regsValid rLst = 
         rLst 
         |> List.fold (fun b r -> b && (regValid r)) true
+    
+    
         
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
+
+        
         
         let (|ParseRegex|_|) regex str =
            let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
@@ -68,9 +83,8 @@ module DP
 
         let (|Op2Match|_|) str =
             let optionN n = N (uint32 n) |> Some
-            let optionRs r = 
-                match r with
-                | a when (Map.containsKey a regNames) -> Rs (regNames.[a]) |> Some
+            let optionRs = function
+                | a when (regValid a) -> Rs (regNames.[a]) |> Some
                 | _ -> None
             match str with 
             | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> optionN
@@ -81,7 +95,7 @@ module DP
             | _ -> None // Literal was not valid
         
         // this does the real work of parsing
-        let parseShift suffix pCond : Result<Parse<Instr>,string> = 
+        let parseShift opcode suffix pCond : Result<Parse<Instr>,string> = 
             
             let checkValid opList =
                 match opList with
@@ -108,26 +122,26 @@ module DP
                     qp splitOps
                     Error "Split bollocked"
 
-            let make instr ops = 
+            let make ops = 
                 Ok { 
-                    PInstr = instr ops
+                    PInstr = shiftTypeMap.[opcode] ops
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
 
-            Result.bind (make RRX) ops
+            Result.bind make ops
             
-        let listOfInstr = 
-            Map.ofList [
-                "LSL", parseShift;
-                "LSR", parseShift;
-                "ASR", parseShift;
-                "ROR", parseShift;
-                "RRX", parseShift;
-            ]
+        // let listOfInstr = 
+        //     Map.ofList [
+        //         "LSL", parseShift;
+        //         "LSR", parseShift;
+        //         "ASR", parseShift;
+        //         "ROR", parseShift;
+        //         "RRX", parseShift;
+        //     ]
         let parse' (_instrC, (root,suffix,pCond)) =
-           listOfInstr.[root] suffix pCond
+            parseShift root suffix pCond
 
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.

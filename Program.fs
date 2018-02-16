@@ -11,12 +11,12 @@ let qpl lst = List.map (qp) lst
 let main argv =
     /// test the initProjectLexer code
     let instrLst = [
-        // "LSL R0, R1, #2";
-        // "LSL r0, r1, #0b101";
-        // "LSL r0, r1, #0xe";
-        // "LSL r0, r1, #&f";
-        // "LSL R0, R1, R2"; 
-        // "RRX R0, R1";
+        "LSL R0, R1, #2";
+        "LSR r0, r1, #0b101";
+        "ASR r0, r1, #0xe";
+        "ROR r0, r1, #&f";
+        "LSL R0, R1, R2"; 
+        "RRX R0, R1";
         "LDR r0, [r1, r2]";
         "LDR r0, [r1]";
         "LDR r0, [r1, #4]";
