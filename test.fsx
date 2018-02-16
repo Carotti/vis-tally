@@ -1,7 +1,5 @@
 open System
 open System.Text.RegularExpressions
-open System.Linq
-open System.Linq
 
 let qp item = printfn "%A" item
 
@@ -26,9 +24,26 @@ match "#0b234" with
 | _ -> "nope" |> printfn "%A"
 
 
-let str = "r0, r1"
+// LDR ops
+let str = "r0, [r1, #4]" //["R0"; "[R1"; "#4]"] -> R0  [R1  #4]
+let str = "r0, [r1]" //["R0"; "[R1]"] -> R0  [R1]
+let str = "r0, [r1], #4" //["R0"; "[R1]"; "#4"] -> R0  [R1]  #4
+let str = "r0, [r1, #4]!" //["R0"; "[R1"; "#4]!"] -> R0  [R1  #4]!
                         
 let nospace = str.Replace(" ", "")                                    
 nospace.Split([|','|])              
 |> Array.map (fun r -> r.ToUpper())    
 |> List.ofArray |> qp
+
+let (|MemMatch|_|) str =
+    match str with 
+    | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> optionN
+    | ParseRegex "#&([0-9a-fA-F]+)" hex -> ("0x" + hex) |> optionN
+    | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> optionN
+    | ParseRegex "#([0-9]+)" dec -> dec |> optionN
+    | ParseRegex "([rR][0-9]+)" reg -> reg |> optionRs
+    | _ -> None // Literal was not valid
+
+match "#0b234" with
+| MemMatch out -> out |> qp
+| _ -> "nope" |> qp
