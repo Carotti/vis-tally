@@ -24,9 +24,7 @@ module Expressions
         | _ -> None
 
     type Expression =
-        | Add of Expression * Expression
-        | Sub of Expression * Expression
-        | Mul of Expression * Expression
+        | BinOp of (uint32->uint32->uint32) * Expression * Expression
         | Label of string
         | Literal of uint32
 
@@ -41,9 +39,7 @@ module Expressions
             | Error a, _ -> Error a
             | _, Error b -> Error b
         match exp with
-        | Add (x, y) -> doBinary (+) x y
-        | Sub (x, y) -> doBinary (-) x y
-        | Mul (x, y) -> doBinary (*) x y
+        | BinOp (op, x, y) -> doBinary op x y
         | Literal x -> x |> Ok
         | Label x ->
             match (Map.containsKey x syms) with
@@ -91,7 +87,7 @@ module Expressions
             | NextExpr (Ok (lVal, rhs)) ->
                 match rhs with
                 | RegexPrefix reg (_, BinExpr (|NextExpr|_|) reg op x)
-                    -> Result.map (fun (rVal, rst') -> op (lVal, rVal), rst') x |> Some
+                    -> Result.map (fun (rVal, rst') -> BinOp (op, lVal, rVal), rst') x |> Some
                 // Can't nest this AP because its the
                 // "pass-through" to the next operator
                 | _ -> Ok (lVal, rhs) |> Some
@@ -99,9 +95,9 @@ module Expressions
 
         // Define active patterns for the binary operators
         // Order of precedence: Add, Sub, Mul
-        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) "\*" Mul
-        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) "\-" Sub
-        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) "\+" Add
+        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) "\*" (*)
+        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) "\-" (-)
+        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) "\+" (+)
 
         match expTxt with
         | AddExpr x -> Some x
