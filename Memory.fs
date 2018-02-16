@@ -2,6 +2,7 @@ module Memory
     open CommonData
     open CommonLex
     open Expecto
+    open Helpers
     open System.Text.RegularExpressions
 
     let qp item = printfn "%A" item
@@ -49,44 +50,32 @@ module Memory
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand memSpec
 
-    let constructMem reg mem preoffset postoffset = 
+    let consMemSingle reg mem preoffset postoffset = 
         Result.map (fun a -> 
             {
                 valReg = regNames.[reg]; 
                 addr = {addrReg = regNames.[mem]; offset = preoffset};
                 postOffset = postoffset
             })
-
-    let regValid r =
-        Map.containsKey r regNames
-
-    let regsValid rLst = 
-        rLst 
-        |> List.fold (fun b r -> b && (regValid r)) true
-
-    let uppercase (x: string) = x.ToUpper()
-
-    let splitAny (str: string) char =
-        let nospace = str.Replace(" ", "")                                    
-        nospace.Split([|char|])              
-        |> Array.map uppercase    
-        |> List.ofArray
+    
+    let consMemMult reg rLst =
+        Result.map (fun a ->
+            {
+                rn = reg;
+                regList = rLst
+            })
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
-        let (|ParseRegex|_|) regex str =
-           let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
-           if m.Success
-           then Some (m.Groups.[1].Value)
-           else None
-
         let (|MemMatch|_|) str =
-            // let optionAddr m = 
-            //     match m with
-            //     | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
-            //     | _ -> None
             match str with 
             | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> Some
+            | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
+            | _ -> "mem fail" |> Some
+
+        let (|RegListMatch|_|) str =
+            match str with 
+            | ParseRegex "([rR][0-9]{1,2})}" address -> address |> Some
             | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
             | _ -> "mem fail" |> Some
         
@@ -104,11 +93,53 @@ module Memory
             | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> optionN
             | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> optionN
             | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> optionN
-            | _ -> 
-                qp "offset match fail"
-                None
+            | _ -> None
+        
+        // let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
 
-        let parseLoad (root: string) suffix pCond : Result<Parse<Instr>,string> = 
+        //     let (|RegListMatch|_|) str =
+        //         let optionAddToList r =
+        //             regList = (List.append >> Some) r
+        //         match str with
+        //         | ParseRegex "([rR][0-9]{1,2})\}" lastReg -> lastReg |> optionAddToList
+        //         | ParseRegex "([rR][0-9]{1,2})" listReg -> listReg |> optionAddToList
+        //         | _ -> None
+
+        //     let splitMult = splitAny ls.Operands '{'
+
+        //     let ops =
+        //         match splitMult with
+        //         | [reg; reglist] ->
+        //             let splitList = splitAny reglist ','
+        //             let rec matchList f lst = 
+        //                 match lst with
+        //                 | [] -> []
+        //                 | head :: tail -> f head :: matchList f tail
+        //             let lst = matchList RegListMatch splitList
+        //             match [reg; lst] with
+        //             | [reg; lst] when (List.map checkValid lst)
+
+        //             match splitList with
+        //             | [] -> None // Empty list
+        //             | (RegListMatch head) :: _ -> 
+        //             | RegListMatch lst -> 
+        //                 match [reg; lst] with
+        //                 | [reg; lst] when (checkValid [reg :: lst]) ->
+        //                     (Ok Blah)
+        //                     |> consMemMult reg lst
+        //                 | _ -> Error "Fail asdfljh"
+        //             | _ -> Error "Aint matching fam"
+        //         | _ -> Error "No matchy"
+        //     let make ops =
+        //         Ok { 
+        //             PInstr= memTypeMap.[root] ops;
+        //             PLabel = None ; 
+        //             PSize = 4u; 
+        //             PCond = pCond 
+        //         }
+        //     Result.bind make ops
+
+        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,string> = 
             
             let checkValid opList =
                 match opList with
@@ -116,11 +147,8 @@ module Memory
                 | [reg; addr] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1]
                 | _ -> false
 
-            
-            
             let splitOps = splitAny ls.Operands ','
-            let splitMult = splitAny ls.Operands '{'
-
+            
             let ops =
                 match splitOps with
                 | [reg; addr] ->
@@ -129,7 +157,7 @@ module Memory
                         match [reg; addr] with
                         | [reg; addr] when (checkValid [reg; addr]) ->
                             (Ok NoPost)
-                            |> constructMem reg addr NoPre NoPost
+                            |> consMemSingle reg addr NoPre NoPost
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
                 | [reg; addr; offset] ->
@@ -140,14 +168,11 @@ module Memory
                             match offset with
                             | OffsetMatch offset -> 
                                 (Ok NoPost)
-                                |> constructMem reg addr offset NoPost
+                                |> consMemSingle reg addr offset NoPost
                             | _ -> Error "Cobblers"
                         | _ -> Error "Goolies"
                     | _ -> Error "Gonads"
-
-                | _ -> 
-                    qp splitOps
-                    Error "Split bollocked"
+                | _ -> Error "Split bollocked"
 
             let make ops =
                 Ok { 
@@ -159,13 +184,10 @@ module Memory
             Result.bind make ops
 
         let parse' (_instrC, (root,suffix,pCond)) =
-            qp root
-            parseLoad root suffix pCond
+            parseSingle root suffix pCond
 
         Map.tryFind ls.OpCode opCodes
         |> Option.map parse'
-
-
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|)  = parse
