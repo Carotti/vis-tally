@@ -12,15 +12,10 @@ module Misc
         | ExpUnresolved of Expression
         | ExpResolved of uint32
 
-    // Both DCD and DCB don't have their expressions 
-    // evaluated until simulation
-
     type FILLVal = {value : SymbolExp ; valueSize : int}
     type FILLInstr = {numBytes : SymbolExp ; fillWith : FILLVal Option}
 
-    /// instruction (dummy: must change)
     type Instr =
-    | Phase1Dummy // Return this if we are on phase 1 of parsing
     | DCD of SymbolExp list
     | DCB of SymbolExp list
     | FILL of FILLInstr
@@ -28,6 +23,9 @@ module Misc
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
+
+    /// Resolve all MISC instructions which have unresolved `SymbolExp`s
+    let resolve ins (syms : SymbolTable) = ()
 
     /// These opCodes do not have conditions or suffixes
     let opCodes = ["DCD";"DCB";"EQU";"FILL"]

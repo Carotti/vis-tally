@@ -37,7 +37,7 @@ module Branch
         match ins with
         | B (SymUnresolved sym) -> lookup B sym
         | BL (SymUnresolved sym) -> lookup BL sym
-        | _ -> "Symbol does not need resolving" |> Error
+        | _ -> Ok ins // Symbol is already resolved
 
     // Branch instructions have no suffixes
     let branchSpec = {
