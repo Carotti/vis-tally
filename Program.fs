@@ -16,7 +16,8 @@ let main argv =
         // "LSL r0, r1, #0xe";
         // "LSL r0, r1, #&f";
         // "LSL R0, R1, R2"; 
-        "RRX R0, R1";
+        // "RRX R0, R1";
+        "LDR R0, [R1]";
     ]
 
     List.map (parseLine None (WA 0u)) instrLst

@@ -4,17 +4,21 @@ module Memory
     open CommonData
     open CommonLex
     open Expecto
+    open System.Text.RegularExpressions
+
+    let qp item = printfn "%A" item
+    let qpl lst = List.map (qp) lst
 
     type OffsetType =
         | ImmOffset of uint32
-        | Empty
+        | NoPre
 
     [<Struct>]
     type Address = {addrReg: RName; offset: OffsetType}
     
     type PostIndex =
         | N of uint32
-        | Empty
+        | NoPost
 
     [<Struct>]
     type InstrMem = {valReg: RName; addr: Address; postOffset: PostIndex}
@@ -47,19 +51,25 @@ module Memory
            then Some (m.Groups.[1].Value)
            else None
 
-        let (|Op2Match|_|) str =
-            let optionN n = N (uint32 n) |> Some
-            let optionRs r = 
-                match r with
-                | a when (Map.containsKey a regNames) -> Rs (regNames.[a]) |> Some
-                | _ -> None
+        let (|MemMatch|_|) str =
             match str with 
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> optionN
-            | ParseRegex "#&([0-9a-fA-F]+)" hex -> ("0x" + hex) |> optionN
-            | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> optionN
-            | ParseRegex "#([0-9]+)" dec -> dec |> optionN
-            | ParseRegex "([rR][0-9]+)" reg -> reg |> optionRs
-            | _ -> None // Literal was not valid
+            | ParseRegex "\[([rR][0-9]{1,2})\]" pre -> pre |> Some
+            | ParseRegex "\[([rR][0-9]{1,2})" pre -> pre |> Some
+            | _ -> "poop" |> Some
+
+        // let (|Op2Match|_|) str =
+        //     let optionN n = N (uint32 n) |> Some
+        //     let optionRs r = 
+        //         match r with
+        //         | a when (Map.containsKey a regNames) -> Rs (regNames.[a]) |> Some
+        //         | _ -> None
+        //     match str with 
+        //     | ParseRegex "#(0[xX][0-9a-fA-F]+)" hex -> hex |> optionN
+        //     | ParseRegex "#&([0-9a-fA-F]+)" hex -> ("0x" + hex) |> optionN
+        //     | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> optionN
+        //     | ParseRegex "#([0-9]+)" dec -> dec |> optionN
+        //     | ParseRegex "([rR][0-9]+)" reg -> reg |> optionRs
+        //     | _ -> None // Literal was not valid
 
 
         let parseLoad suffix pCond : Result<Parse<Instr>,string> = 
@@ -82,24 +92,20 @@ module Memory
 
             let ops =
                 match splitOps with
-                | [dest; op1] when (checkValid splitOps) ->
-                    Result.map (fun x -> 
-                        {
-                            Rd = regNames.[dest];
-                            Rm = regNames.[op1];
-                            shifter = Empty
-                        }) (Ok Empty) // RRX
-                | [dest; op1; op2] when (checkValid splitOps) ->
-                    match op2 with
-                    | Op2Match regOrNum -> 
-                        Result.map (fun regOrNum -> 
-                            {
-                                Rd = regNames.[dest]; 
-                                Rm = regNames.[op1]; 
-                                shifter = regOrNum
-                            }) (Ok regOrNum) // ASR, LSL, LSR ROR
-                    | _ -> Error "Did not match"
-                | _ ->
+                | [dest; op1] ->
+                    match op1 with
+                    | MemMatch mem -> 
+                        match [dest; mem] with
+                        | [dest; mem] when (checkValid [dest; mem]) ->
+                            Result.map (fun x -> 
+                                {
+                                    valReg = regNames.[dest];
+                                    addr = {addrReg = regNames.[mem]; offset = NoPre};
+                                    postOffset = NoPost
+                                }) (Ok NoPost) // RRX
+                        | _ -> Error "Balls"
+                    | _ -> Error "Bollocks"
+                | _ -> 
                     qp splitOps
                     Error "Split bollocked"
 
