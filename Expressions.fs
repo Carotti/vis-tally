@@ -72,10 +72,7 @@ module Expressions
             match txt with  
             | LabelExprEval x -> Some x
             | LiteralExpr x -> Some x
-            | RegexPrefix "\(" (_, Expr (exp, rst) ) ->
-                match rst with
-                | RegexPrefix "\)" (_, rst') -> (exp, rst') |> Some
-                | _ -> None
+            | RegexPrefix "\(" (_, Expr (exp, RegexPrefix "\)" (_, rst)) ) -> (exp, rst) |> Some
             | _ -> None
 
         /// Higher order active pattern for defining binary operators

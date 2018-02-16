@@ -7,11 +7,10 @@ module Branch
     open CommonLex
     open Expressions
 
-    type BranchType = 
-        | B
-        | BL
-
-    type Instr =  {which : BranchType ; label : string}
+    type Instr =
+        | B of string
+        | BL of string
+        | END
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -19,11 +18,9 @@ module Branch
     // Branch instructions have no suffixes
     let branchSpec = {
         InstrC = BRANCH
-        Roots = ["B";"BL"]
+        Roots = ["B";"BL";"END"]
         Suffixes = [""]
     }
-
-    let branchTypeMap = Map.ofList ["B", B; "BL", BL]
 
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand branchSpec
@@ -34,12 +31,17 @@ module Branch
             match ls.Operands with
             | LabelExpr (l, "") ->
                 Ok { 
-                    PInstr = {which = branchTypeMap.[root]; label = l}; 
+                    PInstr = 
+                        match root with
+                        | "B" -> B l
+                        | "BL" -> BL l
+                        | "END" -> END
+                        | _ -> failwithf "Unexpected root in Misc.parse"
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            | x -> sprintf "Expected a label at '%s'" x |> Error
+            | _ -> sprintf "Expected a label at '%s'" ls.Operands |> Error
 
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.

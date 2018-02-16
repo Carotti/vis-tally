@@ -48,24 +48,31 @@ module Misc
         let labelBinder f = 
             match ls.Label with
             | Some lab -> f lab
-            | None -> sprintf "Expected a label" |> Error
+            | None -> sprintf "Expected a label for %s instruction" ls.OpCode |> Error
 
-        let parseData which =
-            let parseData' lab =
+        let parseDCD () =
+            let parseDCD' lab =
                 Result.bind (fun lst ->
                     Ok {
-                        PInstr = which lst;
+                        PInstr = DCD lst;
                         PLabel = Some (lab, la);
-                        PSize = 
-                            (match which lst with
-                            | DCD _ -> 4
-                            | DCB _ -> 1
-                            | _ -> failwithf "Called parseData on not DCD/DCB")
-                             * (List.length lst) |> uint32;
+                        PSize = 4 * (List.length lst) |> uint32;
                         PCond = Cal;
                     }
                 ) (parseExprList ls.Operands)
-            labelBinder parseData'
+            labelBinder parseDCD'
+
+        let parseDCB () =
+            let parseDCB' lab =
+                Result.bind (fun lst ->
+                    Ok {
+                        PInstr = DCB lst;
+                        PLabel = Some (lab, la);
+                        PSize = (List.length lst) |> uint32;
+                        PCond = Cal;
+                    }
+                ) (parseExprList ls.Operands)
+            labelBinder parseDCB'
 
         let parseEQU () =
             let parseEQU' lab =
@@ -103,12 +110,12 @@ module Misc
                     PCond = Cal;
                 }
             ) parseFILL'
-            
+
         match ls.OpCode with
-        | "DCD" -> parseData DCD |> Some
-        | "DCB" -> parseData DCB |> Some
+        | "DCD" -> parseDCD () |> Some
+        | "DCB" -> parseDCB () |> Some
         | "EQU" -> parseEQU () |> Some
-        | "FILL" -> None
+        | "FILL" -> parseFILL () |> Some
         | _ -> None
 
     /// Parse Active Pattern used by top-level code
