@@ -46,7 +46,14 @@ module Memory
                 valReg = regNames.[reg]; 
                 addr = {addrReg = regNames.[mem]; offset = preoffset};
                 postOffset = postoffset
-            }) 
+            })
+
+    let regValid r =
+        Map.containsKey r regNames
+
+    let regsValid rLst = 
+        rLst 
+        |> List.fold (fun b r -> b && (regValid r)) true
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
@@ -57,18 +64,25 @@ module Memory
            else None
 
         let (|MemMatch|_|) str =
+            // let optionAddr m = 
+            //     match m with
+            //     | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
+            //     | _ -> None
             match str with 
             | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> Some
             | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
             | _ -> "mem fail" |> Some
         
         let (|OffsetMatch|_|) str =
+            let optionN n = ImmOffset (uint32 n) |> Some
             let optionR r = 
                 match r with
-                | a when (Map.containsKey a regNames) -> RegOffset (regNames.[a]) |> Some
+                | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
                 | _ -> None
             match str with 
-            | ParseRegex "([rR][0-9]{1,2})\]" preoffset -> preoffset |> optionR
+            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> optionN
+            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> optionN
             | _ -> 
                 qp "offset match fail"
                 None
@@ -89,15 +103,11 @@ module Memory
 
 
         let parseLoad suffix pCond : Result<Parse<Instr>,string> = 
-
-            let regsExist rLst = 
-                rLst 
-                |> List.fold (fun b r -> b && (Map.containsKey r regNames)) true
             
             let checkValid opList =
                 match opList with
-                | [dest; op1; _] when (regsExist [dest; op1]) -> true // e.g. LDR R0, [R1], #4
-                | [dest; op1] when (regsExist [dest; op1]) -> true // e.g. LDR R0, [R1]
+                | [dest; op1; _] when (regsValid [dest; op1]) -> true // e.g. LDR R0, [R1], #4
+                | [dest; op1] when (regsValid [dest; op1]) -> true // e.g. LDR R0, [R1]
                 | _ -> false
 
             let splitOps =                          

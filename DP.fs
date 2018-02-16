@@ -40,6 +40,13 @@ module DP
         Suffixes = ["";"S"]
     }
 
+    let regValid r =
+        Map.containsKey r regNames
+
+    let regsValid rLst = 
+        rLst 
+        |> List.fold (fun b r -> b && (regValid r)) true
+        
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
@@ -67,14 +74,11 @@ module DP
         
         // this does the real work of parsing
         let parseShift suffix pCond : Result<Parse<Instr>,string> = 
-            let regsExist rLst = 
-                rLst 
-                |> List.fold (fun b r -> b && (Map.containsKey r regNames)) true
             
             let checkValid opList =
                 match opList with
-                | [dest; op1; _] when (regsExist [dest; op1]) -> true // ASR, LSL, LSR ROR
-                | [dest; op1] when (regsExist [dest; op1]) -> true // RRX
+                | [dest; op1; _] when (regsValid [dest; op1]) -> true // ASR, LSL, LSR ROR
+                | [dest; op1] when (regsValid [dest; op1]) -> true // RRX
                 | _ -> false
 
             let splitOps =                          
