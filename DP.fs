@@ -56,7 +56,7 @@ module DP
             | ParseRegex "#&([0-9a-fA-F]+)" hex -> ("0x" + hex) |> optionN
             | ParseRegex "#(0[bB][0-1]+)" bin -> bin |> optionN
             | ParseRegex "#([0-9]+)" dec -> dec |> optionN
-            | ParseRegex "([rR][0-9]+)" reg -> reg |> optionRs
+            | ParseRegex "([rR][0-9]{1,2})" reg -> reg |> optionRs
             | _ -> None // Literal was not valid
         
         // this does the real work of parsing
