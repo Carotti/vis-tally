@@ -5,14 +5,16 @@ module Memory
     open CommonLex
     open Expecto
     open System.Text.RegularExpressions
+    open System.Xml.Linq
 
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
 
     type OffsetType =
         | ImmOffset of uint32
+        | RegOffset of RName
         | NoPre
-
+    
     [<Struct>]
     type Address = {addrReg: RName; offset: OffsetType}
     
@@ -38,11 +40,14 @@ module Memory
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand memSpec
 
-    /// main function to parse a line of assembler
-    /// ls contains the line input
-    /// and other state needed to generate output
-    /// the result is None if the opcode does not match
-    /// otherwise it is Ok Parse or Error (parse error string)
+    let constructMem reg mem preoffset postoffset = 
+        Result.map (fun a -> 
+            {
+                valReg = regNames.[reg]; 
+                addr = {addrReg = regNames.[mem]; offset = preoffset};
+                postOffset = postoffset
+            }) 
+
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
         let (|ParseRegex|_|) regex str =
@@ -53,9 +58,20 @@ module Memory
 
         let (|MemMatch|_|) str =
             match str with 
-            | ParseRegex "\[([rR][0-9]{1,2})\]" pre -> pre |> Some
-            | ParseRegex "\[([rR][0-9]{1,2})" pre -> pre |> Some
-            | _ -> "poop" |> Some
+            | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> Some
+            | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
+            | _ -> "mem fail" |> Some
+        
+        let (|OffsetMatch|_|) str =
+            let optionR r = 
+                match r with
+                | a when (Map.containsKey a regNames) -> RegOffset (regNames.[a]) |> Some
+                | _ -> None
+            match str with 
+            | ParseRegex "([rR][0-9]{1,2})\]" preoffset -> preoffset |> optionR
+            | _ -> 
+                qp "offset match fail"
+                None
 
         // let (|Op2Match|_|) str =
         //     let optionN n = N (uint32 n) |> Some
@@ -80,8 +96,8 @@ module Memory
             
             let checkValid opList =
                 match opList with
-                | [dest; op1; _] when (regsExist [dest; op1]) -> true // ASR, LSL, LSR ROR
-                | [dest; op1] when (regsExist [dest; op1]) -> true // RRX
+                | [dest; op1; _] when (regsExist [dest; op1]) -> true // e.g. LDR R0, [R1], #4
+                | [dest; op1] when (regsExist [dest; op1]) -> true // e.g. LDR R0, [R1]
                 | _ -> false
 
             let splitOps =                          
@@ -97,14 +113,23 @@ module Memory
                     | MemMatch mem -> 
                         match [dest; mem] with
                         | [dest; mem] when (checkValid [dest; mem]) ->
-                            Result.map (fun x -> 
-                                {
-                                    valReg = regNames.[dest];
-                                    addr = {addrReg = regNames.[mem]; offset = NoPre};
-                                    postOffset = NoPost
-                                }) (Ok NoPost) // RRX
+                            (Ok NoPost)
+                            |> constructMem dest mem NoPre NoPost
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
+                | [dest; op1; op2] ->
+                    match op1 with
+                    | MemMatch mem ->
+                        match [dest; mem] with
+                        | [dest; mem] when (checkValid [dest; mem]) ->
+                            match op2 with
+                            | OffsetMatch op2 -> 
+                                (Ok NoPost)
+                                |> constructMem dest mem op2 NoPost
+                            | _ -> Error "Cobblers"
+                        | _ -> Error "Goolies"
+                    | _ -> Error "Gonads"
+
                 | _ -> 
                     qp splitOps
                     Error "Split bollocked"

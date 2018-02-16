@@ -25,8 +25,10 @@ let str1 = "r0, [r1, #4]" //["R0"; "[R1"; "#4]"] -> R0  [R1  #4]
 let str2 = "r0, [r1]" //["R0"; "[R1]"] -> R0  [R1]
 let str3 = "r0, [r1], #4" //["R0"; "[R1]"; "#4"] -> R0  [R1]  #4
 let str4 = "r0, [r1, #4]!" //["R0"; "[R1"; "#4]!"] -> R0  [R1  #4]!
+
+let str5 = "r0, [r1, r2, lsl r3]"
                         
-let nospace = str1.Replace(" ", "")                                    
+let nospace = str5.Replace(" ", "")                                    
 nospace.Split([|','|])              
 |> Array.map (fun r -> r.ToUpper())    
 |> List.ofArray |> qp
@@ -41,8 +43,9 @@ let (|MemMatch|_|) str =
     match str with 
     | ParseRegex "\[([rR][0-9]{1,2})\]" pre -> pre |> Some
     | ParseRegex "\[([rR][0-9]{1,2})" pre -> pre |> Some
+    | ParseRegex "([rR][0-9]{1,2})\]" pre -> pre |> Some
     | _ -> "poop" |> Some
 
-match "[r12" with
+match "r12]" with
 | MemMatch out -> out |> qp
 | _ -> "nope" |> qp
