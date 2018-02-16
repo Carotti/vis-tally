@@ -26,6 +26,7 @@ module Memory
 
     type Instr = 
         | LDR of InstrMem
+        | STR of InstrMem
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -38,7 +39,8 @@ module Memory
 
     let memTypeMap = 
         Map.ofList [
-            "LDR", LDR
+            "LDR", LDR;
+            "STR", STR
         ]
 
     /// map of all possible opcodes recognised
@@ -99,8 +101,8 @@ module Memory
             
             let checkValid opList =
                 match opList with
-                | [dest; op1; _] when (regsValid [dest; op1]) -> true // e.g. LDR R0, [R1], #4
-                | [dest; op1] when (regsValid [dest; op1]) -> true // e.g. LDR R0, [R1]
+                | [reg; addr; _] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1], #4
+                | [reg; addr] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1]
                 | _ -> false
 
             let splitOps =
@@ -111,24 +113,24 @@ module Memory
 
             let ops =
                 match splitOps with
-                | [dest; op1] ->
-                    match op1 with
-                    | MemMatch mem -> 
-                        match [dest; mem] with
-                        | [dest; mem] when (checkValid [dest; mem]) ->
+                | [reg; addr] ->
+                    match addr with
+                    | MemMatch addr -> 
+                        match [reg; addr] with
+                        | [reg; addr] when (checkValid [reg; addr]) ->
                             (Ok NoPost)
-                            |> constructMem dest mem NoPre NoPost
+                            |> constructMem reg addr NoPre NoPost
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
-                | [dest; op1; op2] ->
-                    match op1 with
-                    | MemMatch mem ->
-                        match [dest; mem] with
-                        | [dest; mem] when (checkValid [dest; mem]) ->
-                            match op2 with
-                            | OffsetMatch op2 -> 
+                | [reg; addr; offset] ->
+                    match addr with
+                    | MemMatch addr ->
+                        match [reg; addr] with
+                        | [reg; addr] when (checkValid [reg; addr]) ->
+                            match offset with
+                            | OffsetMatch offset -> 
                                 (Ok NoPost)
-                                |> constructMem dest mem op2 NoPost
+                                |> constructMem reg addr offset NoPost
                             | _ -> Error "Cobblers"
                         | _ -> Error "Goolies"
                     | _ -> Error "Gonads"
@@ -145,12 +147,6 @@ module Memory
                     PCond = pCond 
                 }
             Result.bind make ops
-
-    
-        // let listOfInstr = 
-        //     Map.ofList [
-        //         "LDR", parseLoad;
-        //     ]
 
         let parse' (_instrC, (root,suffix,pCond)) =
             parseLoad root suffix pCond

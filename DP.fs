@@ -132,14 +132,6 @@ module DP
 
             Result.bind make ops
             
-        // let listOfInstr = 
-        //     Map.ofList [
-        //         "LSL", parseShift;
-        //         "LSR", parseShift;
-        //         "ASR", parseShift;
-        //         "ROR", parseShift;
-        //         "RRX", parseShift;
-        //     ]
         let parse' (_instrC, (root,suffix,pCond)) =
             parseShift root suffix pCond
 
@@ -151,5 +143,8 @@ module DP
     let (|IMatch|_|) = parse
 
     // [<Tests>]
+    // let opCodeCheck readOpCode parsedOpCode =
+        
     // let shiftPropertyTests =
-    //     let parseCheck inp ans 
+        
+
