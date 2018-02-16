@@ -11,15 +11,6 @@ module DP
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
 
-    type RotAmount =
-        | RotAmt0 = 0   | RotAmt2 = 2   | RotAmt4 = 4   | RotAmt6 = 6 
-        | RotAmt8 = 8   | RotAmt10 = 10 | RotAmt12 = 12 | RotAmt14 = 14 
-        | RotAmt16 = 16 | RotAmt18 = 18 | RotAmt20 = 20 | RotAmt22 = 22 
-        | RotAmt24 = 24 | RotAmt26 = 26 | RotAmt28 = 28 | RotAmt30 = 30
-
-    [<Struct>]
-    type LiteralValue = {value: byte; rot: RotAmount}
-
     type ShiftType = 
         | Rs of RName
         | N of uint32
@@ -60,7 +51,7 @@ module DP
            then Some (m.Groups.[1].Value)
            else None
 
-        let (|LiteralMatch|_|) str =
+        let (|Op2Match|_|) str =
             let optionN n = N (uint32 n) |> Some
             let optionRs r = 
                 match r with
@@ -103,7 +94,7 @@ module DP
                         }) (Ok Empty) // RRX
                 | [dest; op1; op2] when (checkValid splitOps) ->
                     match op2 with
-                    | LiteralMatch regOrNum -> 
+                    | Op2Match regOrNum -> 
                         Result.map (fun regOrNum -> 
                             {
                                 Rd = regNames.[dest]; 
