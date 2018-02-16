@@ -52,7 +52,7 @@ module Expressions
         /// Match, parse and evaluate symbols
         let (|LabelExprEval|_|) txt =
             match txt with 
-            | LabelExpr (varName, rst) -> (Label varName, rst) |> Ok |> Some
+            | LabelExpr (varName, rst) -> (Label varName, rst) |> Some
             | _ -> None
 
         /// Match, parse, evaluate and validate literals
@@ -61,9 +61,9 @@ module Expressions
             | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
             | RegexPrefix "0b[0-1]+" (num, rst)
             | RegexPrefix "[0-9]+" (num, rst) -> 
-                (uint32 num |> Literal, rst) |> Ok |> Some
+                (uint32 num |> Literal, rst) |> Some
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
-                ("0x" + (removeWs num).[1..] |> uint32 |> Literal, rst) |> Ok |> Some
+                ("0x" + (removeWs num).[1..] |> uint32 |> Literal, rst) |> Some
             | _ -> None
 
         /// Active pattern matching either labels, literals
@@ -72,10 +72,10 @@ module Expressions
             match txt with  
             | LabelExprEval x -> Some x
             | LiteralExpr x -> Some x
-            | RegexPrefix "\(" (_, Expr (Ok (exp, rst)) ) ->
+            | RegexPrefix "\(" (_, Expr (exp, rst) ) ->
                 match rst with
-                | RegexPrefix "\)" (_, rst') -> Ok (exp, rst') |> Some
-                | _ -> sprintf "Unmatched bracket at '%s'" rst |> Error |> Some
+                | RegexPrefix "\)" (_, rst') -> (exp, rst') |> Some
+                | _ -> None
             | _ -> None
 
         /// Higher order active pattern for defining binary operators
@@ -84,13 +84,13 @@ module Expressions
         /// op is the operation it performs
         let rec (|BinExpr|_|) (|NextExpr|_|) reg op txt =
             match txt with
-            | NextExpr (Ok (lVal, rhs)) ->
+            | NextExpr (lVal, rhs) ->
                 match rhs with
-                | RegexPrefix reg (_, BinExpr (|NextExpr|_|) reg op x)
-                    -> Result.map (fun (rVal, rst') -> BinOp (op, lVal, rVal), rst') x |> Some
+                | RegexPrefix reg (_, BinExpr (|NextExpr|_|) reg op (rVal, rst'))
+                    -> (BinOp (op, lVal, rVal), rst') |> Some
                 // Can't nest this AP because its the
                 // "pass-through" to the next operator
-                | _ -> Ok (lVal, rhs) |> Some
+                | _ -> (lVal, rhs) |> Some
             | _ -> None
 
         // Define active patterns for the binary operators
@@ -149,7 +149,7 @@ module Expressions
         /// Check exp matches the evaluated expression
         let expEqual syms exp txt =
             match txt with
-            | Expr (Ok (ans, "")) -> 
+            | Expr (ans, "") -> 
                 match eval syms ans with
                 | Ok res when res = exp -> true
                 | _ -> false
@@ -191,7 +191,7 @@ module Expressions
         let unitTest name syms exp txt =
             let ans = 
                 match txt with
-                | Expr (Ok (ans', "")) ->
+                | Expr (ans', "") ->
                     match eval syms ans' with
                     | Ok res -> Some res
                     | _ -> None
