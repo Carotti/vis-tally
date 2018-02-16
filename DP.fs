@@ -5,10 +5,8 @@
 module DP
     open CommonData
     open CommonLex
-    open System.Text.RegularExpressions
+    open Helpers
     open Expecto
-    open System.ComponentModel.Design.Serialization
-    open System.Net.NetworkInformation
 
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
@@ -59,27 +57,11 @@ module DP
             "RRX", RRX
         ]
 
-    let regValid r =
-        Map.containsKey r regNames
-
-    let regsValid rLst = 
-        rLst 
-        |> List.fold (fun b r -> b && (regValid r)) true
-    
-    
-        
+   
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
-
-        
-        
-        let (|ParseRegex|_|) regex str =
-           let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
-           if m.Success
-           then Some (m.Groups.[1].Value)
-           else None
 
         let (|Op2Match|_|) str =
             let optionN n = N (uint32 n) |> Some
@@ -93,9 +75,9 @@ module DP
             | ParseRegex "#([0-9]+)" dec -> dec |> optionN
             | ParseRegex "([rR][0-9]{1,2})" reg -> reg |> optionRs
             | _ -> None // Literal was not valid
-        
+
         // this does the real work of parsing
-        let parseShift opcode suffix pCond : Result<Parse<Instr>,string> = 
+        let parseShift root suffix pCond : Result<Parse<Instr>,string> = 
             
             let checkValid opList =
                 match opList with
@@ -103,11 +85,7 @@ module DP
                 | [dest; op1] when (regsValid [dest; op1]) -> true // RRX
                 | _ -> false
 
-            let splitOps =                          
-                let nospace = ls.Operands.Replace(" ", "")                                    
-                nospace.Split([|','|])              
-                |> Array.map (fun r -> r.ToUpper())    
-                |> List.ofArray
+            let splitOps = splitAny ls.Operands ','
 
             let ops =
                 match splitOps with
@@ -117,14 +95,12 @@ module DP
                     match op2 with
                     | Op2Match regOrNum -> 
                         (Ok regOrNum) |> constructShift dest op1 regOrNum // ASR, LSL, LSR ROR
-                    | _ -> Error "Did not match"
-                | _ ->
-                    qp splitOps
-                    Error "Split bollocked"
+                    | _ -> Error "Error - op2 did not match"
+                | _ -> Error "Error - splitting operands"
 
-            let make ops = 
+            let make ops =
                 Ok { 
-                    PInstr = shiftTypeMap.[opcode] ops
+                    PInstr = shiftTypeMap.[root] ops
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
@@ -141,10 +117,5 @@ module DP
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
-
-    // [<Tests>]
-    // let opCodeCheck readOpCode parsedOpCode =
-        
-    // let shiftPropertyTests =
         
 
