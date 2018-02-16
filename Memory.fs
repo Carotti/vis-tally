@@ -22,11 +22,16 @@ module Memory
         | NoPost
 
     [<Struct>]
-    type InstrMem = {valReg: RName; addr: Address; postOffset: PostIndex}
+    type InstrMemSingle = {valReg: RName; addr: Address; postOffset: PostIndex}
+        
+    [<Struct>]
+    type InstrMemMult = {rn: RName; regList: List<RName>}
 
     type Instr = 
-        | LDR of InstrMem
-        | STR of InstrMem
+        | LDR of InstrMemSingle
+        | STR of InstrMemSingle
+        | LDM of InstrMemMult
+        | STM of InstrMemMult
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -34,7 +39,7 @@ module Memory
     let memSpec = {
         InstrC = MEM
         Roots = ["LDR";"STR";"STM";"LDM"]
-        Suffixes = [""; "B"]
+        Suffixes = [""; "B";"IA";"IB";"DA";"DB"]
     }
 
     let memTypeMap = 
@@ -60,6 +65,14 @@ module Memory
     let regsValid rLst = 
         rLst 
         |> List.fold (fun b r -> b && (regValid r)) true
+
+    let uppercase (x: string) = x.ToUpper()
+
+    let splitAny (str: string) char =
+        let nospace = str.Replace(" ", "")                                    
+        nospace.Split([|char|])              
+        |> Array.map uppercase    
+        |> List.ofArray
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
@@ -97,7 +110,7 @@ module Memory
                 qp "offset match fail"
                 None
 
-        let parseLoad opcode suffix pCond : Result<Parse<Instr>,string> = 
+        let parseLoad (root: string) suffix pCond : Result<Parse<Instr>,string> = 
             
             let checkValid opList =
                 match opList with
@@ -105,11 +118,10 @@ module Memory
                 | [reg; addr] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1]
                 | _ -> false
 
-            let splitOps =
-                let nospace = ls.Operands.Replace(" ", "")                                    
-                nospace.Split([|','|])              
-                |> Array.map (fun r -> r.ToUpper())    
-                |> List.ofArray
+            
+            
+            let splitOps = splitAny ls.Operands ','
+            let splitMult = splitAny ls.Operands '{'
 
             let ops =
                 match splitOps with
@@ -139,9 +151,9 @@ module Memory
                     qp splitOps
                     Error "Split bollocked"
 
-            let make ops = 
+            let make ops =
                 Ok { 
-                    PInstr= memTypeMap.[opcode] ops;
+                    PInstr= memTypeMap.[root] ops;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
@@ -149,6 +161,7 @@ module Memory
             Result.bind make ops
 
         let parse' (_instrC, (root,suffix,pCond)) =
+            qp root
             parseLoad root suffix pCond
 
         Map.tryFind ls.OpCode opCodes
