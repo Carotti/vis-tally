@@ -34,6 +34,11 @@ module Memory
         Suffixes = [""; "B"]
     }
 
+    let memTypeMap = 
+        Map.ofList [
+            "LDR", LDR
+        ]
+
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand memSpec
 
@@ -75,8 +80,7 @@ module Memory
                 ImmOffset (uint32 b) |> Some // Somehow also construct postIndex with b
             let optionN n = 
                 ImmOffset (uint32 n) |> Some
-            let optionR r = 
-                match r with
+            let optionR = function
                 | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
                 | _ -> None
             match str with 
@@ -89,7 +93,7 @@ module Memory
                 qp "offset match fail"
                 None
 
-        let parseLoad suffix pCond : Result<Parse<Instr>,string> = 
+        let parseLoad opcode suffix pCond : Result<Parse<Instr>,string> = 
             
             let checkValid opList =
                 match opList with
@@ -97,7 +101,7 @@ module Memory
                 | [dest; op1] when (regsValid [dest; op1]) -> true // e.g. LDR R0, [R1]
                 | _ -> false
 
-            let splitOps =                          
+            let splitOps =
                 let nospace = ls.Operands.Replace(" ", "")                                    
                 nospace.Split([|','|])              
                 |> Array.map (fun r -> r.ToUpper())    
@@ -131,23 +135,23 @@ module Memory
                     qp splitOps
                     Error "Split bollocked"
 
-            let make instr ops = 
+            let make ops = 
                 Ok { 
-                    PInstr= instr (ops);
+                    PInstr= memTypeMap.[opcode] ops;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            Result.bind (make LDR) ops
+            Result.bind make ops
 
     
-        let listOfInstr = 
-            Map.ofList [
-                "LDR", parseLoad;
-            ]
+        // let listOfInstr = 
+        //     Map.ofList [
+        //         "LDR", parseLoad;
+        //     ]
 
-        let parse' (instrC, (root,suffix,pCond)) =
-            listOfInstr.[root] suffix pCond
+        let parse' (_instrC, (root,suffix,pCond)) =
+            parseLoad root suffix pCond
 
         Map.tryFind ls.OpCode opCodes
         |> Option.map parse'
