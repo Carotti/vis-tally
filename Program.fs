@@ -46,6 +46,7 @@ let main argv =
         "LDM r0, {r1, r2}";
         "LDM r0, {r1, r2, r3, r4, r5}";
         "STM r0, {r1-r4}";
+        "STM r0, {r1-r3, r7, r8}";
     ]
     "Enter \"tests\" to run the test suite, for execution anything else" |> qp
     match argv with

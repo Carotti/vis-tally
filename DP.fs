@@ -51,6 +51,9 @@ module DP
             "RRX", RRX
         ]
 
+    let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
+        // let nextPC = cpuData.Regs[] + 4u
+        qp instr
    
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
