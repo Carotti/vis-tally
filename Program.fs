@@ -1,11 +1,9 @@
 ﻿// Learn more about F# at http://fsharp.org
 module Program
-open System
 open CommonTop
 open CommonData
-
-let qp item = printfn "%A" item
-let qpl lst = List.map (qp) lst
+open Expecto
+open Helpers
 
 [<EntryPoint>]
 let main argv =
@@ -46,8 +44,11 @@ let main argv =
         "STR r0, [r1, #&8]";
         "STR r0, [r1, #0b10110]"
     ]
-
-    List.map (parseLine None (WA 0u)) instrLst
-    |> ignore
-    0 // return an integer exit code
-    // This is a test
+    "Enter \"tests\" to run the test suite, for execution anything else" |> qp
+    match argv with
+        | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
+        | _ -> 
+            List.map (parseLine None (WA 0u)) instrLst
+            |> qpl
+            |> ignore
+            0 // return an integer exit code
