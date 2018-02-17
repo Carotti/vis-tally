@@ -81,11 +81,11 @@ module DP
             let ops =
                 match splitOps with
                 | [dest; op1] when (checkValid2 splitOps) ->
-                    (Ok Empty) |> constructShift dest op1 Empty // RRX
+                    (Ok splitOps) |> constructShift dest op1 Empty // RRX
                 | [dest; op1; op2] when (checkValid2 splitOps) ->
                     match op2 with
                     | Op2Match regOrNum -> 
-                        (Ok regOrNum) |> constructShift dest op1 regOrNum // ASR, LSL, LSR ROR
+                        (Ok splitOps) |> constructShift dest op1 regOrNum // ASR, LSL, LSR ROR
                     | _ -> Error "Error - op2 did not match"
                 | _ -> Error "Error - splitting operands"
 

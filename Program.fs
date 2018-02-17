@@ -45,7 +45,7 @@ let main argv =
         // "STR r0, [r1, #0b10110]"
         "LDM r0, {r1, r2}";
         "LDM r0, {r1, r2, r3, r4, r5}";
-        "STM r0, {r1, r4}";
+        "STM r0, {r1-r4}";
     ]
     "Enter \"tests\" to run the test suite, for execution anything else" |> qp
     match argv with
