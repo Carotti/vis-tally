@@ -187,12 +187,6 @@ module DP
             | true -> Some (m.Groups.[1].Value)
             | false -> None
 
-        // let (|RegexPrefix|_|) pat txt =
-        //     let m = Regex.Match (txt, "^[\\s]*" + pat + "[\\s]*" + "$")
-        //     match m.Success with
-        //     | true -> (m.Value, txt.Substring(m.Value.Length)) |> Some
-        //     | false -> None
-
         let (|LitMatch|_|) txt =
             match txt with
             | ParseRegex "#&([0-9a-fA-F]+)" num -> 
@@ -267,20 +261,20 @@ module DP
                 | [rDest'; rOp1'; op2'] when (checkRegs [rDest'; rOp1']) ->
                     match op2' with
                     | LitMatch litVal ->
-                        let dp2 = partialDP rDest' rOp1'
+                        let dp2 = consDP3 rDest' rOp1'
                         litVal |> Result.map (consLitOp >> dp2)
                     | RegMatch reg ->
-                        let dp2 = partialDP rDest' rOp1'
+                        let dp2 = consDP3 rDest' rOp1'
                         // reg |> Result.map (Reg >> dp2)
                         reg |> (Reg >> dp2) |> Ok
                     | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
                 | [rDest'; rOp1'; rOp2'; extn] when (checkRegs [rDest'; rOp1'; rOp2']) ->
                     match extn with
                     | RrxMatch rOp2' reg ->
-                        let dp2 = partialDP rDest' rOp1'
+                        let dp2 = consDP3 rDest' rOp1'
                         reg |> Result.map (RRX >> dp2)
                     | ShiftMatch rOp2' shift ->
-                        let dp2 = partialDP rDest' rOp1'
+                        let dp2 = consDP3 rDest' rOp1'
                         shift |> Result.map(Shift >> dp2)
                     | _ ->
                         Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
