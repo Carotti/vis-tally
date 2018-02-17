@@ -1,6 +1,5 @@
 open System
 open System.Text.RegularExpressions
-open System.Collections.Generic
 
 let qp item = printfn "%A" item
 let qpl lst = List.map (qp) lst
@@ -24,69 +23,69 @@ let (|ParseRegex|_|) (regex: string) (str: string) =
    then Some (m.Groups.[1].Value)
    else None
 
-let (|RegListMatch|_|) str =
-    match str with
-    | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> 
-        qp listReg
-        listReg |> Some
-    | ParseRegex "([rR][0-9]{1,2})\}" lastReg -> 
-        qp lastReg
-        lastReg |> Some
-    | ParseRegex "([rR][0-9]{1,2})" listReg -> 
-        qp listReg
-        listReg |> Some
-    | _ -> None
+let (|ParseRegex2|_|) (regex: string) (str: string) =
+   let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
+   if m.Success
+   then Some (m.Groups.[1].Value, m.Groups.[2].Value)
+   else None
 
-let splitMult = splitAny "r0, {r1-r3}" '{'
+// let (|RegListMatch|_|) str =
+//     match str with
+//     | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> 
+//         qp listReg
+//         listReg |> Some
+//     | ParseRegex "([rR][0-9]{1,2})\}" lastReg -> 
+//         qp lastReg
+//         lastReg |> Some
+//     | ParseRegex "([rR][0-9]{1,2})" listReg -> 
+//         qp listReg
+//         listReg |> Some
+//     | _ -> None
+
+let splitMult = splitAny "r0, {r1-r3, r4, r5}" '{'
 
 qp splitMult
+
+
+let (|RegListExpand|_|) str =
+    match str with
+    | ParseRegex2 "[rR]([0-9]{1,2})-[rR]([0-9]{1,2})" (low, high) -> (low, high) |> Some
+    | _ -> None
+
+let (|RegListMatch|_|) str =
+    let createList n = 
+        match n with
+        | RegListExpand (low, high) -> 
+            let makeReg = (string >> (+) "R")
+            let ilow = int low
+            let ihigh = int high
+            let fullRegList = List.map (fun r -> r |> makeReg) [ilow..ihigh]
+            fullRegList |> Some
+        | _ -> None
+    
+    match str with
+    | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> createList listReg
+    | ParseRegex "([rR][0-9]{1,2})!" bangReg -> [bangReg] |> Some
+    | ParseRegex "([rR][0-9]{1,2})" reg -> [reg] |> Some
+    | _ -> None
 
 let ops = 
     match splitMult with
     | [rn; rlst] ->
-        let list = splitAny (rlst.Replace("}", "")) ','
+        let splitList = splitAny (rlst.Replace("}", "")) ','
         let firstReg = rn.Replace(",", "")
-        qp (firstReg :: list)
-        let rec regListMatch lst = 
-            match lst with
-            | head :: tail when (regValid head) ->
-                match head with
-                | RegListMatch reg -> (Ok (regListMatch tail)) |> consMemMult reg tail
-                | _ -> Error "Lord"
-            | _ -> "God Almighty"
-        regListMatch list
-    | _ -> qp "Shit happened"
+        let matcher x =
+            match x with
+            | RegListMatch x -> x
+            | _ -> ["poop"]
 
-ops
+        let rec doAll f list =
+            match list with
+            | [] -> []
+            | head :: tail -> f head :: doAll f tail
+        let fullValues = doAll matcher splitList 
+        let doneAH = List.concat fullValues
+        qp doneAH
+    | _ -> "Gah" |> qp
 
-let rec parseExprList txt =
-        match txt with
-        | Expr (exp, rst) ->
-            match rst with
-            | RegexPrefix "," (_, rst') -> 
-                Result.map (fun lst -> (ExpUnresolved exp) :: lst) (parseExprList rst')
-            | "" -> Ok [ExpUnresolved exp]
-            | _ -> sprintf "Invalid Expression '%s'" txt |> Error
-        | _ -> sprintf "Bad expression list '%s'" txt |> Error
-
-let fullList (lst: int list) : string List = List.map (fun i -> i.ToString) lst
-qp fullList
-let makeReg = string >> ((+) "R")
-let fullRegList = List.map (fun i -> i |> makeReg) [0..15]
-qp fullRegList     
-// let ops =
-//     match splitMult with
-//     | [reg; reglist] ->
-//         let splitList = splitAny reglist ','
-//         let rec matchList f lst = 
-//             match lst with
-//             | [] -> []
-//             | head :: tail -> f head :: matchList f tail
-//         let lst = matchList RegListMatch splitList
-//         match [reg; lst] with
-//         | [reg; lst] when (regsValid lst) ->
-//             (Ok lst)
-//             |> consMemMult reg lst
-//         | _ -> Error "Fail asdfljh"
-//     | _ -> Error "Aint matching fam"
-                
+// ops |> qp
