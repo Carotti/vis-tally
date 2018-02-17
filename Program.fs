@@ -16,6 +16,7 @@ let qpl lst = lst |> List.map (qp)
 
 let repl() =
     let rec repl'() =
+        printf  "~> "
         System.Console.ReadLine()
         |> parseLine None (WA 0u) 
         |> qp
@@ -26,24 +27,24 @@ let repl() =
 [<EntryPoint>]
 let main argv =
     /// test the initProjectLexer code
-    let instrLst = [
-        "hello: ADD R1, R2, #0xf000000f";
-        "ADD R2, R4, #0xf8000007";
-        "ADD R20, R4, #0xf8000007";
-        "ADD R1, R2, R3, R4";
-        "ADD R0, R1, R2 ";
-        "ADD R1, R2, R20, RRX";
-    ]
+    // let instrLst = [
+    //     "hello: ADD R1, R2, #0xf000000f";
+    //     "ADD R2, R4, #0xf8000007";
+    //     "ADD R20, R4, #0xf8000007";
+    //     "ADD R1, R2, R3, R4";
+    //     "ADD R0, R1, R2 ";
+    //     "ADD R1, R2, R20, RRX";
+    // ]
 
-    instrLst
-    |> List.map (fun instr -> (instr + "\n", parseLine None (WA 0u) instr))
-    |> qpl
-    |> ignore
+    // instrLst
+    // |> List.map (fun instr -> (instr + "\n", parseLine None (WA 0u) instr))
+    // |> qpl
+    // |> ignore
 
 
 
-    // "Ready to REPL" |> qp
-    // repl()
+    "ready to REPL..." |> (printfn "%s")
+    repl()
 
     // let test = parseLine None (WA 0u) "ADD R1, R2, R3, RRX"
     // test |> qp
