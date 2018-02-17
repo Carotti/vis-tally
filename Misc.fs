@@ -24,6 +24,8 @@ module Misc
     type ErrInstr = string
     
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
+    /// Any evaluation can fail with an undefined symbol, Error return is
+    /// the first symbol which causes this
     let resolve ins (syms : SymbolTable) = 
         let evalSymExp exp =
             match exp with
@@ -41,18 +43,28 @@ module Misc
         let validByte x =
             match x with
             | ExpResolved exp when exp < 256u -> Ok (ExpResolved exp)
-            | ExpResolved exp -> sprintf "'%d' cannot fit into a byte" exp |> Error
+            | ExpResolved exp -> sprintf "'%d' cannot fit into a byte in DCB" exp |> Error
             | _ -> failwithf "Calling validByte on unresolved SymbolExp"
         match ins with
         | DCD lst -> 
             List.map evalSymExp lst
             |> lstResUnfold
+            |> Result.map DCD
         | DCB lst -> 
             List.map (evalSymExp >> (Result.bind validByte)) lst 
             |> lstResUnfold
-
-    /// These opCodes do not have conditions or suffixes
-    let opCodes = ["DCD";"DCB";"EQU";"FILL"]
+            |> Result.map DCB
+        | FILL fins ->
+            let fillMap f =
+                match f.fillWith with
+                | Some fv -> 
+                    let fillValMap x = FILL {f with fillWith = Some {fv with value = x}}
+                    Result.map fillValMap (evalSymExp fv.value)
+                | None -> FILL f |> Ok
+            Result.map (fun x -> {fins with numBytes = x}) (evalSymExp fins.numBytes)
+            |>  Result.bind fillMap
+        | EQU (str, exp) -> 
+            Result.map (fun x -> EQU (str, x)) (evalSymExp exp)
 
     let parseExpr txt =
         match txt with
