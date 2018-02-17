@@ -4,7 +4,6 @@ module DP
     open System.Text.RegularExpressions
     open FsCheck
 
-
     ////////////////////////////////////////////////////////////////////////////////
     // maccth helper functions, TODO: delete 
     let qp thing = thing |> printfn "%A"
@@ -74,7 +73,6 @@ module DP
             ("ROR", ROR);     
         ]
      
-
     // Flexible shift sub-instruction format within the flexiable second operand.
     type FS2Form = {rOp2:RName; sInstr:SInstr; sOp:SOp}
 
@@ -91,7 +89,6 @@ module DP
     ///  processing instructions. 
     type DP2Form = {rDest:RName; rOp1: RName}
  
-
     type Instr =
         | ADD of DP3Form
        
@@ -103,7 +100,6 @@ module DP
         Roots = ["ADD";"SUB"]
         Suffixes = [""; "S"]
     }
-
 
     /// Constructs a register name of type `RName` from a register specified as a `string`.
     let consReg reg =
@@ -150,7 +146,6 @@ module DP
         }
     
 
-
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
@@ -186,11 +181,11 @@ module DP
         let (|LitMatch|_|) txt =
             match txt with
             | ParseRegex "#&([0-9a-fA-F]+)" num -> 
-                (uint32 ("0x" + num)) |> Some |> Option.map (checkLiteral)
+                (uint32 ("0x" + num)) |> checkLiteral |> Some
             | ParseRegex "#(0B[0-1]+)" num
             | ParseRegex "#(0X[0-9a-fA-F]+)" num
             | ParseRegex "#([0-9]+)" num ->
-                num |> uint32 |> Some |> Option.map (checkLiteral)
+                num |> uint32 |> checkLiteral |> Some
             | _ ->
                 // "Not a valid literal. Literal expression problems." |> qp
                 None
@@ -198,18 +193,16 @@ module DP
         let (|RegMatch|_|) txt =
             match txt with
             | ParseRegex "([R][\d][0-5]?)" reg ->
-                reg |> consReg |> Some
+                reg |> consReg |> Ok |> Some
             | _ ->
-                // "Not a valid flexible second operand register." |> qp
-                None
-        
+                "Not a valid register. Register problems." |> Error |> Some
+               
         let (|RrxMatch|_|) reg txt =
             match txt with
-            | ParseRegex "(RRX)" rrx ->
+            | ParseRegex "(RRX)" _ ->
                 reg |> consReg |> Ok |> Some
             | _ ->
                 None
-
 
         let (|ShiftInstr|_|) txt =
             match txt with
@@ -218,7 +211,6 @@ module DP
             | ParseRegex "(ASR)" _ 
             | ParseRegex "(ROR)" _ -> txt |> consSInstr |> Some
             | _ -> None
-
 
         let (|ShiftMatch|_|) (rOp2:string) (txt:string) =
             let instr = txt.[0..2]
@@ -235,63 +227,50 @@ module DP
                     |> Some
                 | RegMatch rOp3 ->
                     rOp3
-                    |> RegShift
-                    |> partialFS2
-                    |> Ok
+                    |> Result.map(RegShift)
+                    |> Result.map(partialFS2)
                     |> Some
+                | _ ->
+                    "Not a valid flexible second operand shift instruction." |> Error |> Some
             | _ ->
-                "Not a valid flexible second operand shift instruction." |> qp
                 None  
 
-
+        let operands =
+            ld.Operands.Split([|','|])
+            |> Array.toList
+            |> List.map (fun op -> op.ToUpper())
+            |> function
+            | [rDest'; rOp1'; op2'] when (checkRegs [rDest'; rOp1']) ->
+                let dp2 = consDP3 rDest' rOp1'
+                match op2' with
+                | LitMatch litVal ->
+                    litVal |> Result.map (consLitOp >> dp2)
+                | RegMatch reg ->
+                    reg |> Result.map (Reg >> dp2)
+                | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
+            | [rDest'; rOp1'; rOp2'; extn] when (checkRegs [rDest'; rOp1'; rOp2']) ->
+                let dp2 = consDP3 rDest' rOp1'
+                match extn with
+                | RrxMatch rOp2' reg ->
+                    reg |> Result.map (RRX >> dp2)
+                | ShiftMatch rOp2' shift ->
+                    shift |> Result.map(Shift >> dp2)
+                | _ ->
+                    Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
+            | _ -> Error "Syntax error. Instruction format is incorrect."
 
         let (WA la) = ld.LoadAddr
 
         let parseADD suffix cond =
-
-            let operands =
-                ld.Operands.Split([|','|])
-                |> Array.toList
-                |> List.map (fun op -> op.ToUpper())
-                |> function
-                | [rDest'; rOp1'; op2'] when (checkRegs [rDest'; rOp1']) ->
-                    match op2' with
-                    | LitMatch litVal ->
-                        let dp2 = consDP3 rDest' rOp1'
-                        litVal |> Result.map (consLitOp >> dp2)
-                    | RegMatch reg ->
-                        let dp2 = consDP3 rDest' rOp1'
-                        // reg |> Result.map (Reg >> dp2)
-                        reg |> (Reg >> dp2) |> Ok
-                    | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
-                | [rDest'; rOp1'; rOp2'; extn] when (checkRegs [rDest'; rOp1'; rOp2']) ->
-                    match extn with
-                    | RrxMatch rOp2' reg ->
-                        let dp2 = consDP3 rDest' rOp1'
-                        reg |> Result.map (RRX >> dp2)
-                    | ShiftMatch rOp2' shift ->
-                        let dp2 = consDP3 rDest' rOp1'
-                        shift |> Result.map(Shift >> dp2)
-                    | _ ->
-                        Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
-                | _ -> Error "Syntax error. Instruction format is incorrect."
-            
             let makeAdd ops =
                 Ok {
-                    // Example values just to see if it type checks
-                    // TODO: parse operands to get rOp1 and op2
-                    // TODO: check op2 to see if it is compatible with FlexOp2
-                    // TODO: create instruction in format to 'run'
                     PInstr  = ADD(ops);
                     PLabel  = ld.Label |> Option.map (fun lab -> lab, la);
                     PSize   = 4u;
                     PCond   = cond
                 }
-
-
             Result.bind makeAdd operands
             
-
         let parseFuncs =
             Map.ofList [
                 "ADD", parseADD;
@@ -307,7 +286,6 @@ module DP
         //  for example LITERAL VALUE IS NOT OKAY!!!!
         Map.tryFind ld.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
-
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
