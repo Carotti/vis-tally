@@ -19,9 +19,10 @@ module Memory
 
     [<Struct>]
     type InstrMemSingle = {valReg: RName; addr: Address; postOffset: PostIndex}
-        
+    
+    type RegisterList = | RegList of List<RName>
     [<Struct>]
-    type InstrMemMult = {rn: RName; regList: List<RName>}
+    type InstrMemMult = {rn: RName; rList: RegisterList}
 
     type Instr = 
         | LDR of InstrMemSingle
@@ -38,10 +39,15 @@ module Memory
         Suffixes = [""; "B";"IA";"IB";"DA";"DB"]
     }
 
-    let memTypeMap = 
+    let memTypeSingleMap = 
         Map.ofList [
             "LDR", LDR;
-            "STR", STR
+            "STR", STR;
+        ]
+    let memTypeMultMap =
+        Map.ofList [
+            "LDM", LDM;
+            "STM", STM;
         ]
 
     /// map of all possible opcodes recognised
@@ -58,8 +64,8 @@ module Memory
     let consMemMult reg rLst =
         Result.map (fun a ->
             {
-                rn = reg;
-                regList = rLst
+                rn = regNames.[reg];
+                rList = RegList (List.map (fun a -> regNames.[a]) rLst)
             })
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
@@ -94,48 +100,40 @@ module Memory
         
         let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
 
-            let (|RegListMatch|_|) str =
-                let optionAddToList r =
-                    regList = (List.append >> Some) r
-                match str with
-                | ParseRegex "([rR][0-9]{1,2})\}" lastReg -> lastReg |> optionAddToList
-                | ParseRegex "([rR][0-9]{1,2})" listReg -> listReg |> optionAddToList
-                | _ -> None
+            // let (|RegListMatch|_|) str =
+            //     match str with
+            //     | ParseRegex "([rR][0-9]{1,2})\}" lastReg -> 
+            //         qp lastReg
+            //         lastReg |> Some
+            //     | ParseRegex "([rR][0-9]{1,2})" listReg -> 
+            //         qp listReg
+            //         listReg |> Some
+            //     | _ -> None
 
             let splitMult = splitAny ls.Operands '{'
 
-            let ops =
+            let ops = 
                 match splitMult with
-                | [reg; reglist] ->
-                    let splitList = splitAny reglist ','
-                    let rec matchList f lst = 
-                        match lst with
-                        | [] -> []
-                        | head :: tail -> f head :: matchList f tail
-                    let lst = matchList RegListMatch splitList
-                    match [reg; lst] with
-                    | [reg; lst] when (List.fold checkValid lst) ->
-                        (Ok lst)
-                        |> consMemMult reg lst
-                    | _ -> Error "Fail asdfljh"
-                | _ -> Error "Aint matching fam"
+                | [rn; rlst] ->
+                    let splitList = splitAny (rlst.Replace("}", "")) ','
+                    let firstReg = rn.Replace(",", "")
+                    match firstReg :: splitList with
+                    | head :: tail when (regsValid (head :: tail)) -> 
+                        (Ok tail)
+                        |> consMemMult head tail
+                    | _ -> Error "Fail"
+                | _ -> Error "Shit happened"
                 
             let make ops =
                 Ok { 
-                    PInstr= memTypeMap.[root] ops;
+                    PInstr= memTypeMultMap.[root] ops;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
             Result.bind make ops
 
-        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,string> = 
-            
-            let checkValid opList =
-                match opList with
-                | [reg; addr; _] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1], #4
-                | [reg; addr] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1]
-                | _ -> false
+        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,string> =         
 
             let splitOps = splitAny ls.Operands ','
             
@@ -145,7 +143,7 @@ module Memory
                     match addr with
                     | MemMatch addr -> 
                         match [reg; addr] with
-                        | [reg; addr] when (checkValid [reg; addr]) ->
+                        | [reg; addr] when (checkValid2 [reg; addr]) ->
                             (Ok NoPost)
                             |> consMemSingle reg addr NoPre NoPost
                         | _ -> Error "Balls"
@@ -154,7 +152,7 @@ module Memory
                     match addr with
                     | MemMatch addr ->
                         match [reg; addr] with
-                        | [reg; addr] when (checkValid [reg; addr]) ->
+                        | [reg; addr] when (checkValid2 [reg; addr]) ->
                             match offset with
                             | OffsetMatch offset -> 
                                 (Ok NoPost)
@@ -166,7 +164,7 @@ module Memory
 
             let make ops =
                 Ok { 
-                    PInstr= memTypeMap.[root] ops;
+                    PInstr= memTypeSingleMap.[root] ops;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
@@ -174,7 +172,7 @@ module Memory
             Result.bind make ops
 
         let parse' (_instrC, (root,suffix,pCond)) =
-            parseSingle root suffix pCond
+            parseMult root suffix pCond
 
         Map.tryFind ls.OpCode opCodes
         |> Option.map parse'

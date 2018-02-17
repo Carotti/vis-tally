@@ -72,20 +72,14 @@ module DP
 
         // this does the real work of parsing
         let parseShift root suffix pCond : Result<Parse<Instr>,string> = 
-            
-            let checkValid opList =
-                match opList with
-                | [dest; op1; _] when (regsValid [dest; op1]) -> true // ASR, LSL, LSR ROR
-                | [dest; op1] when (regsValid [dest; op1]) -> true // RRX
-                | _ -> false
 
             let splitOps = splitAny ls.Operands ','
 
             let ops =
                 match splitOps with
-                | [dest; op1] when (checkValid splitOps) ->
+                | [dest; op1] when (checkValid2 splitOps) ->
                     (Ok Empty) |> constructShift dest op1 Empty // RRX
-                | [dest; op1; op2] when (checkValid splitOps) ->
+                | [dest; op1; op2] when (checkValid2 splitOps) ->
                     match op2 with
                     | Op2Match regOrNum -> 
                         (Ok regOrNum) |> constructShift dest op1 regOrNum // ASR, LSL, LSR ROR

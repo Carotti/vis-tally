@@ -27,6 +27,11 @@ module Helpers
         |> Array.map uppercase    
         |> List.ofArray
 
+    let checkValid2 opList =
+        match opList with
+        | h1 :: h2 :: _ when (regsValid [h1 ; h2]) -> true 
+        | _ -> false
+
     [<Tests>]
     let helperTests =
         let validRegisterCheck (reg: string) ans =
