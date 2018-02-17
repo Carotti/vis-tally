@@ -39,7 +39,13 @@ match "r12]" with
 | MemMatch out -> out |> qp
 | _ -> "nope" |> qp
 
+
+            let checkValid opList =
+                match opList with
+                | [reg; addr; _] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1], #4
+                | [reg; addr] when (regsValid [reg; addr]) -> true // e.g. LDR R0, [R1]
+                | _ -> false
 let checkValid opList =
     match opList with
-    | h1 :: h2 :: tail -> 
+    | h1 :: h2 :: tail when (regsValid [h1 ; h2] -> true) 
     | _ -> false
