@@ -3,7 +3,7 @@ module Memory
     open CommonLex
     open Expecto
     open Helpers
-    open System.Reflection.PortableExecutable
+    open System.Text.RegularExpressions
 
     type OffsetType =
         | ImmOffset of uint32
@@ -100,15 +100,33 @@ module Memory
         
         let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
 
-            // let (|RegListMatch|_|) str =
-            //     match str with
-            //     | ParseRegex "([rR][0-9]{1,2})\}" lastReg -> 
-            //         qp lastReg
-            //         lastReg |> Some
-            //     | ParseRegex "([rR][0-9]{1,2})" listReg -> 
-            //         qp listReg
-            //         listReg |> Some
-            //     | _ -> None
+            let (|ParseRegex2|_|) (regex: string) (str: string) =
+               let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
+               if m.Success
+               then Some (m.Groups.[1].Value, m.Groups.[2].Value)
+               else None
+
+            let (|RegListExpand|_|) str =
+                match str with
+                | ParseRegex2 "[rR]([0-9]{1,2})-[rR]([0-9]{1,2})" (low, high) -> (low, high) |> Some
+                | _ -> None
+
+            let (|RegListMatch|_|) str =
+                let createList n = 
+                    match n with
+                    | RegListExpand (low, high) -> 
+                        let makeReg = (string >> (+) "R")
+                        let ilow = int low
+                        let ihigh = int high
+                        let fullRegList = List.map (fun r -> r |> makeReg) [ilow..ihigh]
+                        fullRegList |> Some
+                    | _ -> None
+                
+                match str with
+                | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> listReg |> Some
+                | ParseRegex "([rR][0-9]{1,2})!" bangReg -> bangReg |> Some
+                | ParseRegex "([rR][0-9]{1,2})" reg -> reg |> Some
+                | _ -> None
 
             let splitMult = splitAny ls.Operands '{'
 
@@ -116,13 +134,36 @@ module Memory
                 match splitMult with
                 | [rn; rlst] ->
                     let splitList = splitAny (rlst.Replace("}", "")) ','
+                    qp splitList
                     let firstReg = rn.Replace(",", "")
+                    qp firstReg
                     match firstReg :: splitList with
-                    | head :: tail when (regsValid (head :: tail)) -> 
+                    | head :: tail when (regsValid (head :: tail)) ->
                         (Ok tail)
                         |> consMemMult head tail
                     | _ -> Error "Fail"
                 | _ -> Error "Shit happened"
+            
+            // let ops = 
+            //     match splitMult with
+            //     | [rn; rlst] ->
+            //         let list = splitAny (rlst.Replace("}", "")) ','
+            //         let firstReg = rn.Replace(",", "")
+            //         qp (firstReg :: list)
+            //         let rec regListMatch lst = 
+            //             match lst with
+            //             | rn :: rlst when (regsValid (rn :: rlst)) ->
+            //                 match rlst with
+            //                 | head :: tail ->
+            //                     match head with
+            //                     | RegListMatch reg -> (Ok regListMatch tail) |> consMemMult rn 
+
+
+            //                 | RegListMatch reg -> (Ok (regListMatch tail)) |> consMemMult reg tail
+            //                 | _ -> Error "Lord"
+            //             | _ -> Error "God Almighty"
+            //         regListMatch list
+            //     | _ -> Error "Shit happened"
                 
             let make ops =
                 Ok { 
