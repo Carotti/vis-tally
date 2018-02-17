@@ -5,9 +5,6 @@ module DP
     open Helpers
     open Expecto
 
-    let qp item = printfn "%A" item
-    let qpl lst = List.map (qp) lst
-
     type ShiftType = 
         | Rs of RName
         | N of uint32
@@ -111,8 +108,13 @@ module DP
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
 
-
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
+    
+    [<Tests>]
+    let dataProcessingTests =
         
+        testList "DP Tests" [
+            
+            ]
 

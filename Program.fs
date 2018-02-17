@@ -1,72 +1,9 @@
-﻿module Program
-
-open Expecto
-
+﻿// Learn more about F# at http://fsharp.org
+module Program
 open CommonTop
 open CommonData
-open CommonLex
-open DP
-open DPExecution
-open DPTests
-open Tests
-
-open VisualTest.Visual
-open VisualTest.VTest
-
-open System
-open System.Threading
-open System.IO
-
-// Comments
-let qp thing = thing |> printfn "%A"
-
-let qpl lst = lst |> List.map (qp)
-
-let parseREPL() =
-    let rec repl'() =
-        printf  "~> "
-        System.Console.ReadLine().ToUpper()
-        |> parseLine None (WA 0u) 
-        |> qp
-        repl'()
-    repl'()
-
-let exeREPL (dp:DataPath<Instr>) =
-    printRegs dp
-    printFlags dp
-
-    let rec repl' (dp:DataPath<Instr>) =
-        printf  "~> "
-        System.Console.ReadLine().ToUpper()
-        |> parseLine None (WA 0u)
-        |> function
-        | Ok instr ->
-            covertToDP instr
-            |> executeDP dp
-            |> function
-            | Ok dp' ->
-              printRegs dp'
-              printFlags dp'
-              repl' dp'
-            | Error e' ->
-                e' |> qp
-                repl' dp
-         | Error e ->
-            e |> qp
-            repl' dp
-    repl' dp
-
-
-[<Tests>]
-
-
-let expectoConfig = { Expecto.Tests.defaultConfig with 
-                        parallel = testParas.Parallel
-                        parallelWorkers = 6 // try increasing this if CPU use is less than 100%
-                }
-
-let qp item = printfn "%A" item
-let qpl lst = List.map (qp) lst
+open Expecto
+open Helpers
 
 [<EntryPoint>]
 let main argv =
@@ -107,8 +44,11 @@ let main argv =
         "STR r0, [r1, #&8]";
         "STR r0, [r1, #0b10110]"
     ]
-
-    List.map (parseLine None (WA 0u)) instrLst
-    |> ignore
-    0 // return an integer exit code
-    // This is a test
+    "Enter \"tests\" to run the test suite, for execution anything else" |> qp
+    match argv with
+        | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
+        | _ -> 
+            List.map (parseLine None (WA 0u)) instrLst
+            |> qpl
+            |> ignore
+            0 // return an integer exit code
