@@ -6,7 +6,6 @@ module Misc
     open CommonData
     open CommonLex
     open Expressions
-    open Expecto
 
     type SymbolExp =
         | ExpUnresolved of Expression
@@ -23,9 +22,34 @@ module Misc
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
-
+    
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
-    let resolve ins (syms : SymbolTable) = ()
+    let resolve ins (syms : SymbolTable) = 
+        let evalSymExp exp =
+            match exp with
+            | ExpUnresolved x -> 
+                Result.map ExpResolved (eval syms x)
+            | _ -> exp |> Ok
+        /// Take a list of results and transform it to a Result of either the
+        /// first error in the list or the Ok list if every element is Ok
+        let lstResUnfold lst =
+            let folder acc el =
+                let binder acc' = Result.map (fun x -> x :: acc') el
+                Result.bind binder acc
+            List.fold folder (Ok []) lst
+            |> Result.map List.rev
+        let validByte x =
+            match x with
+            | ExpResolved exp when exp < 256u -> Ok (ExpResolved exp)
+            | ExpResolved exp -> sprintf "'%d' cannot fit into a byte" exp |> Error
+            | _ -> failwithf "Calling validByte on unresolved SymbolExp"
+        match ins with
+        | DCD lst -> 
+            List.map evalSymExp lst
+            |> lstResUnfold
+        | DCB lst -> 
+            List.map (evalSymExp >> (Result.bind validByte)) lst 
+            |> lstResUnfold
 
     /// These opCodes do not have conditions or suffixes
     let opCodes = ["DCD";"DCB";"EQU";"FILL"]
