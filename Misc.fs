@@ -10,6 +10,7 @@ module Misc
     type SymbolExp =
         | ExpUnresolved of Expression
         | ExpResolved of uint32
+        | ExpResolvedByte of byte // For DCB
 
     type FILLVal = {value : SymbolExp ; valueSize : int}
     type FILLInstr = {numBytes : SymbolExp ; fillWith : FILLVal Option}
@@ -42,7 +43,7 @@ module Misc
             |> Result.map List.rev
         let validByte x =
             match x with
-            | ExpResolved exp when exp < 256u -> Ok (ExpResolved exp)
+            | ExpResolved exp when exp < 256u -> exp |> byte |> ExpResolvedByte |> Ok
             | ExpResolved exp -> sprintf "'%d' cannot fit into a byte in DCB" exp |> Error
             | _ -> failwithf "Calling validByte on unresolved SymbolExp"
         match ins with
@@ -61,10 +62,12 @@ module Misc
                     let fillValMap x = FILL {f with fillWith = Some {fv with value = x}}
                     Result.map fillValMap (evalSymExp fv.value)
                 | None -> FILL f |> Ok
-            Result.map (fun x -> {fins with numBytes = x}) (evalSymExp fins.numBytes)
+            evalSymExp fins.numBytes
+            |> Result.map (fun x -> {fins with numBytes = x}) 
             |>  Result.bind fillMap
         | EQU (str, exp) -> 
-            Result.map (fun x -> EQU (str, x)) (evalSymExp exp)
+            evalSymExp exp
+            |> Result.map (fun x -> EQU (str, x)) 
 
     let parseExpr txt =
         match txt with

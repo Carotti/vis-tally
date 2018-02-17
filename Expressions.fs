@@ -133,7 +133,7 @@ module Expressions
     let multiply = {op = "*" ; f = (*)}
 
     [<Tests>]
-    let exprPropertyTests = 
+    let exprTests = 
         /// Attempt to parse txt with Expr
         /// Check exp matches the evaluated expression
         let expEqual syms exp txt =
