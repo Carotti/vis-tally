@@ -7,6 +7,8 @@ module Memory
     open Helpers
     open System.Text.RegularExpressions
     open FsCheck
+    open System.Reflection.PortableExecutable
+    open DP
 
     type OffsetType =
         | ImmOffset of uint32
@@ -82,21 +84,35 @@ module Memory
             then Valid |> Some
             else None
         
-        let getOffsetType (o: OffsetType) : uint32 =
+        let getOffsetType o =
             match o with
             | ImmOffset i -> i
             | RegOffset r -> regContents r
             | NoOffset -> 0u
+        
+        let getPostIndex i =
+            match i with 
+            | N num -> num
+            | NoPostIndex -> 0u
         
         let wordAddress (a: uint32) = 
             match a with
             | Valid -> WA a
             | _ -> failwithf "Nope"
 
-        match instr.PInstr with
-        | LDR operands -> memContents.[wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)] 
-        | _ -> failwithf "Aint an instruction bro"
+        let afterInstr = 
+            match instr.PInstr with
+            | LDR operands ->
+                let memloc = memContents.[wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)] 
+                let data = 
+                    match memloc with
+                    | DataLoc dl -> dl
+                    | _ -> failwithf "You fucked it"
+                let update = setReg operands.Rn data cpuData
+                setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
+            | _ -> failwithf "Aint an instruction bro"
 
+        setReg R15 nextPC afterInstr
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
@@ -205,7 +221,7 @@ module Memory
                         match [reg; addr] with
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             (Ok splitOps)
-                            |> consMemSingle reg addr NoPre NoPost
+                            |> consMemSingle reg addr NoOffset NoPostIndex
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
                 | [reg; addr; offset] ->
@@ -216,7 +232,7 @@ module Memory
                             match offset with
                             | OffsetMatch offset -> 
                                 (Ok splitOps)
-                                |> consMemSingle reg addr offset NoPost
+                                |> consMemSingle reg addr offset NoPostIndex
                             | _ -> Error "Cobblers"
                         | _ -> Error "Goolies"
                     | _ -> Error "Gonads"
