@@ -11,7 +11,7 @@ module DP
     type ShiftType = 
         | Rs of RName
         | N of uint32
-        | Empty       // None type here for RRX
+        | Empty       // No type here for RRX
 
     /// op{S}{cond} Rd, Rm, Rs
     /// op{S}{cond} Rd, Rm, #N
@@ -54,9 +54,33 @@ module DP
             "RRX", RRX
         ]
 
-    let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
-        // let nextPC = cpuData.Regs[] + 4u
-        qp instr
+    let execute (cpuData: DataPath<'INS>)(instr: Parse<Instr>) =
+        let rotate reg amt = 
+            let binaryMask = uint32 (2.0 ** (float amt) - 1.0)
+            let lsbs = reg &&& binaryMask
+            let msbs = lsbs <<< (32 - amt)
+            let shiftedNum = reg >>> amt
+            msbs ||| shiftedNum
+
+        let PC = cpuData.Regs.[R15]
+        let nextPC = PC + 4u
+        let regContents r = cpuData.Regs.[r]
+        let lessThan32 v = (fun x -> x % 32) v
+
+        let getShifter (sh: ShiftType) : int32 = 
+            match sh with
+            | Rs reg -> regContents reg |> int32
+            | N num -> num |> int32
+            | _ -> failwithf "dont care"
+
+        match instr.PInstr with
+        | LSL operands -> (regContents operands.Rm) <<< (getShifter operands.shifter)
+        | ASR operands -> (regContents operands.Rm) >>> (getShifter operands.shifter)
+        | LSR operands -> (regContents operands.Rm) >>> (getShifter operands.shifter)
+        | ROR operands -> rotate (regContents operands.Rm) (getShifter operands.shifter)
+        | RRX operands when cpuData.Fl.C -> (regContents operands.Rm) >>> 1 |> (|||) (uint32 0x80000000)
+        | RRX operands -> (regContents operands.Rm) >>> 1
+        | _ -> failwithf "Ain't an instruction bro"
    
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
@@ -104,7 +128,7 @@ module DP
             
         let parse' (_instrC, (root,suffix,pCond)) =
             parseShift root suffix pCond
-
+           
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
 
