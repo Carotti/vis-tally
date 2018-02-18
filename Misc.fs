@@ -145,8 +145,7 @@ module Misc
                 match ls.Operands with
                 | Expr (num, rst) -> 
                     match rst with
-                    | "" ->
-                        FILL {numBytes = ExpUnresolved num; fillWith = None} |> Ok
+                    | "" -> FILL {numBytes = ExpUnresolved num; fillWith = None} |> Ok
                     | RegexPrefix "," (_, Expr (v, rst')) ->
                         match rst' with
                         | "" ->
@@ -155,7 +154,9 @@ module Misc
                         | RegexPrefix "," (_, RegexPrefix "[124]" (vs, "")) ->
                             FILL {numBytes = ExpUnresolved num; fillWith = 
                                 Some {value = ExpUnresolved v; valueSize = int vs}} |> Ok
+                        | RegexPrefix "," (_, inv) -> InvalidFillSize inv |> Error
                         | _ -> InvalidFillSize rst' |> Error
+                    | RegexPrefix "," (_, inv) -> InvalidFillValue inv |> Error
                     | _ -> InvalidFillValue rst |> Error
                 | _ -> InvalidFillExp ls.Operands |> Error
             Result.map (fun ins ->
