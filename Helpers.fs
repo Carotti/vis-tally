@@ -32,6 +32,13 @@ module Helpers
         | h1 :: h2 :: _ when (regsValid [h1 ; h2]) -> true 
         | _ -> false
 
+    let setReg reg contents cpuData =
+        let setter reg' old = 
+            match reg' with
+            | x when x = reg -> contents
+            | _ -> old
+        {cpuData with Regs = Map.map setter cpuData.Regs}
+
     [<Tests>]
     let helperTests =
         let validRegisterCheck (reg: string) ans =

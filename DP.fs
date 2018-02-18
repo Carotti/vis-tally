@@ -71,14 +71,31 @@ module DP
             | N num -> num |> int32
             | Empty -> 0
 
-        match instr.PInstr with
-        | LSL operands -> (regContents operands.Rm) <<< (getShifter operands.shifter)
-        | ASR operands -> (regContents operands.Rm) >>> (getShifter operands.shifter)
-        | LSR operands -> (regContents operands.Rm) >>> (getShifter operands.shifter)
-        | ROR operands -> rotate (regContents operands.Rm) (getShifter operands.shifter)
-        | RRX operands when cpuData.Fl.C -> (regContents operands.Rm) >>> 1 |> (|||) (uint32 0x80000000)
-        | RRX operands -> (regContents operands.Rm) >>> 1
-        | _ -> failwithf "Ain't an instruction bro"
+        let afterInstr = 
+            match instr.PInstr with
+            | LSL operands -> 
+                let value = (regContents operands.Rm) <<< (getShifter operands.shifter)
+                setReg operands.Rd value cpuData
+            | ASR operands -> 
+                let value = (regContents operands.Rm) >>> (getShifter operands.shifter)
+                setReg operands.Rd value cpuData
+            | LSR operands -> 
+                let value = (regContents operands.Rm) >>> (getShifter operands.shifter)
+                setReg operands.Rd value cpuData
+            | ROR operands -> 
+                let value = rotate (regContents operands.Rm) (getShifter operands.shifter)
+                setReg operands.Rd value cpuData
+            | RRX operands when cpuData.Fl.C -> 
+                let value = (regContents operands.Rm) >>> 1 |> (|||) (uint32 0x80000000)
+                setReg operands.Rd value cpuData
+            | RRX operands -> 
+                let value = (regContents operands.Rm) >>> 1
+                setReg operands.Rd value cpuData
+            | _ -> failwithf "Ain't an instruction bro"
+            
+        setReg R15 nextPC afterInstr
+        
+
 
    
     /// map of all possible opcodes recognised
