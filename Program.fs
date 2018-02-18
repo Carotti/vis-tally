@@ -31,10 +31,10 @@ let main argv =
         // "ROR R0, R1, R2"; 
         // "RRX R0, R1";
         // "RRX R12, R12";
-        // "LDR r0, [r1, r2]"
+        "LDR r0, [r1, r2]!"
         // "LDR r0, [r1]";
         // "LDR r0, [r1], #4"
-        "LDR r0, [r1, #4]!"
+        // "LDR r0, [r1, #4]!"
         // "LDR r0, [r1, #4]";
         // "LDR r0, [r1, #0x7]";
         // "LDR r0, [r1, #&8]";

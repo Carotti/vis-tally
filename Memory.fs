@@ -7,20 +7,19 @@ module Memory
     open Helpers
     open System.Text.RegularExpressions
     open FsCheck
-    open System.Reflection.PortableExecutable
-    open DP
 
     type OffsetType =
-        | ImmOffset of uint32
-        | RegOffset of RName
-        | NoOffset
+        | ImmPre of uint32
+        | RegPre of RName
+        | NoPre
     
     [<Struct>]
     type Address = {addrReg: RName; offset: OffsetType}
     
     type PostIndex =
-        | N of uint32
-        | NoPostIndex
+        | ImmPost of uint32
+        | RegPost of RName
+        | NoPost
 
     [<Struct>]
     type InstrMemSingle = {Rn: RName; addr: Address; postOffset: PostIndex}
@@ -86,14 +85,15 @@ module Memory
         
         let getOffsetType o =
             match o with
-            | ImmOffset i -> i
-            | RegOffset r -> regContents r
-            | NoOffset -> 0u
+            | ImmPre i -> i
+            | RegPre r -> regContents r
+            | NoPre -> 0u
         
         let getPostIndex i =
             match i with 
-            | N num -> num
-            | NoPostIndex -> 0u
+            | ImmPost i -> i
+            | RegPost r -> regContents r
+            | NoPost -> 0u
         
         let wordAddress (a: uint32) = 
             match a with
@@ -129,53 +129,58 @@ module Memory
             | _ -> None
         
         let (|OffsetMatch|_|) str =
-            // let optionNBang b = 
-            //     let postInd = N (uint32 b)
-            //     let preInd = ImmOffset (uint32 b) // Somehow also construct postIndex with b
-            //     preInd, postInd |> Some
-            // // let optionRBang b = 
-            // //     let postInd = N (uint32 b)
-            // //     ImmOffset (uint32 b) |> Some // Somehow also construct postIndex with b
-            // let optionN n = 
-            //     let postInd = NoPostIndex
-            //     let preInd = ImmOffset (uint32 n)
+            let regNoPrePost = function
+                | r when (regValid r) -> 
+                    let postInd = RegPost (regNames.[r])
+                    let preInd = NoPre
+                    (preInd, postInd) |> Some
+                | _ -> None
+                
+            let regPreNoPost = function
+                | r when (regValid r) -> 
+                    let postInd = NoPost
+                    let preInd = RegPre (regNames.[r])
+                    (preInd, postInd) |> Some
+                | _ -> None
+            
+            let regPreAndPost = function
+                | r when (regValid r) -> 
+                    let postInd = RegPost (regNames.[r])
+                    let preInd = RegPre (regNames.[r])
+                    (preInd, postInd) |> Some
+                | _ -> None
 
-            // let optionR = function
-            //     | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
-            //     | _ -> None
-
-            let postNoPre n =
-                let postInd = N (uint32 n)
-                let preInd = NoOffset
+            let immNoPrePost n =
+                let postInd = ImmPost (uint32 n)
+                let preInd = NoPre
                 (preInd, postInd) |> Some
             
-            let preNoPost n = 
-                let postInd = NoPostIndex
-                let preInd = ImmOffset (uint32 n)
+            let immPreNoPost n = 
+                let postInd = NoPost
+                let preInd = ImmPre (uint32 n)
                 (preInd, postInd) |> Some
             
-            let preAndPost n =
-                let postInd = N (uint32 n)
-                let preInd = ImmOffset (uint32 n)
+            let immPreAndPost n =
+                let postInd = ImmPost (uint32 n)
+                let preInd = ImmPre (uint32 n)
                 (preInd, postInd) |> Some
 
             match str with 
-            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
-
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> postNoPre
-            | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> postNoPre
-            | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> postNoPre
-            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> postNoPre
-
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> preNoPost
-            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> preNoPost
-            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> preNoPost
-            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> preNoPost
-            
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> preAndPost
-            | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> preAndPost
-            | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> preAndPost
-            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> preAndPost
+            | ParseRegex "([rR][0-9]{1,2})" preOffReg -> preOffReg |> regNoPrePost
+            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> regPreNoPost
+            | ParseRegex "([rR][0-9]{1,2})\]!" preOffReg -> preOffReg |> regPreAndPost
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost
+            | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost
+            | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost
+            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost
+            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost
+            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost
+            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost    
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost
+            | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost
+            | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost
+            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost
             | _ -> None
         
         let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
@@ -255,7 +260,7 @@ module Memory
                         match [reg; addr] with
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             (Ok splitOps)
-                            |> consMemSingle reg addr NoOffset NoPostIndex
+                            |> consMemSingle reg addr NoPre NoPost
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
                 | [reg; addr; offset] ->
