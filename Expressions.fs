@@ -108,7 +108,7 @@ module Expressions
 
     /// Format a uint32 into the binary format
     let binFormatter x =
-        let rec bin (a : uint32) =
+        let rec bin a =
             let bit = string (a % 2u)
             match a with 
             | 0u | 1u -> bit

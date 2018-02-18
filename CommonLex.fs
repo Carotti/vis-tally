@@ -28,7 +28,7 @@ module CommonLex
         | Cal // the "always executed condition "AL". Used by default on no condition
 
     /// classes of instructions (example, add/change this is needed)
-    type InstrClass = | DP | MEM | MISC | BRANCH
+    type InstrClass = | DP | MEM | MISC | BRANCH | PSEUDO
 
     /// specification of set of instructions
     type OpSpec = {
