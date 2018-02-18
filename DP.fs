@@ -11,8 +11,7 @@ module DP
     // maccth helper functions, TODO: delete 
     ////////////////////////////////////////////////////////////////////////////////
 
-    /// Possible rotation values for the `Literal` type in the flexiable
-    ///  second operand.
+    /// Rotation values for the `Literal` type in the flexible second operand.
     [<Struct>]
     type RotVal =
         | Rot0     | Rot2     | Rot4     | Rot6
@@ -21,7 +20,7 @@ module DP
         | Rot24    | Rot26    | Rot28    | Rot30
 
     /// Map for converting from the `RVal` type to the underlying numerical
-    ///  value used for the rotation in the `Literal` of the flexiable second
+    ///  value used for the rotation in the `Literal` of the flexible second
     ///  operand.
     let RotNums =
         Map.ofList [
@@ -32,7 +31,7 @@ module DP
         ]
     
     /// Map for converting from a numerical value to the `RVal` used to
-    ///  represent the rotation in the `Literal` of the flexiable second
+    ///  represent the rotation in the `Literal` of the flexible second
     ///  operand.
     let RotVals =
         Map.ofList [
@@ -43,8 +42,8 @@ module DP
         ]
 
     /// Literal type for allowed literals.
-    ///  `K` is the underlying byte.
-    ///  `R` is the rotation that is applied to `K`.
+    ///  `b` is the underlying byte.
+    ///  `r` is the rotation that is applied to `b`.
     type Literal =
         {
             b: byte;
@@ -57,7 +56,7 @@ module DP
         | RegShift      of RName
    
     /// Shift instructions that require operands and are compatible with the
-    ///  flexiable second operand. `RRX` is not included since it does not
+    ///  flexible second operand. `RRX` is not included since it does not
     ///  require any further operands.
     type SInstr =
         | LSL
@@ -65,6 +64,8 @@ module DP
         | ASR
         | ROR
     
+    /// Map for converting `strings` containing shift instructions (used in
+    ///  the flexible second operand) to shift instructions of type `SInstr`.
     let sInstrs =
         Map.ofList [
             ("LSL", LSL);
@@ -73,8 +74,13 @@ module DP
             ("ROR", ROR);     
         ]
      
-    // Flexible shift sub-instruction format within the flexiable second operand.
-    type FS2Form = {rOp2:RName; sInstr:SInstr; sOp:SOp}
+    // Flexible shift instruction format within the flexible second operand.
+    type FS2Form =
+        {
+            rOp2:RName;
+            sInstr:SInstr;
+            sOp:SOp
+        }
 
     type FlexOp2 =
         | Lit       of Literal
@@ -82,24 +88,40 @@ module DP
         | Shift     of FS2Form
         | RRX       of RName
 
-    /// Instruction format for three-operand data processing instructions. 
-    type DP3Form = {rDest:RName; rOp1:RName; fOp2:FlexOp2} 
+    /// Operand format for three-operand data processing instructions. 
+    type DP3Form =
+        {
+            rDest:RName;
+            rOp1:RName;
+            fOp2:FlexOp2
+        } 
 
-    /// Instruction format for the first two operands of the hree-operand data
+    /// Operand format for the first two operands of the three-operand data
     ///  processing instructions. 
-    type DP2Form = {rDest:RName; rOp1: RName}
+    type DP2Form =
+        {
+            rDest:RName;
+            rOp1: RName
+        }
  
     type Instr =
         | ADD of DP3Form
        
-    /// parse error (dummy, but will do)
-    type ErrInstr = string
+    /// Error types
+    type ErrInstr =
+        | ``Invalid literal``       of string
+        | ``Invalid register``      of string
+        | ``Invalid shift``         of string
+        | ``Syntax error``          of string
+        | ``Invalid instruction``   of string
 
-    let DPSpec = {
-        InstrC = DP
-        Roots = ["ADD";"SUB"]
-        Suffixes = [""; "S"]
-    }
+
+    let DPSpec =
+        {
+            InstrC = DP
+            Roots = ["ADD";"SUB"]
+            Suffixes = [""; "S"]
+        }
 
     /// Constructs a register name of type `RName` from a register specified as a `string`.
     let consReg reg =
@@ -107,36 +129,26 @@ module DP
 
     /// Constructs an operand record of type `DP3Form` from registers specified as strings.
     let consDP3 rDest' rOp1' fOp2' =
-        {rDest = regNames.[rDest']; rOp1 = regNames.[rOp1']; fOp2 = fOp2'}
+        {
+            rDest = regNames.[rDest'];
+            rOp1 = regNames.[rOp1'];
+            fOp2 = fOp2'
+        }
 
     /// Constructs an operand record of type `DP2Form` from registers specified as strings.
     let consDP2 rDest' rOp1' =
-        {rDest = regNames.[rDest']; rOp1 = regNames.[rOp1']}
+        {
+            rDest = regNames.[rDest'];
+            rOp1 = regNames.[rOp1']
+        }
 
     /// Joins a `DP2Form` and a `FlexOp2` to create a `DP3Form`.
     let joinDP dp2 fOp2' =
-        {rDest = dp2.rDest; rOp1 = dp2.rOp1; fOp2 = fOp2'}
-
-    /// Creates a `DP2Form` from `rDest'` and `rOp1'`. Joins the `DP2Form` to a
-    ///  `FlexOp2` to create a `DP3Form`.
-    let partialDP rDest' rOp1' fOp2' =
-        let dp2 = consDP2 rDest' rOp1'
-        joinDP dp2 fOp2'
-    
-     /// Constructs a literal record of type `Literal` from a rotation values
-     ///  specified as an `int`.
-    let consLit (b', r') =
-        {b = b'; r = RotVals.[r']}
-
-     /// Constructs a literal record of type `FlexOp2` from a rotation values
-     ///  specified as an `int`.
-    let consLitOp (b', r') =
-        Lit (consLit (b', r'))
-    
-    /// Constructs a shift sub-instruction for the flexible second operand of
-    ///  type `SInstr` from a shift instruction specified as a `string`
-    let consSInstr instr =
-        sInstrs.[instr]
+        {
+            rDest = dp2.rDest;
+            rOp1 = dp2.rOp1;
+            fOp2 = fOp2'
+        }
 
     let consFS2 rOp2' sInstr' sOp'=
         {
@@ -144,6 +156,31 @@ module DP
             sInstr = sInstr';
             sOp = sOp';
         }
+    
+    /// Constructs a shift sub-instruction for the flexible second operand of
+    ///  type `SInstr` from a shift instruction specified as a `string`
+    let consSInstr instr =
+        sInstrs.[instr]
+
+    /// Constructs a literal record of type `Literal` from a rotation values
+    ////  specified as an `int`.
+    let consLit (b', r') =
+        {
+            b = b';
+            r = RotVals.[r']
+        }
+
+    /// Constructs a literal record of type `FlexOp2` from a rotation values
+    ///  specified as an `int`.
+    let consLitOp (b', r') =
+        Lit (consLit (b', r'))
+    
+    /// Creates a `DP2Form` from `rDest'` and `rOp1'`. Joins the `DP2Form` to a
+    ///  `FlexOp2` to create a `DP3Form`.
+    let partialDP rDest' rOp1' fOp2' =
+        let dp2 = consDP2 rDest' rOp1'
+        joinDP dp2 fOp2'
+
     
 
     /// map of all possible opcodes recognised
@@ -154,7 +191,7 @@ module DP
     /// and other state needed to generate output
     /// the result is None if the opcode does not match
     /// otherwise it is Ok Parse or Error (parse error string)
-    let parse (ld: LineData) : Result<Parse<Instr>,string> option =
+    let parse (ld: LineData) : Result<Parse<Instr>,ErrInstr> option =
     
         let checkReg regStr = Map.containsKey regStr regNames
       
@@ -170,7 +207,7 @@ module DP
                 let rotB = fst hd |> (&&&) lit
                 let B = (rotB <<< snd hd) ||| (rotB >>> 32 - snd hd) |> byte
                 Ok (B, snd hd)
-            | [] -> Error "Not a valid literal. Rotation problems."
+            | [] -> "Not a valid literal." |> ``Invalid literal`` |> Error
 
         let (|ParseRegex|_|) regex txt =
             let m = Regex.Match(txt, "^[\\s]*" + regex + "[\\s]*" + "$")
@@ -195,7 +232,7 @@ module DP
             | ParseRegex "([R][\d][0-5]?)" reg ->
                 reg |> consReg |> Ok |> Some
             | _ ->
-                "Not a valid register. Register problems." |> Error |> Some
+                "Not a valid register." |> ``Invalid register`` |> Error |> Some
                
         let (|RrxMatch|_|) reg txt =
             match txt with
@@ -231,7 +268,7 @@ module DP
                     |> Result.map(partialFS2)
                     |> Some
                 | _ ->
-                    "Not a valid flexible second operand shift instruction." |> Error |> Some
+                    "Not a valid flexible second operand shift instruction." |> ``Invalid shift`` |> Error |> Some
             | _ ->
                 None  
 
@@ -247,7 +284,10 @@ module DP
                     litVal |> Result.map (consLitOp >> dp2)
                 | RegMatch reg ->
                     reg |> Result.map (Reg >> dp2)
-                | _ -> Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
+                | _ ->
+                    "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
+                    |> ``Invalid instruction``
+                    |> Error
             | [rDest'; rOp1'; rOp2'; extn] when (checkRegs [rDest'; rOp1'; rOp2']) ->
                 let dp2 = consDP3 rDest' rOp1'
                 match extn with
@@ -256,8 +296,13 @@ module DP
                 | ShiftMatch rOp2' shift ->
                     shift |> Result.map(Shift >> dp2)
                 | _ ->
-                    Error "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
-            | _ -> Error "Syntax error. Instruction format is incorrect."
+                    "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
+                    |> ``Invalid instruction``
+                    |> Error
+            | _ ->
+                "Syntax error. Instruction format is incorrect."
+                |> ``Invalid instruction``
+                |> Error
 
         let (WA la) = ld.LoadAddr
 
