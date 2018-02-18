@@ -4,6 +4,7 @@ module Memory
     open Expecto
     open Helpers
     open System.Text.RegularExpressions
+    open FsCheck
 
     type OffsetType =
         | ImmOffset of uint32
@@ -74,13 +75,13 @@ module Memory
             match str with 
             | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> Some
             | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
-            | _ -> "mem fail" |> Some
+            | _ -> None
 
         let (|RegListMatch|_|) str =
             match str with 
             | ParseRegex "([rR][0-9]{1,2})}" address -> address |> Some
             | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
-            | _ -> "mem fail" |> Some
+            | _ -> None
         
         let (|OffsetMatch|_|) str =
             let optionBang b = 
@@ -112,20 +113,21 @@ module Memory
                 | _ -> None
 
             let (|RegListMatch|_|) str =
-                let createList n = 
+                let optionNumToRegList n = 
                     match n with
                     | RegListExpand (low, high) -> 
                         let makeReg = (string >> (+) "R")
-                        let ilow = int low
-                        let ihigh = int high
-                        let fullRegList = List.map (fun r -> r |> makeReg) [ilow..ihigh]
+                        let fullRegList = List.map (fun r -> r |> makeReg) [int low..int high]
                         fullRegList |> Some
                     | _ -> None
                 
+                let optionMakeList n = 
+                    [n] |> Some
+
                 match str with
-                | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> createList listReg
-                | ParseRegex "([rR][0-9]{1,2})!" bangReg -> [bangReg] |> Some
-                | ParseRegex "([rR][0-9]{1,2})" reg -> [reg] |> Some
+                | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> optionNumToRegList listReg
+                | ParseRegex "([rR][0-9]{1,2})!" bangReg -> bangReg |> optionMakeList
+                | ParseRegex "([rR][0-9]{1,2})" reg -> reg |> optionMakeList
                 | _ -> None
 
             let splitMult = splitAny ls.Operands '{'
@@ -133,26 +135,25 @@ module Memory
             let ops = 
                 match splitMult with
                 | [rn; rlst] ->
-                    let splitList = splitAny (rlst.Replace("}", "")) ','
-                    let firstReg = rn.Replace(",", "")
-                    let matcher x =
-                        match x with
-                        | RegListMatch x -> x
-                        | _ -> ["poop"]
+                    let regList = splitAny (rlst.Replace("}", "")) ','
+                    let reg = rn.Replace(",", "")
 
-                    let rec doAll f list =
+                    let matcher = function
+                        | RegListMatch x -> x 
+                        | _ -> []
+
+                    let rec applyToAll f list =
                         match list with
                         | [] -> []
-                        | head :: tail -> f head :: doAll f tail
+                        | head :: tail -> f head :: applyToAll f tail
 
-                    let fullValues = doAll matcher splitList
-                    let doneAH = List.concat fullValues
-                    match firstReg :: doneAH with
-                    | first :: rest when (regsValid (first :: rest)) ->
+                    let matchedRegs = reg :: regList |> applyToAll matcher |> List.concat
+                    match matchedRegs with
+                    | head :: tail when (regsValid (head :: tail)) ->
                         (Ok splitMult)
-                        |> consMemMult first rest
-                    | _ -> Error "shit"
-                | _ -> Error "fuck"
+                        |> consMemMult head tail
+                    | _ -> Error "Registers probably not valid"
+                | _ -> Error "Input not in correct form"
 
             let make ops =
                 Ok { 
@@ -174,7 +175,7 @@ module Memory
                     | MemMatch addr -> 
                         match [reg; addr] with
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
-                            (Ok NoPost)
+                            (Ok splitOps)
                             |> consMemSingle reg addr NoPre NoPost
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
@@ -185,7 +186,7 @@ module Memory
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             match offset with
                             | OffsetMatch offset -> 
-                                (Ok NoPost)
+                                (Ok splitOps)
                                 |> consMemSingle reg addr offset NoPost
                             | _ -> Error "Cobblers"
                         | _ -> Error "Goolies"
@@ -202,7 +203,13 @@ module Memory
             Result.bind make ops
 
         let parse' (_instrC, (root,suffix,pCond)) =
-            parseMult root suffix pCond
+            match root with
+            | "LDR" -> parseSingle root suffix pCond
+            | "STR" -> parseSingle root suffix pCond
+            | "LDM" -> parseMult root suffix pCond
+            | "STM" -> parseMult root suffix pCond
+            | _ -> failwithf "We appear to have a rogue root"
+           
 
         Map.tryFind ls.OpCode opCodes
         |> Option.map parse'
