@@ -129,19 +129,53 @@ module Memory
             | _ -> None
         
         let (|OffsetMatch|_|) str =
-            let optionBang b = 
-                ImmOffset (uint32 b) |> Some // Somehow also construct postIndex with b
-            let optionN n = 
-                ImmOffset (uint32 n) |> Some
-            let optionR = function
-                | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
-                | _ -> None
+            // let optionNBang b = 
+            //     let postInd = N (uint32 b)
+            //     let preInd = ImmOffset (uint32 b) // Somehow also construct postIndex with b
+            //     preInd, postInd |> Some
+            // // let optionRBang b = 
+            // //     let postInd = N (uint32 b)
+            // //     ImmOffset (uint32 b) |> Some // Somehow also construct postIndex with b
+            // let optionN n = 
+            //     let postInd = NoPostIndex
+            //     let preInd = ImmOffset (uint32 n)
+
+            // let optionR = function
+            //     | a when (regValid a) -> RegOffset (regNames.[a]) |> Some
+            //     | _ -> None
+
+            let postNoPre n =
+                let postInd = N (uint32 n)
+                let preInd = NoOffset
+                (preInd, postInd) |> Some
+            
+            let preNoPost n = 
+                let postInd = NoPostIndex
+                let preInd = ImmOffset (uint32 n)
+                (preInd, postInd) |> Some
+            
+            let preAndPost n =
+                let postInd = N (uint32 n)
+                let preInd = ImmOffset (uint32 n)
+                (preInd, postInd) |> Some
+
             match str with 
-            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> optionN
-            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> optionN
-            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> optionN
-            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> optionN
+            // | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
+
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> postNoPre
+            | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> postNoPre
+            | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> postNoPre
+            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> postNoPre
+
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> preNoPost
+            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> preNoPost
+            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> preNoPost
+            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> preNoPost
+            
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> preAndPost
+            | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> preAndPost
+            | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> preAndPost
+            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> preAndPost
             | _ -> None
         
         let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
@@ -230,9 +264,9 @@ module Memory
                         match [reg; addr] with
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             match offset with
-                            | OffsetMatch offset -> 
+                            | OffsetMatch tuple  -> 
                                 (Ok splitOps)
-                                |> consMemSingle reg addr offset NoPostIndex
+                                |> consMemSingle reg addr (fst tuple) (snd tuple)
                             | _ -> Error "Cobblers"
                         | _ -> Error "Goolies"
                     | _ -> Error "Gonads"

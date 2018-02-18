@@ -80,7 +80,7 @@ module DP
                 let value = (regContents operands.Rm) <<< (getShifter operands.shifter)
                 setReg operands.Rd value cpuData
             | ASR operands -> 
-                let value = (regContents operands.Rm) >>> (getShifter operands.shifter)
+                let value = ((regContents operands.Rm) |> int32) >>> (getShifter operands.shifter) |> uint32
                 setReg operands.Rd value cpuData
             | LSR operands -> 
                 let value = (regContents operands.Rm) >>> (getShifter operands.shifter)
@@ -95,7 +95,7 @@ module DP
                 let value = (regContents operands.Rm) >>> 1
                 setReg operands.Rd value cpuData
             | _ -> failwithf "Ain't an instruction bro"
-            
+
         setReg R15 nextPC afterInstr
         
 
