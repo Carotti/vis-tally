@@ -11,21 +11,21 @@ module Memory
     type OffsetType =
         | ImmOffset of uint32
         | RegOffset of RName
-        | NoPre
+        | NoOffset
     
     [<Struct>]
     type Address = {addrReg: RName; offset: OffsetType}
     
     type PostIndex =
         | N of uint32
-        | NoPost
+        | NoPostIndex
 
     [<Struct>]
-    type InstrMemSingle = {valReg: RName; addr: Address; postOffset: PostIndex}
+    type InstrMemSingle = {Rn: RName; addr: Address; postOffset: PostIndex}
     
     type RegisterList = | RegList of List<RName>
     [<Struct>]
-    type InstrMemMult = {rn: RName; rList: RegisterList}
+    type InstrMemMult = {Rn: RName; rList: RegisterList}
 
     type Instr = 
         | LDR of InstrMemSingle
@@ -59,7 +59,7 @@ module Memory
     let consMemSingle reg mem preoffset postoffset = 
         Result.map (fun a -> 
             {
-                valReg = regNames.[reg]; 
+                Rn = regNames.[reg]; 
                 addr = {addrReg = regNames.[mem]; offset = preoffset};
                 postOffset = postoffset
             })
@@ -67,9 +67,36 @@ module Memory
     let consMemMult reg rLst =
         Result.map (fun a ->
             {
-                rn = regNames.[reg];
+                Rn = regNames.[reg];
                 rList = RegList (List.map (fun a -> regNames.[a]) rLst)
             })
+
+    let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
+        let PC = cpuData.Regs.[R15]
+        let nextPC = PC + 4u
+        let regContents r = cpuData.Regs.[r] // add 0 - 255
+        let memContents = cpuData.MM
+
+        let (|Valid|_|) (input: uint32) = 
+            if input % 4u = 0u 
+            then Valid |> Some
+            else None
+        
+        let getOffsetType (o: OffsetType) : uint32 =
+            match o with
+            | ImmOffset i -> i
+            | RegOffset r -> regContents r
+            | NoOffset -> 0u
+        
+        let wordAddress (a: uint32) = 
+            match a with
+            | Valid -> WA a
+            | _ -> failwithf "Nope"
+
+        match instr.PInstr with
+        | LDR operands -> memContents.[wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)] 
+        | _ -> failwithf "Aint an instruction bro"
+
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
