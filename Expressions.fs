@@ -28,13 +28,16 @@ module Expressions
         | Label of string
         | Literal of uint32
 
+    type EvalErr =
+        | SymbolUndeclared of string
+
     /// Evaluate exp against the symbol table syms
-    /// Returns the first error in the expression or 
-    /// a uint32 result of the evaluated expression
+    /// Returns a list of all errors or the result
     let rec eval syms exp =
         let doBinary op x y = 
             match (eval syms x), (eval syms y) with
             | Ok resX, Ok resY -> op resX resY |> Ok
+            | Error a, Error b -> List.concat [a ; b] |> Error
             | Error a, _ -> Error a
             | _, Error b -> Error b
         match exp with
@@ -43,7 +46,7 @@ module Expressions
         | Label x ->
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
-                | false -> sprintf "Symbol '%s' not declared" x |> Error
+                | false -> [SymbolUndeclared x] |> Error
 
     /// Active pattern for matching expressions
     /// Returns an Expression AST

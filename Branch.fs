@@ -20,16 +20,12 @@ module Branch
         | END
 
     type ErrRunTime =
-        | Err of string
         | EXIT // Used to exit execution of the simulation
 
-    /// parse error (dummy, but will do)
-    type ErrInstr = 
-        | ParseError of string
-        | RuntimeError of ErrRunTime
+    type ErrInstr = string
 
     /// Resolve the symbols for an instruction which requires it
-    let resolve ins (syms : SymbolTable) =
+    let resolveBranch ins (syms : SymbolTable) =
         let lookup which sym =
             match syms.ContainsKey sym with
             | true -> which (SymResolved syms.[sym]) |> Ok
@@ -47,7 +43,7 @@ module Branch
     }
 
     /// Execute a Branch instruction
-    let execute dp (ins : Parse<Instr>) =
+    let executeBranch dp (ins : Parse<Instr>) =
         let nxt = dp.Regs.[R15] + 4u // Address of the next instruction
         match condExecute ins dp with
         | false -> 
@@ -90,7 +86,7 @@ module Branch
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            | _ -> sprintf "Expected a label at '%s'" ls.Operands |> ParseError |> Error
+            | _ -> sprintf "Expected a label at '%s'" ls.Operands |> Error
 
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.

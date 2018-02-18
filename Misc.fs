@@ -21,17 +21,29 @@ module Misc
     | FILL of FILLInstr
     | EQU of string * SymbolExp
 
-    /// parse error (dummy, but will do)
-    type ErrInstr = string
-    
+    /// Errors which can occur during parsing
+    type ErrInstr =
+        | InvalidExp of string
+        | InvalidExpList of string
+        | InvalidFillSize of string
+        | InvalidFillValue of string
+        | InvalidFillExp of string
+        | LabelRequired
+
+    /// Errors which can occur during resolving of an expression
+    type ErrResolve =
+        | InvalidByteExp of uint32
+        | SymbolErrors of EvalErr list
+
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is
     /// the first symbol which causes this
-    let resolve ins (syms : SymbolTable) = 
+    let resolveMisc ins (syms : SymbolTable) = 
         let evalSymExp exp =
             match exp with
             | ExpUnresolved x -> 
                 Result.map ExpResolved (eval syms x)
+                |> Result.mapError SymbolErrors
             | _ -> exp |> Ok
         /// Take a list of results and transform it to a Result of either the
         /// first error in the list or the Ok list if every element is Ok
@@ -44,7 +56,7 @@ module Misc
         let validByte x =
             match x with
             | ExpResolved exp when exp < 256u -> exp |> byte |> ExpResolvedByte |> Ok
-            | ExpResolved exp -> sprintf "'%d' cannot fit into a byte in DCB" exp |> Error
+            | ExpResolved exp -> InvalidByteExp exp |> Error
             | _ -> failwithf "Calling validByte on unresolved SymbolExp"
         match ins with
         | DCD lst -> 
@@ -72,7 +84,7 @@ module Misc
     let parseExpr txt =
         match txt with
         | Expr (exp, "") -> exp |> ExpUnresolved |> Ok
-        | _ -> sprintf "Invalid expression '%s'" txt |> Error
+        | _ -> InvalidExp txt |> Error
 
     let rec parseExprList txt =
         match txt with
@@ -81,8 +93,8 @@ module Misc
             | RegexPrefix "," (_, rst') -> 
                 Result.map (fun lst -> (ExpUnresolved exp) :: lst) (parseExprList rst')
             | "" -> Ok [ExpUnresolved exp]
-            | _ -> sprintf "Invalid Expression '%s'" txt |> Error
-        | _ -> sprintf "Bad expression list '%s'" txt |> Error
+            | _ -> InvalidExp txt |> Error
+        | _ -> InvalidExpList txt |> Error
 
     let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
@@ -90,7 +102,7 @@ module Misc
         let labelBinder f = 
             match ls.Label with
             | Some lab -> f lab
-            | None -> sprintf "Expected a label for %s instruction" ls.OpCode |> Error
+            | None -> LabelRequired |> Error
 
         let parseDCD () =
             let parseDCD' lab =
@@ -143,9 +155,9 @@ module Misc
                         | RegexPrefix "," (_, RegexPrefix "[124]" (vs, "")) ->
                             FILL {numBytes = ExpUnresolved num; fillWith = 
                                 Some {value = ExpUnresolved v; valueSize = int vs}} |> Ok
-                        | _ -> sprintf "Invalid fill value size '%s'" rst' |> Error
-                    | _ -> sprintf "Invalid fill value expression '%s'" rst |> Error
-                | _ -> sprintf "Invalid fill expression '%s'" ls.Operands |> Error
+                        | _ -> InvalidFillSize rst' |> Error
+                    | _ -> InvalidFillValue rst |> Error
+                | _ -> InvalidFillExp ls.Operands |> Error
             Result.map (fun ins ->
                 {
                     PInstr = ins;
