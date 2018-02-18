@@ -28,6 +28,7 @@ module Misc
         | InvalidFillSize of string
         | InvalidFillValue of string
         | InvalidFillExp of string
+        | EmptyFillExp
         | LabelRequired
 
     /// Errors which can occur during resolving of an expression
@@ -142,23 +143,28 @@ module Misc
 
         let parseFILL () =
             let parseFILL' = 
-                match ls.Operands with
-                | Expr (num, rst) -> 
-                    match rst with
-                    | "" -> FILL {numBytes = ExpUnresolved num; fillWith = None} |> Ok
-                    | RegexPrefix "," (_, Expr (v, rst')) ->
-                        match rst' with
-                        | "" ->
-                            FILL {numBytes = ExpUnresolved num; fillWith = 
-                                Some {value = ExpUnresolved v; valueSize = 1}} |> Ok
-                        | RegexPrefix "," (_, RegexPrefix "[124]" (vs, "")) ->
-                            FILL {numBytes = ExpUnresolved num; fillWith = 
-                                Some {value = ExpUnresolved v; valueSize = int vs}} |> Ok
-                        | RegexPrefix "," (_, inv) -> InvalidFillSize inv |> Error
-                        | _ -> InvalidFillSize rst' |> Error
-                    | RegexPrefix "," (_, inv) -> InvalidFillValue inv |> Error
-                    | _ -> InvalidFillValue rst |> Error
-                | _ -> InvalidFillExp ls.Operands |> Error
+                let fillMap (num, fillval) =
+                    let fillValBind (v, vs) =
+                        Some {value = ExpUnresolved v; valueSize = vs}
+                    FILL {
+                        numBytes = ExpUnresolved num;
+                        fillWith = Option.bind fillValBind fillval;
+                    }
+                match ls.Operands.Split([|','|]) |> Array.toList with
+                | [Expr (num, "") ; Expr (v, "") ; RegexPrefix "[124]" (vs, "")] -> 
+                    Ok (num, Some (v, int vs))
+                | [Expr (num, "") ; Expr (v, "")] -> 
+                    Ok (num, Some (v, 1))
+                | [Expr (num, "")] -> 
+                    Ok (num, None)
+                | Expr (_, "") :: inv :: _ -> 
+                    InvalidFillValue inv |> Error
+                | Expr (_, "") :: Expr (_, "") :: inv :: _ -> 
+                    InvalidFillSize inv |> Error
+                | inv :: _ -> 
+                    InvalidFillExp inv |> Error
+                | [] -> EmptyFillExp |> Error
+                |> Result.map fillMap
             Result.map (fun ins ->
                 {
                     PInstr = ins;
