@@ -160,7 +160,7 @@ module Memory
                 (preInd, postInd) |> Some
 
             match str with 
-            // | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
+            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> optionR
 
             | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> postNoPre
             | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> postNoPre
