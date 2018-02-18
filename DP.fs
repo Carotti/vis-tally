@@ -118,6 +118,7 @@ module DP
         | ``Invalid shift``         of string
         | ``Syntax error``          of string
         | ``Invalid instruction``   of string
+        | ``Invalid flexible second operand``  of string
 
 
     let DPSpec =
@@ -136,6 +137,14 @@ module DP
         {
             rDest = regNames.[rDest'];
             rOp1 = regNames.[rOp1'];
+            fOp2 = fOp2'
+        }
+    
+    /// Constructs an operand record of type `DP3Form` from registers specified as type `RName`.
+    let consDP3R rDest' rOp1' fOp2' =
+        {
+            rDest = rDest';
+            rOp1 = rOp1';
             fOp2 = fOp2'
         }
 
@@ -185,10 +194,29 @@ module DP
         let dp2 = consDP2 rDest' rOp1'
         joinDP dp2 fOp2'
 
-    
-
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
+
+    let combineError (res1:Result<'T1,ErrInstr>) (res2:Result<'T2,ErrInstr>) : Result<'T1 * 'T2, ErrInstr> =
+        match res1, res2 with
+        | Error e1, _ -> Error e1
+        | _, Error e2 -> Error e2
+        | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
+
+    
+    let combineErrorMapResult (res1:Result<'T1,ErrInstr>) (res2:Result<'T2,ErrInstr>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,ErrInstr> =
+        combineError res1 res2
+        |> Result.map (fun (r1,r2) -> mapf r1 r2)
+
+    
+    let partialMapResult (res:Result<'T1->'T2,ErrInstr>) (arg:Result<'T1,ErrInstr>)   =
+        match arg, res with
+        | Ok arg', Ok res' -> res' arg' |> Ok
+        | _, Error e -> e |> Error
+        | Error e, _ -> e |> Error
+   
+
+
 
     /// main function to parse a line of assembler
     /// ls contains the line input
@@ -236,11 +264,18 @@ module DP
             | Some reg ->
                 reg |> Ok |> Some
             | _ ->
-                "Not a valid register." |> ``Invalid register`` |> Error |> Some
-               
+                None
+        
+        let (|RegCheck|_|) txt =
+            match Map.tryFind txt regNames with
+            | Some reg ->
+                reg |> Ok |> Some
+            | _ ->
+                txt + " is not a valid register." |> ``Invalid register`` |> Error |> Some
+        
         let (|RrxMatch|_|) reg txt =
             match txt with
-            | ParseRegex "(RRX)" _ ->
+            | ParseRegex "(^RRX)" _ ->
                 reg |> consReg |> Ok |> Some
             | _ ->
                 None
@@ -281,33 +316,49 @@ module DP
             |> Array.toList
             |> List.map (fun op -> op.ToUpper())
             |> function
-            | [rDest'; rOp1'; op2'] when (checkRegs [rDest'; rOp1']) ->
-                let dp2 = consDP3 rDest' rOp1'
-                match op2' with
-                | LitMatch litVal ->
-                    litVal |> Result.map (consLitOp >> dp2)
-                | RegMatch reg ->
-                    reg |> Result.map (Reg >> dp2)
+            | [rDest; rOp1; op2] ->
+                match rDest, rOp1 with
+                | RegCheck rDest', RegCheck rOp1' ->
+                    let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
+                    match op2 with
+                    | LitMatch litVal ->
+                        let litVal' = Result.map (consLitOp) litVal
+                        partialMapResult dp2 litVal'
+                    | RegCheck reg ->
+                        let reg' = Result.map (Reg) reg
+                        partialMapResult dp2 reg'
+                    | _ ->
+                        op2 + " is an invalid flexible second operand"
+                        |> ``Invalid flexible second operand``
+                        |> Error
+                        |> partialMapResult dp2
                 | _ ->
-                    "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
-                    |> ``Invalid instruction``
-                    |> Error
-            | [rDest'; rOp1'; rOp2'; extn] when (checkRegs [rDest'; rOp1'; rOp2']) ->
-                let dp2 = consDP3 rDest' rOp1'
-                match extn with
-                | RrxMatch rOp2' reg ->
-                    reg |> Result.map (RRX >> dp2)
-                | ShiftMatch rOp2' shift ->
-                    shift |> Result.map(Shift >> dp2)
+                    failwith "Should never happen! Match statement always matches."
+            | [rDest; rOp1; rOp2; extn] ->
+                match rDest, rOp1, rOp2 with
+                | RegCheck rDest', RegCheck rOp1', RegCheck rOp2' ->
+                    let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
+                    match extn with
+                    | RrxMatch rOp2 reg ->
+                            let reg' = Result.map (RRX) reg
+                            partialMapResult (dp2) reg'
+                            // reg |> Result.map (RRX >> dp2)
+                    | ShiftMatch rOp2 shift ->
+                        let shift' = Result.map (Shift) shift
+                        partialMapResult (dp2) shift'
+                        // shift |> Result.map(Shift >> dp2)
+                    | _ ->
+                        rOp2 + " " + extn + " is an invalid flexible second operand"
+                        |> ``Invalid flexible second operand``
+                        |> Error
+                        |> partialMapResult dp2
                 | _ ->
-                    "Not a valid instruction. Or maybe just one that I haven't implemented yet. Who knows?"
-                    |> ``Invalid instruction``
-                    |> Error
+                    failwith "Should never happen! Match statement always matches."
             | _ ->
                 "Syntax error. Instruction format is incorrect."
                 |> ``Invalid instruction``
                 |> Error
-
+      
         let (WA la) = ld.LoadAddr
 
         let parseADD suffix cond =
