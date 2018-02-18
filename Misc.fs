@@ -27,6 +27,7 @@ module Misc
         | InvalidExpList of string
         | InvalidFillSize of string
         | InvalidFillValue of string
+        | InvalidFillNum of string
         | InvalidFillExp of string
         | EmptyFillExp
         | LabelRequired
@@ -157,13 +158,16 @@ module Misc
                     Ok (num, Some (v, 1))
                 | [Expr (num, "")] -> 
                     Ok (num, None)
-                | Expr (_, "") :: inv :: _ -> 
-                    InvalidFillValue inv |> Error
-                | Expr (_, "") :: Expr (_, "") :: inv :: _ -> 
+                | [Expr (_, "") ; Expr (_, "") ; inv] -> 
                     InvalidFillSize inv |> Error
-                | inv :: _ -> 
-                    InvalidFillExp inv |> Error
-                | [] -> EmptyFillExp |> Error
+                | [Expr (_, "") ; inv ; _ ]
+                | [Expr (_, "") ; inv] -> 
+                    InvalidFillValue inv |> Error
+                | [inv ; _ ; _ ]
+                | [inv ; _ ]
+                | [inv] -> 
+                    InvalidFillNum inv |> Error
+                | _ -> InvalidFillExp ls.Operands |> Error
                 |> Result.map fillMap
             Result.map (fun ins ->
                 {

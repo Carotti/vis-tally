@@ -22,7 +22,8 @@ module Branch
     type ErrRunTime =
         | EXIT // Used to exit execution of the simulation
 
-    type ErrInstr = string
+    type ErrInstr = 
+        | NoLabel
 
     /// Resolve the symbols for an instruction which requires it
     let resolveBranch ins (syms : SymbolTable) =
@@ -86,7 +87,7 @@ module Branch
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            | _ -> sprintf "Expected a label at '%s'" ls.Operands |> Error
+            | _ -> NoLabel |> Error
 
         Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
