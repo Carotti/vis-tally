@@ -228,9 +228,9 @@ module DP
                 None
         
         let (|RegMatch|_|) txt =
-            match txt with
-            | ParseRegex "([R][\d][0-5]?)" reg ->
-                reg |> consReg |> Ok |> Some
+            match Map.tryFind txt regNames with
+            | Some reg ->
+                reg |> Ok |> Some
             | _ ->
                 "Not a valid register." |> ``Invalid register`` |> Error |> Some
                
