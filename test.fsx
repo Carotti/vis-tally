@@ -49,3 +49,6 @@ let checkValid opList =
     match opList with
     | h1 :: h2 :: tail when (regsValid [h1 ; h2] -> true) 
     | _ -> false
+
+
+

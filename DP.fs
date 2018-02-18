@@ -51,7 +51,7 @@ module DP
             "RRX", RRX
         ]
 
-    let execute (cpuData: DataPath<'INS>)(instr: Parse<Instr>) =
+    let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
         let rotate reg amt = 
             let binaryMask = uint32 (2.0 ** (float amt) - 1.0)
             let lsbs = reg &&& binaryMask
@@ -61,14 +61,15 @@ module DP
 
         let PC = cpuData.Regs.[R15]
         let nextPC = PC + 4u
-        let regContents r = cpuData.Regs.[r]
+        let regContents r = cpuData.Regs.[r] // add 0 - 255
         let lessThan32 v = (fun x -> x % 32) v
+        let lessThan31 v = (fun x -> x % 31) v
 
         let getShifter (sh: ShiftType) : int32 = 
             match sh with
             | Rs reg -> regContents reg |> int32
             | N num -> num |> int32
-            | _ -> failwithf "dont care"
+            | Empty -> 0
 
         match instr.PInstr with
         | LSL operands -> (regContents operands.Rm) <<< (getShifter operands.shifter)
@@ -78,6 +79,7 @@ module DP
         | RRX operands when cpuData.Fl.C -> (regContents operands.Rm) >>> 1 |> (|||) (uint32 0x80000000)
         | RRX operands -> (regContents operands.Rm) >>> 1
         | _ -> failwithf "Ain't an instruction bro"
+
    
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec

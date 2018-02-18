@@ -89,3 +89,7 @@ let ops =
     | _ -> "Gah" |> qp
 
 // ops |> qp
+let qp item = printfn "%A" item
+let lessThan32 rn = (fun x -> x % 32) rn
+
+lessThan32 47 |> qp
