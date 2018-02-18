@@ -11,6 +11,6 @@ module Program
         match argv with
         | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
         | _ ->
-            let test = parseLine None (WA 16u) "foo DCD #"
+            let test = parseLine None (WA 16u) "FILL 1, #, 1"
             printfn "%A" test
             0 // return an integer exit code
