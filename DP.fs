@@ -8,16 +8,12 @@ module DP
     type ShiftType = 
         | Rs of RName
         | N of uint32
-        | Empty       // No type here for RRX
 
     type Suffix = 
         | S
 
-    /// op{S}{cond} Rd, Rm, Rs
-    /// op{S}{cond} Rd, Rm, #N
-    /// RRX{S}{cond} Rd, Rm
     [<Struct>]
-    type InstrShift =  {Rd: RName; Rm: RName; shifter: ShiftType; suff: Option<Suffix>}
+    type InstrShift =  {Rd: RName; Rm: RName; shifter: Option<ShiftType>; suff: Option<Suffix>}
 
     type Instr = 
         | LSL of InstrShift // 0-31
@@ -26,7 +22,6 @@ module DP
         | ROR of InstrShift // 1-31
         | RRX of InstrShift
 
-    /// parse error (dummy, but will do)
     type ErrInstr = string
 
     let constructShift rd rm sh sf = 
@@ -69,11 +64,11 @@ module DP
         let lessThan32 v = (fun x -> x % 32) v
         let lessThan31 v = (fun x -> x % 31) v
 
-        let getShifter (sh: ShiftType) : int32 = 
+        let getShifter sh = 
             match sh with
-            | Rs reg -> regContents reg |> int32
-            | N num -> num |> int32
-            | Empty -> 0
+            | Some (Rs reg) -> regContents reg |> int32
+            | Some (N num) -> num |> int32
+            | None -> 0
 
         let afterInstr = 
             match instr.PInstr with
@@ -134,13 +129,13 @@ module DP
             let ops =
                 match splitOps with
                 | [dest; op1] when (checkValid2 splitOps) ->
-                    (Ok splitOps) |> constructShift dest op1 Empty (checkSuffix suffix) // RRX
+                    (Ok splitOps) |> constructShift dest op1 None (checkSuffix suffix) // RRX
                 | [dest; op1; op2] when (checkValid2 splitOps) ->
                     match op2 with
                     | Op2Match regOrNum -> 
-                        (Ok splitOps) |> constructShift dest op1 regOrNum (checkSuffix suffix)// ASR, LSL, LSR ROR
-                    | _ -> Error "Error - op2 did not match"
-                | _ -> Error "Error - splitting operands"
+                        (Ok splitOps) |> constructShift dest op1 (Some regOrNum) (checkSuffix suffix)// ASR, LSL, LSR ROR
+                    | _ -> Error "Op2Match failed"
+                | _ -> Error "splitOps did not match with \'op1, op2\' or \'op1, op2, op3\'"
             
 
             let make ops =

@@ -10,21 +10,19 @@ module Memory
     type OffsetType =
         | ImmPre of uint32
         | RegPre of RName
-        | NoPre
     
     [<Struct>]
-    type Address = {addrReg: RName; offset: OffsetType}
+    type Address = {addrReg: RName; offset: Option<OffsetType>}
     
     type PostIndex =
         | ImmPost of uint32
         | RegPost of RName
-        | NoPost
     
     type SingleSuffix = 
         | B
 
     [<Struct>]
-    type InstrMemSingle = {Rn: RName; addr: Address; postOffset: PostIndex; suff: Option<SingleSuffix>}
+    type InstrMemSingle = {Rn: RName; addr: Address; postOffset: Option<PostIndex>; suff: Option<SingleSuffix>}
     
     type RegisterList = | RegList of List<RName>
 
@@ -94,15 +92,15 @@ module Memory
         
         let getOffsetType o =
             match o with
-            | ImmPre i -> i
-            | RegPre r -> regContents r
-            | NoPre -> 0u
+            | Some (ImmPre i) -> i
+            | Some (RegPre r) -> regContents r
+            | None -> 0u
         
         let getPostIndex i =
             match i with 
-            | ImmPost i -> i
-            | RegPost r -> regContents r
-            | NoPost -> 0u
+            | Some (ImmPost i) -> i
+            | Some (RegPost r) -> regContents r
+            | None -> 0u
         
         let wordAddress (a: uint32) = 
             match a with
@@ -124,8 +122,13 @@ module Memory
         let afterInstr = 
             match instr.PInstr with
             | LDR operands ->
+                let wordOrByte d = 
+                    match operands.suff with
+                    | Some B -> d &&& 0x000000FFu
+                    | None -> d  
                 let memloc = memContents.[wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)] 
-                let update = setReg operands.Rn (dataFn memloc) cpuData
+                let value = wordOrByte (dataFn memloc)
+                let update = setReg operands.Rn value cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | STR operands ->
                 let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (DataLoc (regContents operands.Rn)) cpuData
@@ -163,38 +166,38 @@ module Memory
         let (|OffsetMatch|_|) str =
             let regNoPrePost = function
                 | r when (regValid r) -> 
-                    let postInd = RegPost (regNames.[r])
-                    let preInd = NoPre
+                    let postInd = Some (RegPost (regNames.[r]))
+                    let preInd = None
                     (preInd, postInd) |> Some
                 | _ -> None
                 
             let regPreNoPost = function
                 | r when (regValid r) -> 
-                    let postInd = NoPost
-                    let preInd = RegPre (regNames.[r])
+                    let postInd = None
+                    let preInd = Some (RegPre (regNames.[r]))
                     (preInd, postInd) |> Some
                 | _ -> None
             
             let regPreAndPost = function
                 | r when (regValid r) -> 
-                    let postInd = RegPost (regNames.[r])
-                    let preInd = RegPre (regNames.[r])
+                    let postInd = Some (RegPost (regNames.[r]))
+                    let preInd = Some (RegPre (regNames.[r]))
                     (preInd, postInd) |> Some
                 | _ -> None
 
             let immNoPrePost n =
-                let postInd = ImmPost (uint32 n)
-                let preInd = NoPre
+                let postInd = Some (ImmPost (uint32 n))
+                let preInd = None
                 (preInd, postInd) |> Some
             
             let immPreNoPost n = 
-                let postInd = NoPost
-                let preInd = ImmPre (uint32 n)
+                let postInd = None
+                let preInd = Some (ImmPre (uint32 n))
                 (preInd, postInd) |> Some
             
             let immPreAndPost n =
-                let postInd = ImmPost (uint32 n)
-                let preInd = ImmPre (uint32 n)
+                let postInd = Some (ImmPost (uint32 n))
+                let preInd = Some (ImmPre (uint32 n))
                 (preInd, postInd) |> Some
 
             match str with 
@@ -309,9 +312,9 @@ module Memory
                         match [reg; addr] with
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             (Ok splitOps)
-                            |> consMemSingle reg addr NoPre NoPost (checkSingleSuffix suffix)
-                        | _ -> Error "Balls"
-                    | _ -> Error "Bollocks"
+                            |> consMemSingle reg addr None None (checkSingleSuffix suffix)
+                        | _ -> Error "Some registers are probably not valid"
+                    | _ -> Error "MemMatch failed"
                 | [reg; addr; offset] ->
                     match addr with
                     | MemMatch addr ->

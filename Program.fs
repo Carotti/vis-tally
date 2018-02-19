@@ -5,10 +5,7 @@ open CommonData
 open Expecto
 open Helpers
 
-[<EntryPoint>]
-let main argv =
-    /// test the initProjectLexer code
-    let instrLst = [
+let instrLst = [
         // "LSL R0, R1, #2";
         // "LSLS r0, r1, #0b101";
         // "LSL r0, r1, #0xe";
