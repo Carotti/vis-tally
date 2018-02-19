@@ -141,7 +141,12 @@ module Memory
                 let update = setReg operands.Rn value cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | STR operands ->
-                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (DataLoc (regContents operands.Rn)) cpuData
+                let wordOrByte d = 
+                    match operands.suff with
+                    | Some B -> d &&& 0x000000FFu
+                    | None -> d 
+                let value = wordOrByte (regContents operands.Rn)
+                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) value cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | LDM operands ->
                 let rl =
@@ -182,11 +187,6 @@ module Memory
                 let memLocList = List.map (fun m -> memContents.[m]) wordAddrList
                 let dataLocList = List.map dataFn memLocList
                 setMultRegs rl dataLocList cpuData
-<<<<<<< HEAD
-                
-                // let length = List.length operands.rList
-            | _ -> failwithf "Aint an instruction bro"
-=======
             | STM operands ->
                 let rl =
                     match operands.rList with
@@ -226,7 +226,6 @@ module Memory
                 let wordAddrList = List.map wordAddress (offsetList baseAddrInt)
                 let regContentsList = List.map regContents rl
                 setMultMem wordAddrList regContentsList cpuData
->>>>>>> Written code for IA, IB, DA, DB, FD, ED, FA, EA..
 
         setReg R15 pcNext afterInstr
 
