@@ -31,12 +31,16 @@ module Execution
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
 
-    let emptyRegs = 
-        let map0 x = (x, 0u)
-        [0..15]
-        |> List.map (register >> map0)
+    let fillRegs (vals : uint32 list) =
+        List.zip [0..15] vals
+        |> List.map (fun (r, v) -> (register r, v))
         |> Map.ofList
 
+    let emptyRegs = 
+        [0..15]
+        |> List.map (fun _ -> 0u)
+        |> fillRegs
+        
     let initialDp () = {
             Fl = {N = false ; C = false ; Z = false ; V = false};
             Regs = emptyRegs;
