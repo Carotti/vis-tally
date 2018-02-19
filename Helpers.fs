@@ -2,6 +2,7 @@ module Helpers
     open CommonData
     open System.Text.RegularExpressions
     open Expecto
+    open System.Drawing
     
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
@@ -38,6 +39,13 @@ module Helpers
             | x when x = reg -> contents
             | _ -> old
         {cpuData with Regs = Map.map setter cpuData.Regs}
+    
+    let setMem mem contents cpuData =
+        let setter mem' old =
+            match mem' with
+            | x when x = mem -> contents
+            | _ -> old
+        {cpuData with MM = Map.map setter cpuData.MM}
 
     [<Tests>]
     let helperTests =
