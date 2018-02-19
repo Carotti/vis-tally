@@ -113,7 +113,7 @@ module Memory
         let rec makeOffsetList inlst outlist incr start = 
             match inlst with
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
-            | [] -> outlist |> List.rev
+            | [] -> outlist
 
         let dataFn m =
             match m with 
@@ -160,9 +160,11 @@ module Memory
                         | Some IA -> 
                             start
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some IB -> 
                             (start + 4)
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some DA -> 
                             start
                             |> makeOffsetList rl [] -4
@@ -172,9 +174,11 @@ module Memory
                         | Some FD ->
                             start
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some ED ->
                             (start + 4)
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some FA ->
                             start
                             |> makeOffsetList rl [] -4
@@ -200,9 +204,11 @@ module Memory
                         | Some IA -> 
                             start
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some IB -> 
                             (start + 4)
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some DA -> 
                             start
                             |> makeOffsetList rl [] -4
@@ -212,9 +218,11 @@ module Memory
                         | Some EA ->
                             start
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some FA ->
                             (start + 4)
                             |> makeOffsetList rl [] 4
+                            |> List.rev
                         | Some ED ->
                             start
                             |> makeOffsetList rl [] -4

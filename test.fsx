@@ -56,26 +56,27 @@ let qp item = printfn "%A" item
 let rec makeOffsetList inlst outlist incr start = 
     match inlst with
     | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
-    | [] -> outlist |> List.rev
+    | [] -> outlist
 
 let lst = ["R1";"R2";"R3";"R4"]
 
-let offsetList start = 
-    let lst =
-        match operands.suff with           
-        | Some IA -> 
-            start
-            |> makeOffsetList rl [] 4
-        | Some IB -> 
-            (start + 4)
-            |> makeOffsetList rl [] 4
-        | Some DA -> 
-            start
-            |> makeOffsetList rl [] -4
-        | Some DB ->
-            (start - 4)
-            |> makeOffsetList rl [] -4
-        | _ -> failwithf "Isnt a suffix"
-    List.map (fun el -> el |> uint32) lst
-    
-offsetLst |> qp
+// let offsetList start = 
+//     let lst =
+//         match operands.suff with           
+//         | Some IA -> 
+//             start
+//             |> makeOffsetList rl [] 4
+//         | Some IB -> 
+//             (start + 4)
+//             |> makeOffsetList rl [] 4
+//         | Some DA -> 
+//             start
+//             |> makeOffsetList rl [] -4
+//         | Some DB ->
+//             (start - 4)
+//             |> makeOffsetList rl [] -4
+//         | _ -> failwithf "Isnt a suffix"
+//     List.map (fun el -> el |> uint32) lst
+
+let offsetList = makeOffsetList lst [] -4 100
+qp offsetList
