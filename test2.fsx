@@ -97,10 +97,11 @@ lessThan32 47 |> qp
 
 
 
-let rec makeOffsetList inlst outlist n = 
+let rec makeOffsetList inlst outlist incr start = 
     match inlst with
-    | _ :: tail -> (n + 4) |> makeOffsetList tail ([n] :: outlist)
+    | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
     | [] -> outlist
 
 
-makeList [0..5] 0 [] |> qp
+
+makeOffsetList [0..5] [] 4 0 |> qp
