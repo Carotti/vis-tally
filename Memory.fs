@@ -99,9 +99,9 @@ module Memory
             | _ -> failwithf "Nope"
         
         
-        let rec makeOffsetList inlst outlist start incr = 
+        let rec makeOffsetList inlst outlist incr start = 
             match inlst with
-            | _ :: tail -> (start + incr) |> makeOffsetList tail ([start] :: outlist)
+            | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
 
         let afterInstr = 
@@ -117,11 +117,11 @@ module Memory
             | STR operands ->
                 let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (DataLoc (regContents operands.Rn)) cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
-            | LDM operands ->
-                let baseAddr = (regContents operands.addr.addrReg) + getOffsetType operands.addr.offset
-                let offsetList = operands.rList [] baseAddr 4       
-    
-                // let length = List.length operands.rList
+            // | LDM operands ->
+            //     let baseAddr = (regContents operands.addr.addrReg) + getOffsetType operands.addr.offset
+            //     let offsetList = baseAddr |> makeOffsetList operands.rList [] 4
+                
+            //     // let length = List.length operands.rList
             | _ -> failwithf "Aint an instruction bro"
 
         setReg R15 nextPC afterInstr
