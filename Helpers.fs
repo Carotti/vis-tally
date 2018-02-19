@@ -40,6 +40,14 @@ module Helpers
             | _ -> old
         {cpuData with Regs = Map.map setter cpuData.Regs}
     
+    let rec setMultRegs regLst contentsLst cpuData =
+        match regLst, contentsLst with
+        | rhead :: rtail, chead :: ctail when (List.length regLst = List.length contentsLst) ->
+            let newCpuData = setReg rhead chead cpuData
+            setMultRegs rtail ctail newCpuData
+        | [], [] -> cpuData
+        | _ -> failwithf "Something went wrong with lists"
+    
     let setMem mem contents cpuData =
         let setter mem' old =
             match mem' with

@@ -10,11 +10,14 @@ module DP
         | N of uint32
         | Empty       // No type here for RRX
 
+    type Suffix = 
+        | S
+
     /// op{S}{cond} Rd, Rm, Rs
     /// op{S}{cond} Rd, Rm, #N
     /// RRX{S}{cond} Rd, Rm
     [<Struct>]
-    type InstrShift =  {Rd: RName; Rm: RName; shifter: ShiftType}
+    type InstrShift =  {Rd: RName; Rm: RName; shifter: ShiftType; suff: Option<Suffix>}
 
     type Instr = 
         | LSL of InstrShift // 0-31
@@ -26,12 +29,13 @@ module DP
     /// parse error (dummy, but will do)
     type ErrInstr = string
 
-    let constructShift rd rm sh = 
+    let constructShift rd rm sh sf = 
         Result.map (fun x -> 
             {
                 Rd = regNames.[rd];
                 Rm = regNames.[rm];
-                shifter = sh
+                shifter = sh;
+                suff = sf;
             })
 
     /// sample specification for set of instructions
@@ -121,16 +125,23 @@ module DP
 
             let splitOps = splitAny ls.Operands ','
 
+            let checkSuffix suff =
+                match suff with 
+                | "S" -> Some S
+                | "" -> None
+                | _ -> failwithf "Should never happen, not a suffix"
+
             let ops =
                 match splitOps with
                 | [dest; op1] when (checkValid2 splitOps) ->
-                    (Ok splitOps) |> constructShift dest op1 Empty // RRX
+                    (Ok splitOps) |> constructShift dest op1 Empty (checkSuffix suffix) // RRX
                 | [dest; op1; op2] when (checkValid2 splitOps) ->
                     match op2 with
                     | Op2Match regOrNum -> 
-                        (Ok splitOps) |> constructShift dest op1 regOrNum // ASR, LSL, LSR ROR
+                        (Ok splitOps) |> constructShift dest op1 regOrNum (checkSuffix suffix)// ASR, LSL, LSR ROR
                     | _ -> Error "Error - op2 did not match"
                 | _ -> Error "Error - splitting operands"
+            
 
             let make ops =
                 Ok { 
