@@ -99,6 +99,12 @@ module Memory
             match a with
             | Valid -> WA a
             | _ -> failwithf "Nope"
+        
+        
+        let rec makeOffsetList inlst outlist start incr = 
+            match inlst with
+            | _ :: tail -> (start + incr) |> makeOffsetList tail ([start] :: outlist)
+            | [] -> outlist
 
         let afterInstr = 
             match instr.PInstr with
@@ -110,6 +116,14 @@ module Memory
                     | _ -> failwithf "You fucked it"
                 let update = setReg operands.Rn data cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
+            | STR operands ->
+                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (DataLoc (regContents operands.Rn)) cpuData
+                setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
+            | LDM operands ->
+                let baseAddr = (regContents operands.addr.addrReg) + getOffsetType operands.addr.offset
+                let offsetList = operands.rList [] baseAddr 4       
+    
+                // let length = List.length operands.rList
             | _ -> failwithf "Aint an instruction bro"
 
         setReg R15 nextPC afterInstr

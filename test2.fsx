@@ -93,3 +93,14 @@ let qp item = printfn "%A" item
 let lessThan32 rn = (fun x -> x % 32) rn
 
 lessThan32 47 |> qp
+
+
+
+
+let rec makeOffsetList inlst outlist n = 
+    match inlst with
+    | _ :: tail -> (n + 4) |> makeOffsetList tail ([n] :: outlist)
+    | [] -> outlist
+
+
+makeList [0..5] 0 [] |> qp
