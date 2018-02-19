@@ -347,47 +347,53 @@ module DP
             | _ ->
                 None  
 
+        let parse3Ops rDest rOp1 op2 =
+            match rDest, rOp1 with
+            | RegCheck rDest', RegCheck rOp1' ->
+                let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
+                match op2 with
+                | LitMatch litVal ->
+                    let litVal' = Result.map (consLitOp) litVal
+                    applyResultMapError dp2 litVal'
+                | RegMatch reg ->
+                    let reg' = Result.map (Reg) reg
+                    applyResultMapError dp2 reg'
+                | _ ->
+                    op2 + " is an invalid flexible second operand"
+                    |> ``Invalid flexible second operand``
+                    |> Error
+                    |> applyResultMapError dp2
+            | _ ->
+                failwith "Should never happen! Match statement always matches."
+
+        let parse4Ops rDest rOp1 rOp2 extn =
+            match rDest, rOp1 with
+            | RegCheck rDest', RegCheck rOp1' ->
+                let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
+                match extn with
+                | RrxMatch rOp2 reg ->
+                        let reg' = Result.map (RRX) reg
+                        applyResultMapError (dp2) reg'
+                | ShiftMatch rOp2 shift ->
+                    let shift' = Result.map (Shift) shift
+                    applyResultMapError (dp2) shift'
+                | _ ->
+                    rOp2 + ", " + extn + " is an invalid flexible second operand"
+                    |> ``Invalid flexible second operand``
+                    |> Error
+                    |> applyResultMapError dp2
+            | _ ->
+                failwith "Should never happen! Match statement always matches."
+
         let operands =
             ld.Operands.Split([|','|])
             |> Array.toList
             |> List.map (fun op -> op.ToUpper())
             |> function
             | [rDest; rOp1; op2] ->
-                match rDest, rOp1 with
-                | RegCheck rDest', RegCheck rOp1' ->
-                    let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
-                    match op2 with
-                    | LitMatch litVal ->
-                        let litVal' = Result.map (consLitOp) litVal
-                        applyResultMapError dp2 litVal'
-                    | RegMatch reg ->
-                        let reg' = Result.map (Reg) reg
-                        applyResultMapError dp2 reg'
-                    | _ ->
-                        op2 + " is an invalid flexible second operand"
-                        |> ``Invalid flexible second operand``
-                        |> Error
-                        |> applyResultMapError dp2
-                | _ ->
-                    failwith "Should never happen! Match statement always matches."
+                parse3Ops rDest rOp1 op2 
             | [rDest; rOp1; rOp2; extn] ->
-                match rDest, rOp1 with
-                | RegCheck rDest', RegCheck rOp1' ->
-                    let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
-                    match extn with
-                    | RrxMatch rOp2 reg ->
-                            let reg' = Result.map (RRX) reg
-                            applyResultMapError (dp2) reg'
-                    | ShiftMatch rOp2 shift ->
-                        let shift' = Result.map (Shift) shift
-                        applyResultMapError (dp2) shift'
-                    | _ ->
-                        rOp2 + ", " + extn + " is an invalid flexible second operand"
-                        |> ``Invalid flexible second operand``
-                        |> Error
-                        |> applyResultMapError dp2
-                | _ ->
-                    failwith "Should never happen! Match statement always matches."
+                parse4Ops rDest rOp1 rOp2 extn
             | _ ->
                 "Syntax error. Instruction format is incorrect."
                 |> ``Invalid instruction``
