@@ -51,7 +51,9 @@ let main argv =
         "STMDB r0, {r1-r3, r7, r8}";
         "LDM r0!, {r0-r15}";
     ]
-    "Enter \"tests\" to run the test suite, for execution anything else" |> qp
+
+[<EntryPoint>]
+let main argv =
     match argv with
         | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
         | _ -> 
