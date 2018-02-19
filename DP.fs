@@ -77,6 +77,9 @@ module DP
             ("ASR", ASR);
             ("ROR", ROR);     
         ]
+    
+    type Suffix =
+        | S
      
     // Flexible shift instruction format within the flexible second operand.
     type FS2Form =
@@ -98,8 +101,24 @@ module DP
             rDest:RName;
             rOp1:RName;
             fOp2:FlexOp2
-        } 
+        }
 
+    type DP3SForm =
+        {
+            rDest:RName;
+            rOp1:RName;
+            fOp2:FlexOp2;
+            suff:Option<Suffix>;
+        }
+
+    let consDP3S (suffix) (dp3:DP3Form) =
+        {
+            rDest = dp3.rDest;
+            rOp1 = dp3.rOp1;
+            fOp2 = dp3.fOp2;
+            suff = suffix;
+        }
+       
     /// Operand format for the first two operands of the three-operand data
     ///  processing instructions. 
     type DP2Form =
@@ -107,19 +126,19 @@ module DP
             rDest:RName;
             rOp1: RName
         }
- 
+    
     type Instr =
-        | ADD of DP3Form
+        | ADD of DP3SForm
        
     /// Error types
     type ErrInstr =
         | ``Invalid literal``       of string
         | ``Invalid register``      of string
         | ``Invalid shift``         of string
-        | ``Syntax error``          of string
-        | ``Invalid instruction``   of string
         | ``Invalid flexible second operand``  of string
-
+        | ``Invalid suffix``        of string
+        | ``Invalid instruction``   of string
+        | ``Syntax error``          of string
 
     let DPSpec =
         {
@@ -203,20 +222,16 @@ module DP
         | _, Error e2 -> Error e2
         | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
 
-    
     let combineErrorMapResult (res1:Result<'T1,ErrInstr>) (res2:Result<'T2,ErrInstr>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,ErrInstr> =
         combineError res1 res2
         |> Result.map (fun (r1,r2) -> mapf r1 r2)
-
     
-    let partialMapResult (res:Result<'T1->'T2,ErrInstr>) (arg:Result<'T1,ErrInstr>)   =
+    let applyResultMapError (res:Result<'T1->'T2,ErrInstr>) (arg:Result<'T1,ErrInstr>)   =
         match arg, res with
         | Ok arg', Ok res' -> res' arg' |> Ok
         | _, Error e -> e |> Error
         | Error e, _ -> e |> Error
    
-
-
 
     /// main function to parse a line of assembler
     /// ls contains the line input
@@ -307,7 +322,7 @@ module DP
                     |> Result.map(partialFS2)
                     |> Some
                 | _ ->
-                    "Not a valid flexible second operand shift instruction." |> ``Invalid shift`` |> Error |> Some
+                    oprnds + " is not a valid flexible second operand shift." |> ``Invalid shift`` |> Error |> Some
             | _ ->
                 None  
 
@@ -323,15 +338,15 @@ module DP
                     match op2 with
                     | LitMatch litVal ->
                         let litVal' = Result.map (consLitOp) litVal
-                        partialMapResult dp2 litVal'
-                    | RegCheck reg ->
+                        applyResultMapError dp2 litVal'
+                    | RegMatch reg ->
                         let reg' = Result.map (Reg) reg
-                        partialMapResult dp2 reg'
+                        applyResultMapError dp2 reg'
                     | _ ->
                         op2 + " is an invalid flexible second operand"
                         |> ``Invalid flexible second operand``
                         |> Error
-                        |> partialMapResult dp2
+                        |> applyResultMapError dp2
                 | _ ->
                     failwith "Should never happen! Match statement always matches."
             | [rDest; rOp1; rOp2; extn] ->
@@ -341,17 +356,15 @@ module DP
                     match extn with
                     | RrxMatch rOp2 reg ->
                             let reg' = Result.map (RRX) reg
-                            partialMapResult (dp2) reg'
-                            // reg |> Result.map (RRX >> dp2)
+                            applyResultMapError (dp2) reg'
                     | ShiftMatch rOp2 shift ->
                         let shift' = Result.map (Shift) shift
-                        partialMapResult (dp2) shift'
-                        // shift |> Result.map(Shift >> dp2)
+                        applyResultMapError (dp2) shift'
                     | _ ->
-                        rOp2 + " " + extn + " is an invalid flexible second operand"
+                        rOp2 + ", " + extn + " is an invalid flexible second operand"
                         |> ``Invalid flexible second operand``
                         |> Error
-                        |> partialMapResult dp2
+                        |> applyResultMapError dp2
                 | _ ->
                     failwith "Should never happen! Match statement always matches."
             | _ ->
@@ -359,9 +372,20 @@ module DP
                 |> ``Invalid instruction``
                 |> Error
       
+        let addSuffix operands suffix =
+            match suffix with
+            | "S" -> Result.map (consDP3S (Some S)) operands
+            | "" -> Result.map (consDP3S (None)) operands
+            | _ ->
+                suffix + " is not a valid suffix"
+                |> ``Invalid suffix``
+                |> Error
+
         let (WA la) = ld.LoadAddr
 
         let parseADD suffix cond =
+            let operands' = addSuffix operands suffix
+
             let makeAdd ops =
                 Ok {
                     PInstr  = ADD(ops);
@@ -369,8 +393,9 @@ module DP
                     PSize   = 4u;
                     PCond   = cond
                 }
-            Result.bind makeAdd operands
-            
+
+            Result.bind makeAdd operands'
+
         let parseFuncs =
             Map.ofList [
                 "ADD", parseADD;

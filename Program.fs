@@ -17,7 +17,7 @@ let qpl lst = lst |> List.map (qp)
 let repl() =
     let rec repl'() =
         printf  "~> "
-        System.Console.ReadLine()
+        System.Console.ReadLine().ToUpper()
         |> parseLine None (WA 0u) 
         |> qp
         repl'()
