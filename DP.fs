@@ -66,11 +66,9 @@ module DP
             let shiftedNum = reg >>> amt
             msbs ||| shiftedNum
 
-        let PC = cpuData.Regs.[R15]
-        let nextPC = PC + 4u
+        let pc = cpuData.Regs.[R15]
+        let pcNext = pc + 4u
         let regContents r = cpuData.Regs.[r] // add 0 - 255
-        let lessThan32 v = (fun x -> x % 32) v
-        let lessThan31 v = (fun x -> x % 31) v
 
         let getShifter (sh: ShiftType) : int32 = 
             match sh with
@@ -98,10 +96,8 @@ module DP
             | RRX operands -> 
                 let value = (regContents operands.Rm) >>> 1
                 setReg operands.Rd value cpuData
-            | _ -> failwithf "Ain't an instruction bro"
 
-        setReg R15 nextPC afterInstr
-        
+        setReg R15 pcNext afterInstr
 
 
    
@@ -142,8 +138,8 @@ module DP
                     match op2 with
                     | Op2Match regOrNum -> 
                         (Ok splitOps) |> constructShift dest op1 regOrNum (checkSuffix suffix)// ASR, LSL, LSR ROR
-                    | _ -> Error "Error - op2 did not match"
-                | _ -> Error "Error - splitting operands"
+                    | _ -> Error "Op2Match failed"
+                | _ -> Error "splitOps did not match with \'op1, op2\' or \'op1, op2, op3\'"
             
 
             let make ops =

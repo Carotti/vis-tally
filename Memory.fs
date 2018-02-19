@@ -121,7 +121,7 @@ module Memory
             match m with 
             | DataLoc dl -> dl
             // | Code c -> c
-            | _ -> failwith "Ah"
+            | _ -> failwithf "Ah"
 
         let afterInstr = 
             match instr.PInstr with
@@ -130,7 +130,7 @@ module Memory
                 let update = setReg operands.Rn (dataFn memloc) cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | STR operands ->
-                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (DataLoc (regContents operands.Rn)) cpuData
+                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (regContents operands.Rn) cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | LDM operands ->
                 let rl =
@@ -142,9 +142,15 @@ module Memory
                 let memLocList = List.map (fun m -> memContents.[m]) wordAddrList
                 let dataLocList = List.map dataFn memLocList
                 setMultRegs rl dataLocList cpuData
-                
-                // let length = List.length operands.rList
-            | _ -> failwithf "Aint an instruction bro"
+            | STM operands ->
+                let rl =
+                    match operands.rList with
+                    | RegList rl -> rl
+                let baseAddr = (regContents operands.Rn)
+                let offsetList = baseAddr |> makeOffsetList rl [] 4u
+                let wordAddrList = List.map wordAddress offsetList
+                let regContentsList = List.map regContents rl
+                setMultMem wordAddrList regContentsList cpuData
 
         setReg R15 nextPC afterInstr
 
@@ -312,8 +318,8 @@ module Memory
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             (Ok splitOps)
                             |> consMemSingle reg addr NoPre NoPost (checkSingleSuffix suffix)
-                        | _ -> Error "Balls"
-                    | _ -> Error "Bollocks"
+                        | _ -> Error "Some registers are probably not valid"
+                    | _ -> Error "MemMatch failed"
                 | [reg; addr; offset] ->
                     match addr with
                     | MemMatch addr ->
@@ -323,10 +329,10 @@ module Memory
                             | OffsetMatch tuple  -> 
                                 (Ok splitOps)
                                 |> consMemSingle reg addr (fst tuple) (snd tuple) (checkSingleSuffix suffix)
-                            | _ -> Error "Cobblers"
-                        | _ -> Error "Goolies"
-                    | _ -> Error "Gonads"
-                | _ -> Error "Split bollocked"
+                            | _ -> Error "OffsetMatch failed"
+                        | _ -> Error "Some registers are probably not valid"
+                    | _ -> Error "MemMatch failed"
+                | _ -> Error "splitOps did not match with \'op1, op2\' or \'op1, op2, op3\'"
 
             let make ops =
                 Ok { 

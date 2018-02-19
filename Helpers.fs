@@ -51,9 +51,17 @@ module Helpers
     let setMem mem contents cpuData =
         let setter mem' old =
             match mem' with
-            | x when x = mem -> contents
+            | x when x = mem -> DataLoc contents
             | _ -> old
         {cpuData with MM = Map.map setter cpuData.MM}
+    
+    let rec setMultMem memLst contentsLst cpuData =
+        match memLst, contentsLst with
+        | mhead :: mtail, chead :: ctail when (List.length memLst = List.length contentsLst) ->
+            let newCpuData = setMem mhead chead cpuData
+            setMultMem mtail ctail newCpuData
+        | [], [] -> cpuData
+        | _ -> failwithf "Something went wrong with lists"
 
     [<Tests>]
     let helperTests =
@@ -75,6 +83,10 @@ module Helpers
             | x when ((combined = (uppercase ans)) && x) -> true
             | x when ((combined <> (uppercase ans)) && not x) -> true
             | _ -> false
+        
+        let setRegCheck reg value cpu =
+            
+            setReg 
 
         testList "Helpers Tests" [
             testList "Checking regValid fn" [
