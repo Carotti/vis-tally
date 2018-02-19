@@ -151,12 +151,7 @@ module VTest =
 
     [<Tests>]
     let tests = 
-        testList "Minimal Visual Unit Tests"
-            [
-            VisualFrameworkTest defaultParas
-            vTest "SUB test" "SUB R0, R0, #1" "0000" [R 0, -1]
-            vTest "SUBS test" "SUBS R0, R0, #0" "0110" [R 0, 0]
-            vTest "This ADDS test should fail" "ADDS R0, R0, #4" "0000" [R 0, 4; R 1, 0] 
-            // R1 should be 10 but is specified here as 0
+        testList "Testing Against Visual" [
+                VisualFrameworkTest defaultParas // Check the framework works correctly
             ]
 

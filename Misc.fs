@@ -37,7 +37,7 @@ module Misc
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is
     /// the first symbol which causes this
-    let resolveMisc ins (syms : SymbolTable) = 
+    let resolve ins (syms : SymbolTable) = 
         let evalSymExp exp =
             match exp with
             | ExpUnresolved x -> 

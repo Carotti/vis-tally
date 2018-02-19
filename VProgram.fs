@@ -19,7 +19,7 @@ module VProgram =
                             parallelWorkers = 6 // try increasing this if CPU use is less than 100%
                     }
 
-    let runTests () = 
+    let runVisualTests () = 
         initCaches testParas
         let rc = runTestsInAssembly expectoConfig [||]
         finaliseCaches testParas
