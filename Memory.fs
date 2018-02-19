@@ -7,6 +7,7 @@ module Memory
     open Helpers
     open System.Text.RegularExpressions
     open FsCheck
+    open System.Numerics
 
     type OffsetType =
         | ImmPre of uint32
@@ -20,13 +21,21 @@ module Memory
         | ImmPost of uint32
         | RegPost of RName
         | NoPost
+    
+    type SingleSuffix = 
+        | B
 
     [<Struct>]
-    type InstrMemSingle = {Rn: RName; addr: Address; postOffset: PostIndex}
+    type InstrMemSingle = {Rn: RName; addr: Address; postOffset: PostIndex; suff: Option<SingleSuffix>}
     
     type RegisterList = | RegList of List<RName>
+
+    type MultSuffix = 
+        | IA | IB | DA | DB
+        | FD | ED | FA | EA
+
     [<Struct>]
-    type InstrMemMult = {Rn: RName; rList: RegisterList}
+    type InstrMemMult = {Rn: RName; rList: RegisterList; suff: Option<MultSuffix>}
 
     type Instr = 
         | LDR of InstrMemSingle
@@ -40,7 +49,7 @@ module Memory
     let memSpec = {
         InstrC = MEM
         Roots = ["LDR";"STR";"STM";"LDM"]
-        Suffixes = [""; "B";"IA";"IB";"DA";"DB"]
+        Suffixes = [""; "B";"IA";"IB";"DA";"DB";"FD";"ED";"FA";"EA"]
     }
 
     let memTypeSingleMap = 
@@ -57,19 +66,21 @@ module Memory
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand memSpec
 
-    let consMemSingle reg mem preoffset postoffset = 
+    let consMemSingle reg mem preoffset postoffset suffix = 
         Result.map (fun a -> 
             {
                 Rn = regNames.[reg]; 
                 addr = {addrReg = regNames.[mem]; offset = preoffset};
-                postOffset = postoffset
+                postOffset = postoffset;
+                suff = suffix;
             })
     
-    let consMemMult reg rLst =
+    let consMemMult reg rLst suffix =
         Result.map (fun a ->
             {
                 Rn = regNames.[reg];
-                rList = RegList (List.map (fun a -> regNames.[a]) rLst)
+                rList = RegList (List.map (fun a -> regNames.[a]) rLst);
+                suff = suffix;
             })
 
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
@@ -106,24 +117,33 @@ module Memory
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
 
+        let dataFn m =
+            match m with 
+            | DataLoc dl -> dl
+            // | Code c -> c
+            | _ -> failwith "Ah"
+
         let afterInstr = 
             match instr.PInstr with
             | LDR operands ->
                 let memloc = memContents.[wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)] 
-                let data = 
-                    match memloc with
-                    | DataLoc dl -> dl
-                    | _ -> failwithf "You fucked it"
-                let update = setReg operands.Rn data cpuData
+                let update = setReg operands.Rn (dataFn memloc) cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | STR operands ->
                 let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (DataLoc (regContents operands.Rn)) cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
-            // | LDM operands ->
-            //     let baseAddr = (regContents operands.addr.addrReg) + getOffsetType operands.addr.offset
-            //     let offsetList = baseAddr |> makeOffsetList operands.rList [] 4
+            | LDM operands ->
+                let rl =
+                    match operands.rList with
+                    | RegList rl -> rl
+                let baseAddr = (regContents operands.Rn)
+                let offsetList = baseAddr |> makeOffsetList rl [] 4u
+                let wordAddrList = List.map wordAddress offsetList
+                let memLocList = List.map (fun m -> memContents.[m]) wordAddrList
+                let dataLocList = List.map dataFn memLocList
+                setMultRegs rl dataLocList cpuData
                 
-            //     // let length = List.length operands.rList
+                // let length = List.length operands.rList
             | _ -> failwithf "Aint an instruction bro"
 
         setReg R15 nextPC afterInstr
@@ -229,6 +249,18 @@ module Memory
                 | _ -> None
 
             let splitMult = splitAny ls.Operands '{'
+            
+            let checkMultSuffix = function
+                | "IA" -> Some IA
+                | "IB" -> Some IB
+                | "DA" -> Some DA
+                | "DB" -> Some DB
+                | "FD" -> Some FD
+                | "ED" -> Some ED
+                | "FA" -> Some FA
+                | "EA" -> Some EA
+                | "" -> None
+                | _ -> failwithf "Should never happen, not a suffix"
 
             let ops = 
                 match splitMult with
@@ -249,7 +281,7 @@ module Memory
                     match matchedRegs with
                     | head :: tail when (regsValid (head :: tail)) ->
                         (Ok splitMult)
-                        |> consMemMult head tail
+                        |> consMemMult head tail (checkMultSuffix suffix)
                     | _ -> Error "Registers probably not valid"
                 | _ -> Error "Input not in correct form"
 
@@ -265,6 +297,11 @@ module Memory
         let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,string> =         
 
             let splitOps = splitAny ls.Operands ','
+
+            let checkSingleSuffix = function
+                | "B" -> Some B
+                | "" -> None
+                | _ -> failwithf "Should never happen, not a suffix"
             
             let ops =
                 match splitOps with
@@ -274,7 +311,7 @@ module Memory
                         match [reg; addr] with
                         | [reg; addr] when (checkValid2 [reg; addr]) ->
                             (Ok splitOps)
-                            |> consMemSingle reg addr NoPre NoPost
+                            |> consMemSingle reg addr NoPre NoPost (checkSingleSuffix suffix)
                         | _ -> Error "Balls"
                     | _ -> Error "Bollocks"
                 | [reg; addr; offset] ->
@@ -285,7 +322,7 @@ module Memory
                             match offset with
                             | OffsetMatch tuple  -> 
                                 (Ok splitOps)
-                                |> consMemSingle reg addr (fst tuple) (snd tuple)
+                                |> consMemSingle reg addr (fst tuple) (snd tuple) (checkSingleSuffix suffix)
                             | _ -> Error "Cobblers"
                         | _ -> Error "Goolies"
                     | _ -> Error "Gonads"
