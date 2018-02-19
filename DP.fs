@@ -3,6 +3,7 @@ module DP
     open CommonLex
     open System.Text.RegularExpressions
     open FsCheck
+    open System.Net.Sockets
 
     ////////////////////////////////////////////////////////////////////////////////
     // maccth helper functions, TODO: delete 
@@ -185,6 +186,13 @@ module DP
             sOp = sOp';
         }
     
+    let consFS2R rOp2' sInstr' sOp'=
+        {
+            rOp2 = rOp2';
+            sInstr = sInstr';
+            sOp = sOp';
+        }
+    
     /// Constructs a shift sub-instruction for the flexible second operand of
     ///  type `SInstr` from a shift instruction specified as a `string`
     let consSInstr instr =
@@ -303,26 +311,39 @@ module DP
             | ParseRegex "(ROR)" _ -> txt |> consSInstr |> Some
             | _ -> None
 
-        let (|ShiftMatch|_|) (rOp2:string) (txt:string) =
+        let (|ShiftMatch|_|) (reg:string) (txt:string) =
             let instr = txt.[0..2]
             let oprnds = txt.[3..]
             match instr with
             | ShiftInstr sInstr ->
-                let partialFS2 = consFS2 rOp2 sInstr
-                match oprnds with
-                | LitMatch litVal ->
-                    litVal
-                    |> Result.map(consLit)
-                    |> Result.map(ConstShift)
-                    |> Result.map(partialFS2)
-                    |> Some
-                | RegMatch rOp3 ->
-                    rOp3
-                    |> Result.map(RegShift)
-                    |> Result.map(partialFS2)
-                    |> Some
+                match reg with
+                | RegCheck reg' ->
+                    match reg' with
+                    | Ok reg'' ->
+                        let partialFS2 = consFS2R reg'' sInstr
+                        match oprnds with
+                        | LitMatch litVal ->
+                            litVal
+                            |> Result.map(consLit)
+                            |> Result.map(ConstShift)
+                            |> Result.map(partialFS2)
+                            |> Some
+                        | RegMatch rOp3 ->
+                            rOp3
+                            |> Result.map(RegShift)
+                            |> Result.map(partialFS2)
+                            |> Some
+                        | _ ->
+                            oprnds + " is not a valid flexible second operand shift."
+                            |> ``Invalid shift``
+                            |> Error
+                            |> Some
+                    | Error e ->
+                        e
+                        |> Error
+                        |> Some
                 | _ ->
-                    oprnds + " is not a valid flexible second operand shift." |> ``Invalid shift`` |> Error |> Some
+                    failwith "Should never happen! Match statement always matches."
             | _ ->
                 None  
 
