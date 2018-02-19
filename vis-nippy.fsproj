@@ -23,6 +23,8 @@
     <Compile Include="TestTop.fs" />
     <Compile Include="MiscTest.fs" />
     <Compile Include="BranchTest.fs" />
+    <Compile Include="Execution.fs" />
+    <Compile Include="DPexecute.fs"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

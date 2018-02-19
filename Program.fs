@@ -4,6 +4,9 @@ open System
 open CommonTop
 open CommonData
 open DP
+open DPexecute
+open Execution
+open System.Linq
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -41,15 +44,32 @@ let main argv =
     // |> qpl
     // |> ignore
 
-
-
-    "ready to REPL..." |> (printfn "%s")
-    repl()
-
     // let test = parseLine None (WA 0u) "ADD R1, R2, R3, RRX"
     // test |> qp
 
 
+    // "ready to REPL..." |> (printfn "%s")
+    // repl()
+
+    "hello" |> qp
+
+
+    let dp = initialiseDP false false false false [0u..15u]
+
+    dp |> qp
+
+    let a =
+        System.Console.ReadLine().ToUpper()
+        |> parseLine None (WA 0u)
     
+    let res =
+        match a with
+        | Ok a' -> execute dp a'
+        | Error b ->
+            "Just a dummy error"
+            |> ``Run time error``
+            |> Error
+
+    qp res 
 
     0 // return an integer exit code
