@@ -52,7 +52,6 @@ let instrLst = [
 
 [<EntryPoint>]
 let main argv =
-    /// test the initProjectLexer code
     match argv with
         | [|"tests"|] -> 
             "Running all Expecto tests..." |> qp
