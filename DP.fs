@@ -287,7 +287,11 @@ module DP
         let (|RrxMatch|_|) reg txt =
             match txt with
             | ParseRegex "(^RRX)" _ ->
-                reg |> consReg |> Ok |> Some
+                match reg with
+                | RegCheck reg' ->
+                    reg' |> Some
+                | _ ->
+                    failwith "Should never happen! Match statement always matches."
             | _ ->
                 None
 
@@ -346,8 +350,8 @@ module DP
                 | _ ->
                     failwith "Should never happen! Match statement always matches."
             | [rDest; rOp1; rOp2; extn] ->
-                match rDest, rOp1, rOp2 with
-                | RegCheck rDest', RegCheck rOp1', RegCheck rOp2' ->
+                match rDest, rOp1 with
+                | RegCheck rDest', RegCheck rOp1' ->
                     let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
                     match extn with
                     | RrxMatch rOp2 reg ->
