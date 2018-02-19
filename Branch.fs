@@ -20,6 +20,7 @@ module Branch
         | END
 
     type ErrRunTime =
+        | NotInstrMem of uint32 // Address where there is no instruction
         | EXIT // Used to exit execution of the simulation
 
     type ErrInstr = 

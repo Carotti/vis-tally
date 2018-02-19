@@ -30,3 +30,15 @@ module Execution
         | Clt -> (n <> v)
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
+
+    let emptyRegs = 
+        let map0 x = (x, 0u)
+        [0..15]
+        |> List.map (register >> map0)
+        |> Map.ofList
+
+    let initialDp () = {
+            Fl = {N = false ; C = false ; Z = false ; V = false};
+            Regs = emptyRegs;
+            MM = Map.ofList []
+        }

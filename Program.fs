@@ -9,7 +9,7 @@ module Program
     [<EntryPoint>]
     let rec main argv =
         match argv with
-        | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
+        | [|"tests"|] -> VProgram.runVisualTests ()
         | _ ->
             printfn "########################"
             let test = parseLine None (WA 16u) <| System.Console.ReadLine()
