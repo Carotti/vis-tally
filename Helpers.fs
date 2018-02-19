@@ -2,7 +2,6 @@ module Helpers
     open CommonData
     open System.Text.RegularExpressions
     open Expecto
-    open System.Drawing
     
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
@@ -75,6 +74,10 @@ module Helpers
             | x when ((combined = (uppercase ans)) && x) -> true
             | x when ((combined <> (uppercase ans)) && not x) -> true
             | _ -> false
+        
+        // let setRegCheck reg value cpu =
+            
+        //     setReg 
 
         testList "Helpers Tests" [
             testList "Checking regValid fn" [

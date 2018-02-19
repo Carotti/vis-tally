@@ -5,7 +5,7 @@ module Memory
     open Helpers
     open System.Text.RegularExpressions
     open FsCheck
-    open System.Numerics
+    open System
 
     type OffsetType =
         | ImmPre of uint32
@@ -63,7 +63,7 @@ module Memory
     let opCodes = opCodeExpand memSpec
 
     let consMemSingle reg mem preoffset postoffset suffix = 
-        Result.map (fun a -> 
+        Result.map (fun _ -> 
             {
                 Rn = regNames.[reg]; 
                 addr = {addrReg = regNames.[mem]; offset = preoffset};
@@ -72,7 +72,7 @@ module Memory
             })
     
     let consMemMult reg rLst suffix =
-        Result.map (fun a ->
+        Result.map (fun _ ->
             {
                 Rn = regNames.[reg];
                 rList = RegList (List.map (fun a -> regNames.[a]) rLst);
@@ -80,8 +80,8 @@ module Memory
             })
 
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
-        let PC = cpuData.Regs.[R15]
-        let nextPC = PC + 4u
+        let pc = cpuData.Regs.[R15]
+        let pcNext = pc + 4u
         let regContents r = cpuData.Regs.[r] // add 0 - 255
         let memContents = cpuData.MM
 
@@ -111,7 +111,7 @@ module Memory
         let rec makeOffsetList inlst outlist incr start = 
             match inlst with
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
-            | [] -> outlist
+            | [] -> outlist |> List.rev
 
         let dataFn m =
             match m with 
@@ -119,6 +119,16 @@ module Memory
             // | Code c -> c
             | _ -> failwith "Ah"
 
+//         Restrictions
+// In these instructions:
+//     Rn must not be PC
+//     reglist must not contain SP
+//     in any STM instruction, reglist must not contain PC
+//     in any LDM instruction, reglist must not contain PC if it contains LR
+//     reglist must not contain Rn if you specify the writeback suffix.
+// When PC is in reglist in an LDM instruction:
+//     bit[0] of the value loaded to the PC must be 1 for correct execution, and a branch occurs to this halfword-aligned address
+//     if the instruction is conditional, it must be the last instruction in the IT block.
         let afterInstr = 
             match instr.PInstr with
             | LDR operands ->
@@ -137,17 +147,88 @@ module Memory
                 let rl =
                     match operands.rList with
                     | RegList rl -> rl
-                let baseAddr = (regContents operands.Rn)
-                let offsetList = baseAddr |> makeOffsetList rl [] 4u
-                let wordAddrList = List.map wordAddress offsetList
+                let offsetList start = 
+                    let lst =
+                        match operands.suff with           
+                        | Some IA -> 
+                            start
+                            |> makeOffsetList rl [] 4
+                        | Some IB -> 
+                            (start + 4)
+                            |> makeOffsetList rl [] 4
+                        | Some DA -> 
+                            start
+                            |> makeOffsetList rl [] -4
+                        | Some DB ->
+                            (start - 4) 
+                            |> makeOffsetList rl [] -4
+                        | Some FD ->
+                            start
+                            |> makeOffsetList rl [] 4
+                        | Some ED ->
+                            (start + 4)
+                            |> makeOffsetList rl [] 4
+                        | Some FA ->
+                            start
+                            |> makeOffsetList rl [] -4
+                        | Some EA ->
+                            (start - 4) 
+                            |> makeOffsetList rl [] -4
+                        | _ -> failwithf "Isn't a valid suffix"
+                    List.map (fun el -> el |> uint32) lst
+
+                let baseAddrInt = (regContents operands.Rn) |> int32
+                let wordAddrList = List.map wordAddress (offsetList baseAddrInt)
                 let memLocList = List.map (fun m -> memContents.[m]) wordAddrList
                 let dataLocList = List.map dataFn memLocList
                 setMultRegs rl dataLocList cpuData
+<<<<<<< HEAD
                 
                 // let length = List.length operands.rList
             | _ -> failwithf "Aint an instruction bro"
+=======
+            | STM operands ->
+                let rl =
+                    match operands.rList with
+                    | RegList rl -> rl  
 
-        setReg R15 nextPC afterInstr
+                let offsetList start = 
+                    let lst =
+                        match operands.suff with           
+                        | Some IA -> 
+                            start
+                            |> makeOffsetList rl [] 4
+                        | Some IB -> 
+                            (start + 4)
+                            |> makeOffsetList rl [] 4
+                        | Some DA -> 
+                            start
+                            |> makeOffsetList rl [] -4
+                        | Some DB ->
+                            (start - 4) 
+                            |> makeOffsetList rl [] -4
+                        | Some EA ->
+                            start
+                            |> makeOffsetList rl [] 4
+                        | Some FA ->
+                            (start + 4)
+                            |> makeOffsetList rl [] 4
+                        | Some ED ->
+                            start
+                            |> makeOffsetList rl [] -4
+                        | Some FD ->
+                            (start - 4) 
+                            |> makeOffsetList rl [] -4
+                        | _ -> failwithf "Isn't a valid suffix"
+                    List.map (fun el -> el |> uint32) lst
+
+                let baseAddrInt = (regContents operands.Rn) |> int32
+                let wordAddrList = List.map wordAddress (offsetList baseAddrInt)
+                let regContentsList = List.map regContents rl
+                setMultMem wordAddrList regContentsList cpuData
+>>>>>>> Written code for IA, IB, DA, DB, FD, ED, FA, EA..
+
+        setReg R15 pcNext afterInstr
 
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 

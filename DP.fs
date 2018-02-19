@@ -25,7 +25,7 @@ module DP
     type ErrInstr = string
 
     let constructShift rd rm sh sf = 
-        Result.map (fun x -> 
+        Result.map (fun _ -> 
             {
                 Rd = regNames.[rd];
                 Rm = regNames.[rm];
@@ -85,9 +85,11 @@ module DP
                 let value = rotate (regContents operands.Rm) (getShifter operands.shifter)
                 setReg operands.Rd value cpuData
             | RRX operands when cpuData.Fl.C -> 
+                // LSB needs to be put into C
                 let value = (regContents operands.Rm) >>> 1 |> (|||) (uint32 0x80000000)
                 setReg operands.Rd value cpuData
             | RRX operands -> 
+                // LSB needs to be put into C
                 let value = (regContents operands.Rm) >>> 1
                 setReg operands.Rd value cpuData
             | _ -> failwithf "Ain't an instruction bro"
