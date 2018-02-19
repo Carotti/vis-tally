@@ -143,7 +143,12 @@ module Memory
                 let update = setReg operands.Rn value cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | STR operands ->
-                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) (regContents operands.Rn) cpuData
+                let wordOrByte d = 
+                    match operands.suff with
+                    | Some B -> d &&& 0x000000FFu
+                    | None -> d 
+                let value = wordOrByte (regContents operands.Rn)
+                let update = setMem (wordAddress ((regContents operands.addr.addrReg) + getOffsetType operands.addr.offset)) value cpuData
                 setReg operands.addr.addrReg (getPostIndex operands.postOffset) update
             | LDM operands ->
                 let rl =
