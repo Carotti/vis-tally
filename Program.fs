@@ -56,7 +56,8 @@ let main argv =
 
     let dp = initialiseDP false false false false [0u..15u]
 
-    dp |> qp
+    dp.Fl |> qp
+    dp.Regs |> Map.toList |> qpl 
 
     let a =
         System.Console.ReadLine().ToUpper()
@@ -70,6 +71,14 @@ let main argv =
             |> ``Run time error``
             |> Error
 
-    qp res 
+
+    match res with
+    | Ok res' ->
+        res'.Fl |> qp
+        res'.Regs |> Map.toList |> qpl
+        5
+    | Error e' ->
+        e' |> qp
+        5
 
     0 // return an integer exit code
