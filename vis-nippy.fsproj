@@ -9,6 +9,8 @@
     <Compile Include="DP.fs" />
     <Compile Include="Memory.fs" />
     <Compile Include="CommonTop.fs" />
+    <Compile Include="Execution.fs" />
+    <Compile Include="DPexecute.fs"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

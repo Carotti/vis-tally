@@ -7,7 +7,6 @@ module DP
     open CommonLex
     open System.Text.RegularExpressions
     open FsCheck
-    open System.Net.Sockets
 
     ////////////////////////////////////////////////////////////////////////////////
     // maccth helper functions, TODO: delete 
@@ -189,7 +188,7 @@ module DP
             sInstr = sInstr';
             sOp = sOp';
         }
-    
+  
     let consFS2R rOp2' sInstr' sOp'=
         {
             rOp2 = rOp2';
@@ -224,17 +223,17 @@ module DP
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
-    let combineError (res1:Result<'T1,ErrInstr>) (res2:Result<'T2,ErrInstr>) : Result<'T1 * 'T2, ErrInstr> =
+    let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =
         match res1, res2 with
         | Error e1, _ -> Error e1
         | _, Error e2 -> Error e2
         | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
 
-    let combineErrorMapResult (res1:Result<'T1,ErrInstr>) (res2:Result<'T2,ErrInstr>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,ErrInstr> =
+    let combineErrorMapResult (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,'E> =
         combineError res1 res2
         |> Result.map (fun (r1,r2) -> mapf r1 r2)
     
-    let applyResultMapError (res:Result<'T1->'T2,ErrInstr>) (arg:Result<'T1,ErrInstr>)   =
+    let applyResultMapError (res:Result<'T1->'T2,'E>) (arg:Result<'T1,'E>) =
         match arg, res with
         | Ok arg', Ok res' -> res' arg' |> Ok
         | _, Error e -> e |> Error
@@ -262,7 +261,10 @@ module DP
                 let rotB = fst hd |> (&&&) lit
                 let B = (rotB <<< snd hd) ||| (rotB >>> 32 - snd hd) |> byte
                 Ok (B, snd hd)
-            | [] -> "Not a valid literal." |> ``Invalid literal`` |> Error
+            | [] ->
+                (lit |> string) + " is not a valid literal."
+                |> ``Invalid literal``
+                |> Error
 
         let (|ParseRegex|_|) regex txt =
             let m = Regex.Match(txt, "^[\\s]*" + regex + "[\\s]*" + "$")
@@ -279,7 +281,6 @@ module DP
             | ParseRegex "#([0-9]+)" num ->
                 num |> uint32 |> checkLiteral |> Some
             | _ ->
-                // "Not a valid literal. Literal expression problems." |> qp
                 None
         
         let (|RegMatch|_|) txt =
@@ -289,12 +290,25 @@ module DP
             | _ ->
                 None
         
+        // let regCheck txt =
+        //     match Map.tryFind txt regNames with
+        //     | Some reg ->
+        //         reg |> Ok
+        //     | _ ->
+        //         txt + " is not a valid register."
+        //         |> ``Invalid register``
+        //         |> Error
+
         let (|RegCheck|_|) txt =
+            // regCheck txt |> Some
             match Map.tryFind txt regNames with
             | Some reg ->
                 reg |> Ok |> Some
             | _ ->
-                txt + " is not a valid register." |> ``Invalid register`` |> Error |> Some
+                txt + " is not a valid register."
+                |> ``Invalid register``
+                |> Error
+                |> Some
         
         let (|RrxMatch|_|) reg txt =
             match txt with
@@ -338,7 +352,7 @@ module DP
                             |> Result.map(partialFS2)
                             |> Some
                         | _ ->
-                            oprnds + " is not a valid flexible second operand shift."
+                            oprnds + " is not a valid literal or register."
                             |> ``Invalid shift``
                             |> Error
                             |> Some
