@@ -26,10 +26,7 @@ module Misc
         | InvalidExp of string
         | InvalidExpList of string
         | InvalidFillSize of string
-        | InvalidFillValue of string
-        | InvalidFillNum of string
-        | InvalidFillExp of string
-        | EmptyFillExp
+        | InvalidFill of string
         | LabelRequired
 
     /// Errors which can occur during resolving of an expression
@@ -162,12 +159,12 @@ module Misc
                     InvalidFillSize inv |> Error
                 | [Expr (_, "") ; inv ; _ ]
                 | [Expr (_, "") ; inv] -> 
-                    InvalidFillValue inv |> Error
+                    InvalidExp inv |> Error
                 | [inv ; _ ; _ ]
                 | [inv ; _ ]
                 | [inv] -> 
-                    InvalidFillNum inv |> Error
-                | _ -> InvalidFillExp ls.Operands |> Error
+                    InvalidExp inv |> Error
+                | _ -> InvalidFill ls.Operands |> Error
                 |> Result.map fillMap
             Result.map (fun ins ->
                 {

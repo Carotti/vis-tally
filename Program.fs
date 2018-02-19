@@ -5,11 +5,12 @@ module Program
     
     open CommonTop
     open CommonData
+    open VisualTest
 
     [<EntryPoint>]
     let rec main argv =
         match argv with
-        | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
+        | [|"tests"|] -> VProgram.runTests ()
         | _ ->
             printfn "########################"
             let test = parseLine None (WA 16u) <| System.Console.ReadLine()
