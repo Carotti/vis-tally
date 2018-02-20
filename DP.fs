@@ -119,7 +119,7 @@ module DP
             fOp2 = dp3.fOp2;
             suff = suffix;
         }
-       
+     
     /// Operand format for the first two operands of the three-operand data
     ///  processing instructions. 
     type DP2Form =
@@ -127,15 +127,14 @@ module DP
             rDest:RName;
             rOp1: RName
         }
-   
     
     type DP3SInstr =
         | ADD of DP3SForm
+        | ADC of DP3SForm
 
     type Instr =
         | DP3S of DP3SInstr
-      
-       
+         
     /// Error types
     type ErrInstr =
         | ``Invalid literal``       of string
@@ -149,7 +148,7 @@ module DP
     let DPSpec =
         {
             InstrC = DP
-            Roots = ["ADD";"SUB"]
+            Roots = ["ADD";"ADC"]
             Suffixes = [""; "S"]
         }
 
@@ -428,22 +427,23 @@ module DP
 
         let (WA la) = ld.LoadAddr
 
-        let parseADD suffix cond =
+        let parseDP3S opcode suffix cond  =
             let operands' = addSuffix operands suffix
 
-            let makeAdd ops =
+            let makeDP3S ops =
                 Ok {
-                    PInstr  = ADD(ops) |> DP3S; 
+                    PInstr  = opcode (ops) |> DP3S; 
                     PLabel  = ld.Label |> Option.map (fun lab -> lab, la);
                     PSize   = 4u;
                     PCond   = cond
                 }
 
-            (Result.bind makeAdd operands')
+            (Result.bind makeDP3S operands')
 
         let parseFuncs =
             Map.ofList [
-                "ADD", parseADD;
+                "ADD", parseDP3S ADD;
+                "ADC", parseDP3S ADC;
             ]
 
         let parse' (_instrC, (root, suffix, cond)) =
