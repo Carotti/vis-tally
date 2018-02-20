@@ -1,3 +1,9 @@
+Bar EQU 19721@nNice1 EQU 4042322160@nNice2 EQU 252645135@nbigNum EQU 4294967295@nfOO EQU 402@nmoo EQU 17123@nn0thing EQU 0@nrock74 EQU 16@nz1 EQU 139216@nMOV R0, #0x0@r@n@r@nfoo DCD 19@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@n
+15 8 14 0 13 -16777216 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
+15 16 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 19
+Bar EQU 19721@nNice1 EQU 4042322160@nNice2 EQU 252645135@nbigNum EQU 4294967295@nfOO EQU 402@nmoo EQU 17123@nn0thing EQU 0@nrock74 EQU 16@nz1 EQU 139216@nMOV R0, #0x0@r@n@r@nfoo DCD 19, 11, 12, 13, 14, 16, 17@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@n
+15 8 14 0 13 -16777216 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
+15 16 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 17 5 16 4 14 3 13 2 12 1 11 0 19
 MOV R0, #0@r@nADDS R0, R0, R0@r@nMOVS R0, #-1@r@nMOV R0, #0x0@r@nMOV R1, #0x0@r@nMOV R2, #0x0@r@nMOV R3, #0x0@r@nMOV R4, #0x0@r@nMOV R5, #0x0@r@nMOV R6, #0x0@r@nMOV R7, #0x0@r@nMOV R8, #0x0@r@nMOV R9, #0x0@r@nMOV R10, #0x0@r@nMOV R11, #0x0@r@nMOV R12, #0x0@r@nMOV R13, #0x0@r@nMOV R14, #0x0@r@n@r@n@r@n@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@nMOV R0, #0@r@n              ADDMI R0, R0, #8@r@n              ADDEQ R0, R0, #4@r@n              ADDCS R0, R0, #2@r@n              ADDVS R0, R0, #1@r@n
 15 76 14 0 13 0 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
 15 104 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 8
@@ -85,6 +91,9 @@ MOV R0, #0@r@nADDS R0, R0, R0@r@nMOVS R0, #1@r@nMOV R0, #0xfe@r@nADD R0, R0, #0x
 MOV R0, #0@r@nADDS R0, R0, R0@r@nMOVS R0, #1@r@nMOV R0, #0xff@r@nADD R0, R0, #0xff00@r@nADD R0, R0, #0xff0000@r@nADD R0, R0, #0xff000000@r@nMOV R1, #0xff@r@nADD R1, R1, #0xff00@r@nADD R1, R1, #0xff0000@r@nADD R1, R1, #0xff000000@r@nMOV R2, #0x0@r@nMOV R3, #0x0@r@nMOV R4, #0x1@r@nMOV R5, #0x0@r@nMOV R6, #0xff@r@nADD R6, R6, #0xff00@r@nADD R6, R6, #0xff0000@r@nADD R6, R6, #0xff000000@r@nMOV R7, #0x0@r@nMOV R8, #0xff@r@nADD R8, R8, #0xff00@r@nADD R8, R8, #0xff0000@r@nADD R8, R8, #0xff000000@r@nMOV R9, #0x1@r@nMOV R10, #0xff@r@nADD R10, R10, #0xff00@r@nADD R10, R10, #0xff0000@r@nADD R10, R10, #0xff000000@r@nMOV R11, #0x1@r@nMOV R12, #0xff@r@nADD R12, R12, #0xff00@r@nADD R12, R12, #0xff0000@r@nADD R12, R12, #0xff000000@r@nMOV R13, #0xff@r@nADD R13, R13, #0xff00@r@nADD R13, R13, #0xff0000@r@nADD R13, R13, #0xff000000@r@nMOV R14, #0x0@r@n@r@n@r@n@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@nMOV R0, #0@r@n              ADDMI R0, R0, #8@r@n              ADDEQ R0, R0, #4@r@n              ADDCS R0, R0, #2@r@n              ADDVS R0, R0, #1@r@n
 15 160 14 0 13 -1 12 -1 11 1 10 -1 9 1 8 -1 7 0 6 -1 5 0 4 1 3 0 2 0 1 -1 0 -1
 15 188 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
+MOV R0, #0x0@r@n@r@nfoo DCD 19@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@n
+15 8 14 0 13 -16777216 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
+15 16 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 19
 MOV R0, #0x7FFFFFFF@r@nADDS R0, R0, R0@r@nMOVS R0, #-1@r@nMOV R0, #0x0@r@nMOV R1, #0x0@r@nMOV R2, #0x0@r@nMOV R3, #0x0@r@nMOV R4, #0x0@r@nMOV R5, #0x0@r@nMOV R6, #0x0@r@nMOV R7, #0x0@r@nMOV R8, #0x0@r@nMOV R9, #0x0@r@nMOV R10, #0x0@r@nMOV R11, #0x0@r@nMOV R12, #0x0@r@nMOV R13, #0x0@r@nMOV R14, #0x0@r@n@r@n@r@n@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@nMOV R0, #0@r@n              ADDMI R0, R0, #8@r@n              ADDEQ R0, R0, #4@r@n              ADDCS R0, R0, #2@r@n              ADDVS R0, R0, #1@r@n
 15 76 14 0 13 0 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
 15 104 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 9
@@ -142,3 +151,6 @@ MOV R0, #0xFFFFFFFF@r@nADDS R0, R0, R0@r@nMOVS R0, #1@r@nMOV R0, #0x0@r@nMOV R1,
 MOV R0, #0xFFFFFFFF@r@nADDS R0, R0, R0@r@nMOVS R0, #1@r@nMOV R0, #0x1@r@nMOV R1, #0xff@r@nADD R1, R1, #0xff00@r@nADD R1, R1, #0xff0000@r@nADD R1, R1, #0xff000000@r@nMOV R2, #0x1@r@nMOV R3, #0x0@r@nMOV R4, #0xff@r@nADD R4, R4, #0xff00@r@nADD R4, R4, #0xff0000@r@nADD R4, R4, #0xff000000@r@nMOV R5, #0x0@r@nMOV R6, #0x0@r@nMOV R7, #0xff@r@nADD R7, R7, #0xff00@r@nADD R7, R7, #0xff0000@r@nADD R7, R7, #0xff000000@r@nMOV R8, #0xff@r@nADD R8, R8, #0xff00@r@nADD R8, R8, #0xff0000@r@nADD R8, R8, #0xff000000@r@nMOV R9, #0x0@r@nMOV R10, #0xff@r@nADD R10, R10, #0xff00@r@nADD R10, R10, #0xff0000@r@nADD R10, R10, #0xff000000@r@nMOV R11, #0x0@r@nMOV R12, #0x1@r@nMOV R13, #0x1@r@nMOV R14, #0xff@r@nADD R14, R14, #0xff00@r@nADD R14, R14, #0xff0000@r@nADD R14, R14, #0xff000000@r@n@r@n@r@n@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@nMOV R0, #0@r@n              ADDMI R0, R0, #8@r@n              ADDEQ R0, R0, #4@r@n              ADDCS R0, R0, #2@r@n              ADDVS R0, R0, #1@r@n
 15 148 14 -1 13 1 12 1 11 0 10 -1 9 0 8 -1 7 -1 6 0 5 0 4 -1 3 0 2 1 1 -1 0 1
 15 176 14 -1 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 2
+moo EQU 17123@nMOV R0, #0x0@r@n@r@nfoo DCD 19@r@nMOV R13, #0x1000@r@nLDMIA R13, {R0-R12}@n
+15 8 14 0 13 -16777216 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 0
+15 16 14 0 13 4096 12 0 11 0 10 0 9 0 8 0 7 0 6 0 5 0 4 0 3 0 2 0 1 0 0 19

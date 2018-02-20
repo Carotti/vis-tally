@@ -1,28 +1,14 @@
-MOV R0, #0
-ADDS R0, R0, R0
-MOVS R0, #1
+Bar EQU 19721
+Nice1 EQU 4042322160
+Nice2 EQU 252645135
+bigNum EQU 4294967295
+fOO EQU 402
+moo EQU 17123
+n0thing EQU 0
+rock74 EQU 16
+z1 EQU 139216
 MOV R0, #0x0
-MOV R1, #0xa
-MOV R2, #0x14
-MOV R3, #0x1e
-MOV R4, #0x28
-MOV R5, #0x32
-MOV R6, #0x3c
-MOV R7, #0x46
-MOV R8, #0x50
-MOV R9, #0x5a
-MOV R10, #0x64
-MOV R11, #0x6e
-MOV R12, #0x78
-MOV R13, #0x82
-MOV R14, #0x8c
 
-
-ADDS R0, R0, #4
+foo DCD 19, 11, 12, 13, 14, 16, 17
 MOV R13, #0x1000
 LDMIA R13, {R0-R12}
-MOV R0, #0
-              ADDMI R0, R0, #8
-              ADDEQ R0, R0, #4
-              ADDCS R0, R0, #2
-              ADDVS R0, R0, #1

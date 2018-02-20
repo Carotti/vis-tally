@@ -7,6 +7,7 @@ module VTest =
     open Expecto
     open VCommon
     open VLog
+    open VData
     open Visual
     open System.Threading
     open System.IO
@@ -35,7 +36,6 @@ module VTest =
         Postlude = ""                 // this is overwritten by code
         Prelude = ""                  // this is overwritten by code
     } 
-    
     
     /// run an expecto test of VisUAL
     /// name - name of test

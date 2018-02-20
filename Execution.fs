@@ -3,13 +3,19 @@ module Execution
     open CommonLex
 
     /// Return a new datapath with reg rX set to value
-    let updateReg rX value dp =
-        let updater reg old =
-            match reg with
-            | x when x = rX -> value
-            | _ -> old
-        {dp with Regs = Map.map updater dp.Regs}
+    let updateReg value rX dp =
+        {dp with Regs = Map.add rX value dp.Regs}
 
+    let updateMem value (addr : uint32) dp =
+        match addr % 4u with
+        | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
+        | _ -> failwithf "Trying to update memory at unaligned address"
+
+    let updateMemData value = updateMem (DataLoc value)
+
+    /// Return the next aligned address after addr
+    let alignAddress addr = (addr / 4u) * 4u
+        
     /// Return whether or not an instruction should be executed
     let condExecute ins (data : DataPath<'INS>) =
         let (n, c, z, v) = (data.Fl.N, data.Fl.C, data.Fl.Z, data.Fl.V)

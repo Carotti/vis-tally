@@ -6,6 +6,7 @@ module Misc
     open CommonData
     open CommonLex
     open Expressions
+    open Execution
 
     type SymbolExp =
         | ExpUnresolved of Expression
@@ -16,10 +17,10 @@ module Misc
     type FILLInstr = {numBytes : SymbolExp ; fillWith : FILLVal Option}
 
     type Instr =
-    | DCD of SymbolExp list
-    | DCB of SymbolExp list
-    | FILL of FILLInstr
-    | EQU of string * SymbolExp
+        | DCD of SymbolExp list
+        | DCB of SymbolExp list
+        | FILL of FILLInstr
+        | EQU of SymbolExp
 
     /// Errors which can occur during parsing
     type ErrInstr =
@@ -37,7 +38,7 @@ module Misc
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is
     /// the first symbol which causes this
-    let resolve ins (syms : SymbolTable) = 
+    let resolve (syms : SymbolTable) ins = 
         let evalSymExp exp =
             match exp with
             | ExpUnresolved x -> 
@@ -76,9 +77,23 @@ module Misc
             evalSymExp fins.numBytes
             |> Result.map (fun x -> {fins with numBytes = x}) 
             |>  Result.bind fillMap
-        | EQU (str, exp) -> 
+        | EQU exp -> 
             evalSymExp exp
-            |> Result.map (fun x -> EQU (str, x)) 
+            |> Result.map EQU
+
+    /// Execute a MISC instruction against the datapath
+    /// mem is where to start placing in memory
+    let execute ins dp mem =
+        let executeDCD lst =
+            let foldDCD (dp', mem') exp =
+                match exp with
+                | ExpResolved data -> (updateMemData data (alignAddress mem') dp', mem' + 4u)
+                | _ -> failwithf "Trying to execute unresolved DCD instruction"
+            List.fold foldDCD (dp, mem) lst |> fst
+
+        match ins with
+        | DCD lst -> executeDCD lst
+            
 
     let parseExpr txt =
         match txt with
@@ -131,8 +146,8 @@ module Misc
             let parseEQU' lab =
                 Result.bind (fun exp ->
                     Ok {
-                        PInstr = EQU (lab, exp);
-                        PLabel = None;
+                        PInstr = EQU exp;
+                        PLabel = Some (lab, la);
                         PSize = 0u;
                         PCond = Cal;
                     }
@@ -184,5 +199,3 @@ module Misc
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
-
-    // *** Everything below here is just used for testing the expression module ***
