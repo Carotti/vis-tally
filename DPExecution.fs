@@ -74,8 +74,9 @@ module DPExecution
             let res =
                 dp.Regs.[reg] >>> 1
                 |> (|||) ((dp.Fl.C |> System.Convert.ToUInt32) <<< 31)
-            let flags' = {N = dp.Fl.N; C = c'; Z = dp.Fl.Z; V = dp.Fl.Z }
-            let dp' = {dp with CommonData.Fl = flags'}
+            let flags' = {dp.Fl with C = c'}
+            
+            let dp' = {dp with Fl = flags'}
             (res, dp')
             
         let doROR b r : uint32 =
@@ -148,18 +149,33 @@ module DPExecution
             | None ->
                 dp' |> Ok 
     
+        let executeLOGIC dp dest logic (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
+            let result = (logic) op1 op2
+            let dp' = updateReg dest result dp
+            match suffix with
+            | Some S ->
+                let flags' = (dp.Fl, result) ||> negCheck ||> zeroCheck |> fst 
+                {dp' with Fl = flags'} |> Ok
+            | None ->
+                dp' |> Ok 
+
         let unpackOperands instr =
             match instr with
                 | ADD ops -> ops
                 | ADC ops -> ops
+                | AND ops -> ops
+                | ORR ops -> ops
+                | EOR ops -> ops
+                | BIC ops -> ops
                 | _ -> failwithf "Only DP instructions have been implemented as of yet."
             
         let executeDP3S (dp:DataPath<Instr>) (instr:DP3SInstr) : (Result<DataPath<Instr>,ErrExe>) =
             let operands = unpackOperands instr
             let dest = operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
-            let c = dp.Fl.C |> System.Convert.ToUInt32
+            let C = dp.Fl.C |> System.Convert.ToUInt32
             // Must obtain another a DataPath since RRX can change CPSR if suffix S is used
+            // TODO: check others!
             let op2, dp' =
                 match operands.fOp2 with
                 | Lit litVal    -> calcLiteral litVal, dp
@@ -169,7 +185,11 @@ module DPExecution
 
             match instr with
             | ADD _ -> executeADD dp' dest op1 op2 operands.suff
-            | ADC _ -> executeADD dp' dest (op1+c) op2 operands.suff 
+            | ADC _ -> executeADD dp' dest (op1+C) op2 operands.suff
+            | AND _ -> executeLOGIC dp' dest (&&&) op1 op2 operands.suff
+            | ORR _ -> executeLOGIC dp' dest (|||) op1 op2 operands.suff
+            | EOR _ -> executeLOGIC dp' dest (^^^) op1 op2 operands.suff
+            | BIC _ -> executeLOGIC dp' dest (&&&) op1 (~~~op2) operands.suff
              
         match condExecute instr dp with
         | true ->
