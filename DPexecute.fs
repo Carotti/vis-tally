@@ -15,6 +15,7 @@ module DPexecute
             let operands =
                 match instr.PInstr with
                 | CommonTop.IDP (ADD instr') -> instr'
+                | _ -> failwithf "Only DP instructions have been implemented as of yet."
             
             match operands.fOp2 with
             | Reg (reg) ->

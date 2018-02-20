@@ -151,6 +151,9 @@ module DP
     let consReg reg =
         regNames.[reg]
 
+    let consRegG reg =
+        reg |> string |> (+) "R" |> consReg
+
     /// Constructs an operand record of type `DP3Form` from registers specified as strings.
     let consDP3 rDest' rOp1' fOp2' =
         {
@@ -289,15 +292,6 @@ module DP
                 reg |> Ok |> Some
             | _ ->
                 None
-        
-        // let regCheck txt =
-        //     match Map.tryFind txt regNames with
-        //     | Some reg ->
-        //         reg |> Ok
-        //     | _ ->
-        //         txt + " is not a valid register."
-        //         |> ``Invalid register``
-        //         |> Error
 
         let (|RegCheck|_|) txt =
             // regCheck txt |> Some

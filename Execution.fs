@@ -4,30 +4,28 @@ module Execution
     open DP
     open CommonTop
     open Mono.Cecil.Cil
+    open System
 
-    let initialiseDP n c z v (vals:uint32 list) : DataPath<Instr> =
+    let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
         let flags =
             {N = n; C = c; Z = z; V = v;}
 
-        let regVals (vals:uint32 list) =
-            match List.length vals with
+        let fillRegs (regVals:uint32 list) =
+            match List.length regVals with
             | 16 ->
-                Map.ofList [    (R0, vals.[0]); (R1, vals.[1]); (R2, vals.[2]); (R3, vals.[3]);
-                                (R4, vals.[4]); (R5, vals.[5]); (R6, vals.[6]); (R7, vals.[7]);
-                                (R8, vals.[8]); (R9, vals.[9]); (R10, vals.[10]); (R11, vals.[11]);
-                                (R12, vals.[12]); (R13, vals.[13]); (R14, vals.[14]); (R15, vals.[15]);
-                            ]
+                regVals
+                |> List.zip [0u..15u]
+                |> List.map (fun (r,v) -> (consRegG r, v))
+                |> Map.ofList
             | _ ->
-                let zeroVals = List.map (fun _i -> 0 |> uint32) [0..15]
-                Map.ofList [    (R0, zeroVals.[0]); (R1, zeroVals.[1]); (R2, zeroVals.[2]); (R3, zeroVals.[3]);
-                                (R4, zeroVals.[4]); (R5, zeroVals.[5]); (R6, zeroVals.[6]); (R7, zeroVals.[7]);
-                                (R8, zeroVals.[8]); (R9, zeroVals.[9]); (R10, zeroVals.[10]); (R11, zeroVals.[11]);
-                                (R12, zeroVals.[12]); (R13, zeroVals.[13]); (R14, zeroVals.[14]); (R15, zeroVals.[15]);
-                            ]
-
+                [0u..15u]
+                |> List.zip [0u..15u]
+                |> List.map (fun (r, _v) -> (consRegG r, 0u))
+                |> Map.ofList
+                
         {
             Fl = flags; 
-            Regs = regVals vals; 
+            Regs = fillRegs regVals; 
             MM = Map.empty<WAddr,MemLoc<Instr>>
         }                
 
@@ -38,7 +36,6 @@ module Execution
             | x when x = rX -> value
             | _ -> old
         {dp with Regs = Map.map updater dp.Regs}
-
 
     let updatePC (instr:CommonLex.Parse<Instr>) (dp:DataPath<Instr>) : DataPath<Instr> =
         let pc = dp.Regs.[R15]

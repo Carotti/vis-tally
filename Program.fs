@@ -9,15 +9,11 @@ open Execution
 open System.Linq
 
 
-////////////////////////////////////////////////////////////////////////////////
-// maccth helper functions, to delete 
 let qp thing = thing |> printfn "%A"
+
 let qpl lst = lst |> List.map (qp)
-// maccth helper functions, to delete 
-////////////////////////////////////////////////////////////////////////////////
 
-
-let repl() =
+let parseREPL dp =
     let rec repl'() =
         printf  "~> "
         System.Console.ReadLine().ToUpper()
@@ -25,6 +21,35 @@ let repl() =
         |> qp
         repl'()
     repl'()
+
+let exeREPL dp =
+    let printRegs dp =
+        dp.Regs |> Map.toList |> qpl |> ignore
+    let printFlags dp =
+         dp.Fl |> qp |> ignore
+    
+    printRegs dp
+    printFlags dp
+
+    let rec repl' dp =
+        printf  "~> "
+        System.Console.ReadLine().ToUpper()
+        |> parseLine None (WA 0u)
+        |> function
+        | Error e ->
+            Error e
+        | Ok instr ->
+            execute dp instr
+            |> function
+            | Ok dp' ->
+              printRegs dp'
+              printFlags dp'
+              repl' dp'
+            | Error e' ->
+                e' |> qp
+                repl' dp
+    repl' dp
+    
 
 
 [<EntryPoint>]
@@ -49,36 +74,10 @@ let main argv =
 
 
     // "ready to REPL..." |> (printfn "%s")
-    // repl()
+    // parseREPL() |> ignore
 
-    "hello" |> qp
-
-
-    let dp = initialiseDP false false false false [0u..15u]
-
-    dp.Fl |> qp
-    dp.Regs |> Map.toList |> qpl 
-
-    let a =
-        System.Console.ReadLine().ToUpper()
-        |> parseLine None (WA 0u)
-    
-    let res =
-        match a with
-        | Ok a' -> execute dp a'
-        | Error b ->
-            "Just a dummy error"
-            |> ``Run time error``
-            |> Error
-
-
-    match res with
-    | Ok res' ->
-        res'.Fl |> qp
-        res'.Regs |> Map.toList |> qpl
-        5
-    | Error e' ->
-        e' |> qp
-        5
+    "ready to REPL..." |> qp
+    let dp = initialiseDP false false false false [1u..16u]
+    exeREPL dp |> ignore
 
     0 // return an integer exit code
