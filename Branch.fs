@@ -50,7 +50,7 @@ module Branch
         match condExecute ins dp with
         | false -> 
             dp
-            |> updateReg R15 nxt
+            |> updateReg nxt R15
             |> Ok
         | true ->
             match ins.PInstr with
@@ -59,12 +59,12 @@ module Branch
                 failwithf "Trying to execute an unresolved label"
             | B (SymResolved addr) -> 
                 dp 
-                |> updateReg R15 addr
+                |> updateReg addr R15
                 |> Ok
             | BL (SymResolved addr) ->
                 dp
-                |> updateReg R15 addr
-                |> updateReg R14 nxt
+                |> updateReg addr R15
+                |> updateReg nxt R14
                 |> Ok
             | END ->
                 EXIT |> Error

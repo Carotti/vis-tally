@@ -13,6 +13,8 @@
     <Compile Include="Branch.fs" />
     <Compile Include="Misc.fs" />
     <Compile Include="CommonTop.fs" />
+    <Compile Include="TestTop.fs" />
+    <Compile Include="MiscTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
