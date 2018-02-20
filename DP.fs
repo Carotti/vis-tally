@@ -127,6 +127,10 @@ module DP
     type DP3SInstr =
         | ADD of DP3SForm
         | ADC of DP3SForm
+        | AND of DP3SForm
+        | ORR of DP3SForm
+        | EOR of DP3SForm
+        | BIC of DP3SForm
 
     type Instr =
         | DP3S of DP3SInstr
@@ -144,7 +148,7 @@ module DP
     let DPSpec =
         {
             InstrC = DP
-            Roots = ["ADD";"ADC"]
+            Roots = ["ADD";"ADC";"AND";"ORR";"EOR";"BIC"]
             Suffixes = [""; "S"]
         }
 
@@ -436,14 +440,18 @@ module DP
 
             (Result.bind makeDP3S operands')
 
-        let parseFuncs =
+        let opcodes =
             Map.ofList [
-                "ADD", parseDP3S ADD;
-                "ADC", parseDP3S ADC;
+                "ADD", ADD;
+                "ADC", ADC;
+                "AND", AND;
+                "ORR", ORR;
+                "EOR", EOR;
+                "BIC", BIC;
             ]
 
         let parse' (_instrC, (root, suffix, cond)) =
-            parseFuncs.[root] suffix cond
+            parseDP3S opcodes.[root] suffix cond
 
         // Optional value comes from here!
         // Error returned if opcode IS an opcode (.tryFind does not return None)
