@@ -6,6 +6,7 @@ module DP
     open CommonData
     open CommonLex
     open Helpers
+    // open Execution
     open Expecto
 
     type ShiftType = 
@@ -24,6 +25,7 @@ module DP
         | ASR of InstrShift // 1-32
         | ROR of InstrShift // 1-31
         | RRX of InstrShift
+        | MOV of InstrShift
 
     type ErrInstr = string
 
@@ -40,7 +42,7 @@ module DP
     /// very incomplete!
     let dPSpec = {
         InstrC = DP
-        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX"]
+        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX";"MOV"]
         Suffixes = ["";"S"]
     }
 
@@ -50,7 +52,8 @@ module DP
             "LSR", LSR;
             "ASR", ASR;
             "ROR", ROR;
-            "RRX", RRX
+            "RRX", RRX;
+            "MOV", MOV;
         ]
 
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
@@ -130,7 +133,7 @@ module DP
             let ops =
                 match splitOps with
                 | [dest; op1] when (checkValid2 splitOps) ->
-                    (Ok splitOps) |> constructShift dest op1 None (checkSuffix suffix) // RRX
+                    (Ok splitOps) |> constructShift dest op1 None (checkSuffix suffix) // RRX, MOV
                 | [dest; op1; op2] when (checkValid2 splitOps) ->
                     match op2 with
                     | Op2Match regOrNum -> 
