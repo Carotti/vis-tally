@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 
 module DP
+
     open CommonData
     open CommonLex
     open System.Text.RegularExpressions
@@ -126,9 +127,14 @@ module DP
             rDest:RName;
             rOp1: RName
         }
+   
     
-    type Instr =
+    type DP3SInstr =
         | ADD of DP3SForm
+
+    type Instr =
+        | DP3S of DP3SInstr
+      
        
     /// Error types
     type ErrInstr =
@@ -427,13 +433,13 @@ module DP
 
             let makeAdd ops =
                 Ok {
-                    PInstr  = ADD(ops);
+                    PInstr  = ADD(ops) |> DP3S; 
                     PLabel  = ld.Label |> Option.map (fun lab -> lab, la);
                     PSize   = 4u;
                     PCond   = cond
                 }
 
-            Result.bind makeAdd operands'
+            (Result.bind makeAdd operands')
 
         let parseFuncs =
             Map.ofList [

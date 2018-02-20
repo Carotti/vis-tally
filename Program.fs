@@ -4,8 +4,7 @@ open System
 open CommonTop
 open CommonData
 open DP
-open DPexecute
-open Execution
+open DPExecution
 open System.Linq
 
 
@@ -37,7 +36,8 @@ let exeREPL dp =
         |> parseLine None (WA 0u)
         |> function
         | Error e ->
-            Error e
+            e |> qp
+            repl' dp
         | Ok instr ->
             execute dp instr
             |> function
@@ -77,7 +77,7 @@ let main argv =
     // parseREPL() |> ignore
 
     "ready to REPL..." |> qp
-    let dp = initialiseDP false false false false [1u..16u]
+    let dp = initialiseDP false false false false [0u]
     exeREPL dp |> ignore
 
     0 // return an integer exit code
