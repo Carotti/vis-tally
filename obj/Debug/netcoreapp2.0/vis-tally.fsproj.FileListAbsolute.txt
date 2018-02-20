@@ -1,0 +1,14 @@
+C:\Users\DAJB\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.deps.json
+C:\Users\DAJB\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.runtimeconfig.json
+C:\Users\DAJB\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.runtimeconfig.dev.json
+C:\Users\DAJB\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.dll
+C:\Users\DAJB\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.pdb
+C:\Users\DAJB\Documents\GitHub\vis-tally\obj\Debug\netcoreapp2.0\vis-tally.dll
+C:\Users\DAJB\Documents\GitHub\vis-tally\obj\Debug\netcoreapp2.0\vis-tally.pdb
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\obj\Debug\netcoreapp2.0\vis-tally.dll
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\obj\Debug\netcoreapp2.0\vis-tally.pdb
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.deps.json
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.runtimeconfig.json
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.runtimeconfig.dev.json
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.dll
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-tally.pdb

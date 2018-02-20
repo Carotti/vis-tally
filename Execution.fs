@@ -1,41 +1,70 @@
 module Execution
     open CommonData
     open CommonLex
+    open CommonTop
 
-    /// Return a new datapath with reg rX set to value
-    let updateReg value rX dp =
-        {dp with Regs = Map.add rX value dp.Regs}
+    let initDP n c z v (regVals: uint32 list) : DataPath<Instr> =
+        let flags =
+            {N = n; C = c; Z = z; V = v;}
 
-    // Update the whole word at addr with value in dp
-    let updateMem value (addr : uint32) dp =
-        match addr % 4u with
-        | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
-        | _ -> failwithf "Trying to update memory at unaligned address"
+        let fillRegs (regVals: uint32 list) =
+            match List.length regVals with
+            | 16 ->
+                regVals
+                |> List.zip [0u..15u]
+                |> List.map (fun (r,v) -> (consRegG r, v))
+                |> Map.ofList
+            | _ ->
+                [0u..15u]
+                |> List.zip [0u..15u]
+                |> List.map (fun (r, _v) -> (consRegG r, 0u))
+                |> Map.ofList
+                
+        {
+            Fl = flags; 
+            Regs = fillRegs regVals; 
+            MM = Map.empty<WAddr,MemLoc<Instr>>
+        }                
 
-    let updateMemData value = updateMem (DataLoc value)
 
-    /// Return the next aligned address after addr
-    let alignAddress addr = (addr / 4u) * 4u
-        
-    /// Update a single byte in memory (Little Endian)
-    let updateMemByte (value : byte) (addr : uint32) dp =
-        let baseAddr = alignAddress (addr)
-        let shft = (int ((addr % 4u)* 8u))
-        let mask = 0xFFu <<< shft |> (~~~)
-        let oldVal = 
-            match Map.containsKey (WA baseAddr) dp.MM with
-            | true -> dp.MM.[WA baseAddr]
-            | false -> DataLoc 0u // Uninitialised memory is zeroed
-        let newVal = 
-            match oldVal with
-            | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
-            | _ -> failwithf "Updating byte at instruction address"
-        updateMem (DataLoc newVal) baseAddr dp
+    let setReg reg contents cpuData =
+        let setter reg' old = 
+            match reg' with
+            | x when x = reg -> contents
+            | _ -> old
+        {cpuData with Regs = Map.map setter cpuData.Regs}
+    
+    let rec setMultRegs regLst contentsLst cpuData =
+        match regLst, contentsLst with
+        | rhead :: rtail, chead :: ctail when (List.length regLst = List.length contentsLst) ->
+            let newCpuData = setReg rhead chead cpuData
+            setMultRegs rtail ctail newCpuData
+        | [], [] -> cpuData
+        | _ -> failwithf "Something went wrong with lists"
+    
+    let setMem mem contents cpuData =
+        let setter mem' old =
+            match mem' with
+            | x when x = mem -> DataLoc contents
+            | _ -> old
+        {cpuData with MM = Map.map setter cpuData.MM}
+    
+    let rec setMultMem memLst contentsLst cpuData =
+        match memLst, contentsLst with
+        | mhead :: mtail, chead :: ctail when (List.length memLst = List.length contentsLst) ->
+            let newCpuData = setMem mhead chead cpuData
+            setMultMem mtail ctail newCpuData
+        | [], [] -> cpuData
+        | _ -> failwithf "Something went wrong with lists"
+    
+    let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+        let pc = cpuData.Regs.[R15]
+        let size = instr.PSize
+        setReg R15 (pc + size) cpuData
 
-    /// Return whether or not an instruction should be executed
-    let condExecute ins (data : DataPath<'INS>) =
-        let (n, c, z, v) = (data.Fl.N, data.Fl.C, data.Fl.Z, data.Fl.V)
-        match ins.PCond with
+    let condExecute (instr: Parse<Instr>) (cpuData: DataPath<Instr>) =
+        let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
+        match instr.PCond with
         | Cal -> true
         | Cnv -> false
         | Ceq -> z
@@ -52,19 +81,3 @@ module Execution
         | Clt -> (n <> v)
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
-
-    let fillRegs (vals : uint32 list) =
-        List.zip [0..15] vals
-        |> List.map (fun (r, v) -> (register r, v))
-        |> Map.ofList
-
-    let emptyRegs = 
-        [0..15]
-        |> List.map (fun _ -> 0u)
-        |> fillRegs
-        
-    let initialDp () = {
-            Fl = {N = false ; C = false ; Z = false ; V = false};
-            Regs = emptyRegs;
-            MM = Map.ofList []
-        }
