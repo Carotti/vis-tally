@@ -3,11 +3,7 @@ module DPExecution
     open CommonLex
     open DP
     open CommonTop
-    open System.Diagnostics
-    open System
-    open System.ComponentModel.Design
-    open System
-    open System
+
 
     let inline (||||>) (a,b,c,d) f = f a b c d
 
@@ -123,9 +119,6 @@ module DPExecution
             | _                     -> {flags with C = false}, value
 
         let overflowCheckAdd flags (op1:uint32) (op2:uint32) value =
-            op1 >>> 31 |> qp
-            op2 >>> 31 |> qp
-            value >>> 31 |> qp
             match op1, op2 with
             | x, y when ((x >>> 31 = 0u) && (y >>> 31 = 0u)) ->
                 match value >>> 31 with
@@ -145,7 +138,7 @@ module DPExecution
             ||> zeroCheck
             |> fst
 
-        let executeADD dp dest (op1:uint32) (op2:uint32) suffix: (Result<DataPath<Instr>,ErrExe>) =
+        let executeADD dp dest (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
             let result = op1 + op2
             let dp' = updateReg dest result dp
             match suffix with
@@ -154,16 +147,18 @@ module DPExecution
                 {dp' with Fl = flags'} |> Ok
             | None ->
                 dp' |> Ok 
-         
+    
         let unpackOperands instr =
             match instr with
                 | ADD ops -> ops
+                | ADC ops -> ops
                 | _ -> failwithf "Only DP instructions have been implemented as of yet."
             
         let executeDP3S (dp:DataPath<Instr>) (instr:DP3SInstr) : (Result<DataPath<Instr>,ErrExe>) =
             let operands = unpackOperands instr
             let dest = operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
+            let c = dp.Fl.C |> System.Convert.ToUInt32
             // Must obtain another a DataPath since RRX can change CPSR if suffix S is used
             let op2, dp' =
                 match operands.fOp2 with
@@ -171,10 +166,10 @@ module DPExecution
                 | Reg reg       -> dp.Regs.[reg], dp
                 | Shift shift   -> calcShift shift dp, dp
                 | RRX reg       -> calcRRX reg dp
-            
 
             match instr with
             | ADD _ -> executeADD dp' dest op1 op2 operands.suff
+            | ADC _ -> executeADD dp' dest (op1+c) op2 operands.suff 
              
         match condExecute instr dp with
         | true ->
