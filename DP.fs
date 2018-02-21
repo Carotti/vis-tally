@@ -111,6 +111,19 @@ module DP
             fOp2:FlexOp2;
             suff:Option<Suffix>;
         }
+    
+    type DP2Form =
+        {
+            rOp1:RName;
+            fOp2:FlexOp2;
+        }
+
+    type DP2SForm =
+        {
+            rOp1:RName;
+            fOp2:FlexOp2;
+            suff:Option<Suffix>;
+        }
 
     let consDP3S (suffix) (dp3:DP3Form) =
         {
@@ -122,7 +135,7 @@ module DP
      
     /// Operand format for the first two operands of the three-operand data
     ///  processing instructions. 
-    type DP2Form =
+    type DP32Form =
         {
             rDest:RName;
             rOp1: RName
@@ -179,14 +192,26 @@ module DP
             fOp2 = fOp2'
         }
 
-    /// Constructs an operand record of type `DP2Form` from registers specified as strings.
-    let consDP2 rDest' rOp1' =
+    let consDP2 rOp1' fOp2' =
+        {
+            rOp1 = regNames.[rOp1'];
+            fOp2 = fOp2'
+        }
+        
+    let consDP2R rOp1' fOp2' =
+        {
+            rOp1 = rOp1';
+            fOp2 = fOp2'
+        }
+
+    /// Constructs an operand record of type `DP32Form` from registers specified as strings.
+    let consDP32 rDest' rOp1' =
         {
             rDest = regNames.[rDest'];
             rOp1 = regNames.[rOp1']
         }
 
-    /// Joins a `DP2Form` and a `FlexOp2` to create a `DP3Form`.
+    /// Joins a `DP32Form` and a `FlexOp2` to create a `DP3Form`.
     let joinDP dp2 fOp2' =
         {
             rDest = dp2.rDest;
@@ -226,10 +251,10 @@ module DP
     let consLitOp (b', r') =
         Lit (consLit (b', r'))
     
-    /// Creates a `DP2Form` from `rDest'` and `rOp1'`. Joins the `DP2Form` to a
+    /// Creates a `DP32Form` from `rDest'` and `rOp1'`. Joins the `DP32Form` to a
     ///  `FlexOp2` to create a `DP3Form`.
     let partialDP rDest' rOp1' fOp2' =
-        let dp2 = consDP2 rDest' rOp1'
+        let dp2 = consDP32 rDest' rOp1'
         joinDP dp2 fOp2'
 
     /// map of all possible opcodes recognised
@@ -368,57 +393,92 @@ module DP
             | _ ->
                 None  
 
-        let parse3Ops rDest rOp1 op2 =
-            match rDest, rOp1 with
-            | RegCheck rDest', RegCheck rOp1' ->
-                let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
-                match op2 with
+        let parseFOp2NoExtn op2 createOp =
+            match op2 with
                 | LitMatch litVal ->
                     let litVal' = Result.map (consLitOp) litVal
-                    applyResultMapError dp2 litVal'
+                    applyResultMapError createOp litVal'
                 | RegMatch reg ->
                     let reg' = Result.map (Reg) reg
-                    applyResultMapError dp2 reg'
+                    applyResultMapError createOp reg'
                 | _ ->
                     op2 + " is an invalid flexible second operand"
                     |> ``Invalid flexible second operand``
                     |> Error
-                    |> applyResultMapError dp2
+                    |> applyResultMapError createOp
+
+        let parse3Ops rDest rOp1 op2 =
+            match rDest, rOp1 with
+            | RegCheck rDest', RegCheck rOp1' ->
+                let dp32 = combineErrorMapResult rDest' rOp1' consDP3R
+                parseFOp2NoExtn op2 dp32
+                // match op2 with
+                // | LitMatch litVal ->
+                //     let litVal' = Result.map (consLitOp) litVal
+                //     applyResultMapError dp32 litVal'
+                // | RegMatch reg ->
+                //     let reg' = Result.map (Reg) reg
+                //     applyResultMapError dp32 reg'
+                // | _ ->
+                //     op2 + " is an invalid flexible second operand"
+                //     |> ``Invalid flexible second operand``
+                //     |> Error
+                //     |> applyResultMapError dp32
             | _ ->
                 failwith "Should never happen! Match statement always matches."
 
         let parse4Ops rDest rOp1 rOp2 extn =
             match rDest, rOp1 with
             | RegCheck rDest', RegCheck rOp1' ->
-                let dp2 = combineErrorMapResult rDest' rOp1' consDP3R
+                let dp32 = combineErrorMapResult rDest' rOp1' consDP3R
                 match extn with
                 | RrxMatch rOp2 reg ->
                         let reg' = Result.map (RRX) reg
-                        applyResultMapError (dp2) reg'
+                        applyResultMapError dp32 reg'
                 | ShiftMatch rOp2 shift ->
                     let shift' = Result.map (Shift) shift
-                    applyResultMapError (dp2) shift'
+                    applyResultMapError dp32 shift'
                 | _ ->
                     rOp2 + ", " + extn + " is an invalid flexible second operand"
                     |> ``Invalid flexible second operand``
                     |> Error
-                    |> applyResultMapError dp2
+                    |> applyResultMapError dp32
             | _ ->
                 failwith "Should never happen! Match statement always matches."
 
-        let operands =
-            ld.Operands.Split([|','|])
-            |> Array.toList
-            |> List.map (fun op -> op.ToUpper())
-            |> function
-            | [rDest; rOp1; op2] ->
-                parse3Ops rDest rOp1 op2 
-            | [rDest; rOp1; rOp2; extn] ->
-                parse4Ops rDest rOp1 rOp2 extn
+        let operands opcode =
+            let csv =
+                ld.Operands.Split([|','|])
+                |> Array.toList
+                |> List.map (fun op -> op.ToUpper())
+            match opcode with
+            | CMP _
+            | CMN _
+            | TST _
+            | TEQ _ ->
+                match csv with
+                | [rOp1; op2] ->
+                    match rOp1 with
+                    | RegCheck rOp1' ->
+                        let dp2 = Result.map(consDP2R) rOp1'
+                        parseFOp2NoExtn op2 dp2
+                    | _ ->
+                        failwith "Should never happen! Match statement always matches."
+                | [rOp1; op2; extn]
+                | _ ->
+                    "Syntax error. Instruction format is incorrect."
+                    |> ``Invalid instruction``
+                    |> Error
             | _ ->
-                "Syntax error. Instruction format is incorrect."
-                |> ``Invalid instruction``
-                |> Error
+                match csv with
+                | [rDest; rOp1; op2] ->
+                    parse3Ops rDest rOp1 op2 
+                | [rDest; rOp1; rOp2; extn] ->
+                    parse4Ops rDest rOp1 rOp2 extn
+                | _ ->
+                    "Syntax error. Instruction format is incorrect."
+                    |> ``Invalid instruction``
+                    |> Error
       
         let addSuffix operands suffix =
             match suffix with
@@ -431,8 +491,8 @@ module DP
 
         let (WA la) = ld.LoadAddr
 
-        let parseDP3S opcode suffix cond  =
-            let operands' = addSuffix operands suffix
+        let parseDP opcode suffix cond  =
+            let operands' = addSuffix (operands opcode) suffix
 
             let makeDP3S ops =
                 Ok {
@@ -455,7 +515,7 @@ module DP
             ]
 
         let parse' (_instrC, (root, suffix, cond)) =
-            parseDP3S opcodes.[root] suffix cond
+            parseDP opcodes.[root] suffix cond
 
         // Optional value comes from here!
         // Error returned if opcode IS an opcode (.tryFind does not return None)
