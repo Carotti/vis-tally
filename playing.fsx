@@ -8,7 +8,7 @@ let qp thing = thing |> printfn "%A"
 
 let qpl lst = lst |> List.map (qp)
 
-
+Map.containsKey
 // let sentance = "hello my name is Chris"
 
 // sentance.Split( [|" my "|], 
@@ -105,5 +105,3 @@ let qpl lst = lst |> List.map (qp)
 
 // qp regs
 // String.RegexMatch
-
-
