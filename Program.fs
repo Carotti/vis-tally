@@ -32,9 +32,12 @@ let instrLst = [
         // "RRXS R0, R1";
         // "RRXS R12, R12";
         // "LDRB r0, [r1, r2]!"
-        "MOV r1, #0x100";
-        "MOV r0, #5";
-        "STR r0, [r1]";
+        "MOV r0, #1";
+        "MOV r1, #2";
+        "MOV r2, #3";
+        "MOV r3, #4";
+        "MOV r4, #0x100";
+        "STMDB r4, {r0-r3}";
         // "LDRB r0, [r1], #4"
         // "LDR r0, [r1, #4]!"
         // "LDRB r0, [r1, #4]";
