@@ -2,6 +2,8 @@ module Expressions
     open System.Text.RegularExpressions
     open Expecto
 
+    open TestFormats
+
     /// Match the start of txt with pat
     /// Return a tuple of the matched text and the rest
     let (|RegexPrefix|_|) pat txt =
@@ -18,7 +20,7 @@ module Expressions
     /// Also removes any whitespace from around the label
     let (|LabelExpr|_|) txt =
         match txt with 
-        | RegexPrefix "[a-zA-Z][a-zA-Z0-9]*" (var, rst) -> 
+        | RegexPrefix "[a-zA-Z][a-zA-Z0-9]+" (var, rst) -> 
             // Remove whitespace from the label
             (removeWs var, rst) |> Some
         | _ -> None
@@ -97,39 +99,6 @@ module Expressions
 
     // *** Everything below here is just used for testing the expression module ***
 
-    /// DUT of possible literal format representations
-    type LiteralFormat =
-        | Decimal
-        | LowerHex0 // Lowercase prefixed with 0x
-        | UpperHex0 // Uppercase prefixed with 0x
-        | LowerHexA // Lowercase prefixed with &
-        | UpperHexA // Uppercase prefixed with &
-        | Binary
-
-    /// Format a uint32 into the binary format
-    let binFormatter x =
-        let rec bin a =
-            let bit = string (a % 2u)
-            match a with 
-            | 0u | 1u -> bit
-            | _ -> bin (a / 2u) + bit
-        sprintf "0b%s" (bin x)
-
-    /// Map DUT of literal formats to functions which do formatting
-    let litFormatters = Map.ofList [
-                            Decimal, sprintf "%u"
-                            LowerHex0, sprintf "0x%x"
-                            UpperHex0, sprintf "0x%X"
-                            LowerHexA, sprintf "&%x"
-                            UpperHexA, sprintf "&%X"
-                            Binary, binFormatter
-                        ]
-
-    type TestLiteral = {value : uint32 ; fmt : LiteralFormat}
-
-    /// Apply the format of a TestLiteral to its value
-    let appFmt x = litFormatters.[x.fmt] x.value
-
     type BinaryOperator = {op : string ; f : (uint32 -> uint32 -> uint32)}
     let add = {op = "+" ; f = (+)}
     let subtract = {op = "-" ; f = (-)}
@@ -149,35 +118,28 @@ module Expressions
 
         /// Check a formatted literal evaluates to itself
         let literal lit =
-            expEqual Map.empty lit.value (appFmt lit)
+            expEqual ts (valFmt lit) (appFmt lit)
 
         /// Check a formatted binary operation evaluates to its result
         let binOp o lit1 lit2 =
             ((appFmt lit1) + o.op + (appFmt lit2))
-            |> expEqual Map.empty (o.f lit1.value lit2.value)
+            |> expEqual ts (o.f (valFmt lit1) (valFmt lit2))
 
         /// Check a formatted expression with 2 operators evaluates correctly
         /// If first is true, op1 should have higher precedence than op2
         let precedence o1 o2 first lit1 lit2 lit3 = 
             let res =
                 match first with
-                | true -> (o2.f (o1.f lit1.value lit2.value) lit3.value)
-                | false -> (o1.f lit1.value (o2.f lit2.value lit3.value))
+                | true -> (o2.f (o1.f (valFmt lit1) (valFmt lit2)) (valFmt lit3))
+                | false -> (o1.f (valFmt lit1) (o2.f (valFmt lit2) (valFmt lit3)))
             ((appFmt lit1) + o1.op + (appFmt lit2) + o2.op + (appFmt lit3))
-            |> expEqual Map.empty res
+            |> expEqual ts res
 
         /// Check any literal nested in a lot of brackets still evaluates
         /// correctly
         let bracketNest lit =
             "((((((((" + (appFmt lit) + "))))))))"
-            |> expEqual Map.empty lit.value
-
-        /// Simple check for any uint32 mapped to symbol 'testSymbol123'
-        let symbol x = 
-            let table = Map.ofList [
-                            "testSymbol123", x
-                        ]
-            expEqual table x "testSymbol123"
+            |> expEqual ts (valFmt lit)
 
         /// Unit Test constructor
         let unitTest name syms exp txt =
@@ -190,21 +152,6 @@ module Expressions
                 | _ -> None
             testCase name <| fun () ->
                 Expect.equal ans (Some exp) txt
-
-        /// Example symbol table used for unit tests
-        let ts = Map.ofList [
-                        "a", 192u
-                        "moo", 17123u
-                        "J", 173u
-                        "fOO", 402u
-                        "Bar", 19721u
-                        "z1", 139216u
-                        "rock74", 16u
-                        "Nice1", 0xF0F0F0F0u
-                        "Nice2", 0x0F0F0F0Fu
-                        "bigNum", 0xFFFFFFFFu
-                        "n0thing", 0u
-                    ]
 
         testList "Expression Parsing" [
             testProperty "Literals are the same" literal
@@ -230,8 +177,6 @@ module Expressions
             ]
             testProperty "Literal in Nested Brackets"
                 <| bracketNest
-            testProperty "Symbol"
-                <| symbol
             testList "Unit Literals" [
                 unitTest "1" Map.empty 24u "(6 + 2) * 3"
                 unitTest "2" Map.empty 16u "27 - (9 + 2)"
@@ -248,24 +193,24 @@ module Expressions
                 unitTest "13" Map.empty 5u " &5"
             ]
             testList "Unit Symbols" [
-                unitTest "1" ts 192u "a"
-                unitTest "2" ts 173u "J"
-                unitTest "3" ts 199u "a + &7"
-                unitTest "4" ts 199u "a+&7"
-                unitTest "5" ts 199u "&7 + a"
-                unitTest "6" ts 199u "&7+a"
-                unitTest "7" ts 199u "&7\t+\ta"
-                unitTest "8" ts 199u "a\t+\t&7"
-                unitTest "9" ts 384u "a + a"
-                unitTest "10" ts 33224u "8 + J * a"
+                unitTest "1" ts 192u "aa"
+                unitTest "2" ts 173u "JJ"
+                unitTest "3" ts 199u "aa + &7"
+                unitTest "4" ts 199u "aa+&7"
+                unitTest "5" ts 199u "&7 + aa"
+                unitTest "6" ts 199u "&7+aa"
+                unitTest "7" ts 199u "&7\t+\taa"
+                unitTest "8" ts 199u "aa\t+\t&7"
+                unitTest "9" ts 384u "aa + aa"
+                unitTest "10" ts 33224u "8 + JJ * aa"
                 unitTest "11" ts 0u "n0thing * bigNum"
                 unitTest "12" ts 17123u "(moo)"
                 unitTest "13" ts 17123u "((((moo))))"
-                unitTest "14" ts 192u "\ta"
-                unitTest "15" ts 192u "a\t"
-                unitTest "16" ts 192u " a"
-                unitTest "17" ts 192u "a "
-                unitTest "18" ts 192u "\ta "
+                unitTest "14" ts 192u "\taa"
+                unitTest "15" ts 192u "aa\t"
+                unitTest "16" ts 192u " aa"
+                unitTest "17" ts 192u "aa "
+                unitTest "18" ts 192u "\taa "
             ]
         ]
 

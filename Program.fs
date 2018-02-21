@@ -14,10 +14,12 @@ module Program
 
     open MiscTest
 
+    open TestFormats
+
     [<EntryPoint>]
     let rec main argv =
         match argv with
-        | [|"tests"|] -> VProgram.runVisualTests ()
+        | [|"tests"|] -> runVisualTests ()
         | [|"repl"|] ->
             printfn "########################"
             let test = parseLine None (WA 16u) <| System.Console.ReadLine()
@@ -25,8 +27,6 @@ module Program
             main argv |> ignore
             0 // return an integer exit code
         | _ ->
-            initCaches testParas
-            let testStr = "foo DCD 19, 11, 12, 13, 14, 16, 17"
-            compareDpDataMem (runMisc testStr) (runVisualGetMem testStr) |> printfn "%A"
-            finaliseCaches testParas
+            indexSymbolArray 0 |> printfn "%A"
+            ts.[indexSymbolArray 0] |> printfn "%A"
             0
