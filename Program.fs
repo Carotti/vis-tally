@@ -37,7 +37,8 @@ let instrLst = [
         "MOV r2, #3";
         "MOV r3, #4";
         "MOV r4, #0x100";
-        "STMDB r4, {r0-r3}";
+        "STMIA r4, {r0-r3}";
+        "LDR r6, [r4, #4]";
         // "LDRB r0, [r1], #4"
         // "LDR r0, [r1, #4]!"
         // "LDRB r0, [r1, #4]";

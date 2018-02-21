@@ -15,6 +15,5 @@ module ExecutionTop
                     executeDP instr cpuData
                 | CommonTop.IMEM (Mem _) ->
                     executeMem instr cpuData        
-                | _ -> failwithf "Not a valid instruction"
             | false -> 
                 updatePC instr cpuData
