@@ -53,8 +53,8 @@
     let visualToDataPath visual = 
         let flags = {
                         N = visual.State.VFlags.FN; 
-                        Z = visual.State.VFlags.FZ;
                         C = visual.State.VFlags.FC;
+                        Z = visual.State.VFlags.FZ;
                         V = visual.State.VFlags.FV;
                     }
         let regs = visualToRegs visual.Regs
@@ -75,4 +75,4 @@
         cpuData.Regs
     
     let returnCpuDataFlags (cpuData: DataPath<CommonTop.Instr>) =
-        cpuData.Fl
+        [cpuData.Fl.N;cpuData.Fl.C;cpuData.Fl.Z;cpuData.Fl.V;]

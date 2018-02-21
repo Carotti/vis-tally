@@ -60,25 +60,25 @@ module DPTests
 
     let fateFlags ins = (returnVisualCpuData ins |> returnCpuDataFlags)
 
-
     let myDestinyDP ins = 
        hopeRegs ins = fateRegs ins
 
-    let unitTest name input hopeRegs fateRegs =
+    let unitTest name input hope fate =
         testCase name <| fun () ->
-            hopeRegs |> Map.toList |> qp |> ignore
-            fateRegs |> Map.toList |> qp |> ignore
-            Expect.equal hopeRegs fateRegs input
-            
-    
+            input |> qp |> ignore
+            fst hope |> Map.toList |> qp |> ignore
+            fst fate |> Map.toList |> qp |> ignore
+            snd hope |> qp |> ignore
+            snd fate |> qp |> ignore
+            Expect.equal hope fate input
+
     let visualTest name input = 
-        unitTest name input <| (hopeRegs input) <| (fateRegs input) 
+        unitTest name input <| (hopeRegs input, hopeFlags input) <| (fateRegs input, fateFlags input) 
 
     [<Tests>]
     let visualTests =
         testList "DP Tests compared to visual, let us pray..." [
             testList "MOV unit tests" [
-                visualTest "MOV decimal" "MOV R0, #4";
                 visualTest "MOV hex 1a" "MOV R4, #0xa7";
                 visualTest "MOV HEX 1a" "MOV R2, #0xB2";
                 visualTest "MOV hex 1b" "MOV R3, #0Xa7";
@@ -87,5 +87,9 @@ module DPTests
                 visualTest "MOV HEX 2b" "MOV R4, #&FF";
                 visualTest "MOV binary" "MOV R7, #0b01011100";
                 visualTest "MOV BINARY" "MOV R7, #0B01110011";
+                visualTest "MOV decimal" "MOV R1, #5";
+            ]
+            testList "MOVS unit tests" [
+                visualTest "MOVS with 0" "MOVS R3, #0";
             ]
         ]

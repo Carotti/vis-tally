@@ -17,27 +17,33 @@ module DPExecution
 
         let checkN (value: uint32, flags) =
             match (value >>> 31) with
-            | 1u -> value, {flags with N = true}
-            | _ -> value, {flags with N = false}
+            | 1u -> 
+                value, {flags with N = true}
+            | _ -> 
+                value, {flags with N = false}
         
         let checkC (value: uint64, flags) =  // neeed to check
             let carry = ((0x10000000 |> uint64) <<< 1) // 2^32
             match value with
-            | x when (x >= carry) -> (value |> uint32), {flags with C = true}
-            | _ -> (value |> uint32), {flags with C = false}
+            | x when (x >= carry) -> 
+                (value |> uint32), {flags with C = true}
+            | _ -> 
+                (value |> uint32), {flags with C = false}
 
         let checkZ (value: uint32, flags) =
             match value with
-            | 0u -> value, {flags with Z = true}
-            | _ -> value, {flags with Z = false}
+            | 0u -> 
+                value, {flags with Z = true}
+            | _ -> 
+                value, {flags with Z = false}
         
         let checkV (value, flags) = 
             // not required for my instructions
             value, flags
 
 
-        let checkAllFlags value flags = 
-            value, flags
+        let checkAllFlags (value, flags) = 
+            (value, flags)
             |> checkC
             |> checkN 
             |> checkZ
@@ -59,7 +65,7 @@ module DPExecution
             let newCpuData = setReg rd (value |> uint32) cpuData
             match suffix with
             | Some S -> 
-                let value, newFlags = checkAllFlags value, cpuData.Fl
+                let (_, newFlags) = checkAllFlags (value, newCpuData.Fl)
                 {newCpuData with Fl = newFlags}
             | None -> newCpuData
 
