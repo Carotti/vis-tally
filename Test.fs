@@ -48,7 +48,7 @@
         match d with
         | DataLoc dl -> dl
         | _ -> 0u
-        
+
     // pretty standard making cpuData
     let visualToDataPath visual = 
         let flags = {
@@ -73,3 +73,6 @@
 
     let returnCpuDataRegs (cpuData: DataPath<CommonTop.Instr>) =
         cpuData.Regs
+    
+    let returnCpuDataFlags (cpuData: DataPath<CommonTop.Instr>) =
+        cpuData.Fl

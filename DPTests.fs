@@ -52,22 +52,27 @@ module DPTests
         
     let runDP input = execute (makeDP input) initDataPath
 
-    let hope ins = (runDP ins |> returnCpuDataRegs)
+    let hopeRegs ins = (runDP ins |> returnCpuDataRegs)
 
-    let fate ins = (returnVisualCpuData ins |> returnCpuDataRegs)
+    let hopeFlags ins = (runDP ins |> returnCpuDataFlags)
 
-    let sameAnswerDP ins = 
-       hope ins = fate ins
+    let fateRegs ins = (returnVisualCpuData ins |> returnCpuDataRegs)
 
-    let unitTest name input hope fate =
+    let fateFlags ins = (returnVisualCpuData ins |> returnCpuDataFlags)
+
+
+    let myDestinyDP ins = 
+       hopeRegs ins = fateRegs ins
+
+    let unitTest name input hopeRegs fateRegs =
         testCase name <| fun () ->
-            hope |> Map.toList |> qp |> ignore
-            fate |> Map.toList |> qp |> ignore
-            Expect.equal hope fate input
+            hopeRegs |> Map.toList |> qp |> ignore
+            fateRegs |> Map.toList |> qp |> ignore
+            Expect.equal hopeRegs fateRegs input
             
     
     let visualTest name input = 
-        unitTest name input <| (hope input) <| (fate input) 
+        unitTest name input <| (hopeRegs input) <| (fateRegs input) 
 
     [<Tests>]
     let visualTests =
