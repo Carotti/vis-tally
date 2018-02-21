@@ -3,8 +3,6 @@ module DPExecution
     open CommonLex
     open Helpers
     open DP
-    open VisualTest.VCommon
-    open Mono.CompilerServices.SymbolWriter.MethodEntry
 
     let initDP n c z v (regVals: uint32 list) : DataPath<Instr> =
         let flags =
@@ -56,7 +54,7 @@ module DPExecution
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
     
-    let execute (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+    let execute (instr: ShiftInstr) (cpuData: DataPath<Instr>) : DataPath<Instr> =
         let rotate reg amt = 
             let binaryMask = uint32 (2.0 ** (float amt) - 1.0)
             let lsbs = reg &&& binaryMask
@@ -66,27 +64,33 @@ module DPExecution
 
         let regContents r = cpuData.Regs.[r] // add 0 - 255
 
-        let checkN value flags =
+        let checkN (value: uint32, flags) =
             match (value >>> 31) with
             | 1u -> value, {flags with N = true}
             | _ -> value, {flags with N = false}
         
-        // let checkC value flags =  // neeed to check
-        //     let msb = (value >>> 31) &&& 1u
-        //     match msb with
-        //     | 1u when (asdf >= carry) -> value, {flags with C = true}
-        //     | _ -> value, {flags with C = false}
+        let checkC (value: uint64, flags) =  // neeed to check
+            let carry = ((0x10000000 |> uint64) <<< 1) // 2^32
+            match value with
+            | x when (x >= carry) -> (value |> uint32), {flags with C = true}
+            | _ -> (value |> uint32), {flags with C = false}
 
-        let checkZ value flags =
+        let checkZ (value: uint32, flags) =
             match value with
             | 0u -> value, {flags with Z = true}
             | _ -> value, {flags with Z = false}
+        
+        let checkV (value, flags) = 
+            // not required for my instructions
+            value, flags
 
 
         let checkAllFlags value flags = 
-            checkN value flags
-            // |> checkC value flags
-            |> checkZ value flags
+            value, flags
+            |> checkC
+            |> checkN 
+            |> checkZ
+            |> checkV
 
                 
         let getOp1 op1 = 
@@ -100,29 +104,29 @@ module DPExecution
             | Some (N num) -> num |> int32
             | None -> 0
 
-        let executeInstr suffix rd value cpuData =
-            let newCpuData = setReg rd value cpuData
+        let executeInstr suffix rd (value: uint64) cpuData =
+            let newCpuData = setReg rd (value |> uint32) cpuData
             match suffix with
             | Some S -> 
-                let newFlags = checkAllFlags value cpuData.Fl
+                let value, newFlags = checkAllFlags value, cpuData.Fl
                 {newCpuData with Fl = newFlags}
             | None -> newCpuData
 
-        let executeLSL suffix rd rm shift cpuData = 
-            let value = (getOp1 rm) <<< (getOp2 shift)
+        let executeLSL suffix rd rm shift cpuData =
+            let value = (getOp1 rm |> uint64) <<< (getOp2 shift)
             executeInstr suffix rd value cpuData
         
         let executeASR suffix rd rm shift cpuData = 
-            let value = ((getOp1 rm) |> int32) >>> (getOp2 shift) |> uint32
+            let value = (getOp1 rm |> int64) >>> (getOp2 shift) |> uint64
             executeInstr suffix rd value cpuData
 
         let executeLSR suffix rd rm shift cpuData = 
-            let value = (getOp1 rm) >>> (getOp2 shift)
+            let value = (getOp1 rm |> uint64) >>> (getOp2 shift)
             executeInstr suffix rd value cpuData
 
         let executeROR suffix rd rm shift cpuData = 
             let value = rotate (getOp1 rm) (getOp2 shift)
-            executeInstr suffix rd value cpuData
+            executeInstr suffix rd (value |> uint64) cpuData
 
         let executeRRX suffix rd rm shift cpuData = 
             let value = (getOp1 rm) >>> shift
@@ -130,17 +134,17 @@ module DPExecution
                 match cpuData.Fl.C with
                 | true -> 0x80000000u ||| value
                 | false -> value
-            executeInstr suffix rd value' cpuData
+            executeInstr suffix rd (value' |> uint64) cpuData
         
         let executeMOV suffix rd rm cpuData = 
             let value = getOp1 rm
-            executeInstr suffix rd value cpuData
+            executeInstr suffix rd (value |> uint64) cpuData
 
         let executeMVN suffix rd rm cpuData = 
             let value = 0xFFFFFFFFu ^^^ (getOp1 rm)
-            executeInstr suffix rd value cpuData
+            executeInstr suffix rd (value |> uint64) cpuData
 
-        match instr.PInstr with
+        match instr with
         | LSL operands -> 
             executeLSL operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
         | ASR operands -> 

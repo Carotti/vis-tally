@@ -18,16 +18,19 @@ module DP
         | S
 
     [<Struct>]
-    type InstrShift =  {Rd: RName; Op1: ShiftType; Op2: Option<ShiftType>; suff: Option<Suffix>}
-        
+    type ShiftInstrType =  {Rd: RName; Op1: ShiftType; Op2: Option<ShiftType>; suff: Option<Suffix>}
+    
+    type ShiftInstr = 
+        | LSL of ShiftInstrType // 0-31
+        | LSR of ShiftInstrType // 1-32
+        | ASR of ShiftInstrType // 1-32
+        | ROR of ShiftInstrType // 1-31
+        | RRX of ShiftInstrType
+        | MOV of ShiftInstrType
+        | MVN of ShiftInstrType
+
     type Instr = 
-        | LSL of InstrShift // 0-31
-        | LSR of InstrShift // 1-32
-        | ASR of InstrShift // 1-32
-        | ROR of InstrShift // 1-31
-        | RRX of InstrShift
-        | MOV of InstrShift
-        | MVN of InstrShift
+        | ShiftDP of ShiftInstr
 
     type ErrInstr = string
 
@@ -80,7 +83,7 @@ module DP
             | _ -> None // Literal was not valid
 
         // this does the real work of parsing
-        let parseShift root suffix pCond : Result<Parse<Instr>,string> = 
+        let parseShift root suffix pCond = 
 
             let splitOps = splitAny ls.Operands ','
 
@@ -110,7 +113,7 @@ module DP
 
             let make ops =
                 Ok { 
-                    PInstr = shiftTypeMap.[root] ops
+                    PInstr = shiftTypeMap.[root] ops |> ShiftDP
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
