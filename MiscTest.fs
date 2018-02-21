@@ -60,34 +60,14 @@ module MiscTest
         formatData startTxt data 51 byteAppFmt
         |> sameResult
 
-    let unitTest name ins =
+    let unitTest name txt expected actual =
         testCase name <| fun () ->
-        Expect.equal (runMisc ins |> getDpDataMem) (runVisualGetMem ins |> getDpDataMem) ins
+            Expect.equal actual expected txt
 
-    // Since comparison ignored zeroed memory, only way to test vs Visual FILL
-    // is with an unaligned DCB then a FILL
-
-
-    [<Tests>]
-    let visualTests =
-        testList "Misc Tests Against Visual" [
-            testPropertyVis "DCD" sameAsVisualDCD
-            testPropertyVis "DCB" sameAsVisualDCB
-            testList "DCD Unit Tests" [
-                unitTest "Addition Expression" "tstLab DCD 17 + 12"
-                unitTest "Subtraction Expression +ve" "tstLab DCD 17 - 12"
-                unitTest "Subtraction Expression -ve" "tstLab DCD 12 - 129"
-                unitTest "Multiplication Expression" "tstLab DCD 19 * 47"
-                unitTest "Overflow behaviour" "tstLab DCD 0x3FFFFFFF * 7"
-                unitTest "Multiple Expressions" "tstLab DCD 17 * 3, 44 + 0x3, 0x19 - &194, 0b1111 * &F"
-            ]
-            testList "DCB Unit Tests" [
-                unitTest "Endianness" "tstLab DCB 0xAA, 0xBB, 0xCC, 0xDD"
-                unitTest "Byte Addition" "tstLab DCB 252 + 2"
-                unitTest "Byte Subtraction" "tstLab DCB 257 - 2"
-                unitTest "Byte Multiplication" "tstLab DCB 51 * 5"
-            ]
-        ]
+    let unitTestV name ins =
+        unitTest name ins <|
+            (runVisualGetMem ins |> getDpDataMem) <|
+            (runMisc ins |> getDpDataMem)
 
     /// Check EQU parses and expression evaluates correctly
     let correctEQU (labelIndex : int) (data : TestLiteral) =
@@ -95,15 +75,94 @@ module MiscTest
                     (indexSymbolArray labelIndex symbolArray) <|
                     (appFmt data)
         produceMisc ins
-        |> resolve ts
         |> function
-            | Ok (EQU (ExpResolved value)) when value = (valFmt data) -> true
+            | EQU (ExpResolved value) when value = (valFmt data) -> true
             | _ -> false
+
+    let unitTestEQU name txt expected =
+        let res = 
+            match produceMisc txt with
+            | EQU (ExpResolved x) -> x
+            | _ -> ~~~expected // Anything else make sure test fails
+        unitTest name txt expected res
+
+    let unitTestFS name txt expected =
+        txt
+        |> runMisc
+        |> getDpDataMem
+        |> unitTest name txt expected
+
+    [<Tests>]
+    let visualTests =
+        testList "Misc Tests Against Visual" [
+            testPropertyVis "DCD" sameAsVisualDCD
+            testPropertyVis "DCB" sameAsVisualDCB
+            testList "DCD Unit Tests" [
+                unitTestV "Addition Expression" "tstLab DCD 17 + 12"
+                unitTestV "Subtraction Expression +ve" "tstLab DCD 17 - 12"
+                unitTestV "Subtraction Expression -ve" "tstLab DCD 12 - 129"
+                unitTestV "Multiplication Expression" "tstLab DCD 19 * 47"
+                unitTestV "Overflow behaviour" "tstLab DCD 0x3FFFFFFF * 7"
+                unitTestV "Multiple Expressions" "tstLab DCD 17 * 3, 44 + 0x3, 0x19 - &194, 0b1111 * &F"
+            ]
+            testList "DCB Unit Tests" [
+                unitTestV "Endianness" "tstLab DCB 0xAA, 0xBB, 0xCC, 0xDD"
+                unitTestV "Byte Addition" "tstLab DCB 252 + 2"
+                unitTestV "Byte Subtraction" "tstLab DCB 257 - 2"
+                unitTestV "Byte Multiplication" "tstLab DCB 51 * 5"
+            ]
+        ]
 
     [<Tests>]
     // Can't really test EQU/FILL/SPACE against visUAL since
     // behaviour is different
     let otherTests =
-        testList "EQU" [
-            testProperty "EQU resolves" correctEQU
+        testList "Non-Visual Tests" [
+            testList "EQU" [
+                testProperty "EQU resolves" correctEQU
+                unitTestEQU "Constant" "tstlab123 EQU 176" 176u
+                unitTestEQU "Other label" "other EQU Bar" 19721u
+                unitTestEQU "Add Expression" "label EQU 18 + 4" 22u
+                unitTestEQU "Multiply Expression" "label EQU 3 * 26" 78u
+            ]
+            testList "FILL" [
+                unitTestFS <|
+                    "Unaligned fill amount custom value" <|
+                    "FILL 17, 0xAB" <|
+                    Map.ofList [
+                                (WA 4096u, 2880154539u); (WA 4100u, 2880154539u);
+                                (WA 4104u, 2880154539u); (WA 4108u, 2880154539u);
+                                (WA 4112u, 171u)
+                    ]
+                unitTestFS <|
+                    "Filling with 0" <|
+                    "FILL 0" <|
+                    Map.ofList []
+                unitTestFS <|
+                    "Filling with 0 custom value" <|
+                    "FILL 0, 0x7F" <|
+                    Map.ofList []
+                unitTestFS <|
+                    "Filling with 1 custom value" <|
+                    "FILL 1, 0x55" <|
+                    Map.ofList [WA 4096u, 85u]
+                unitTestFS <|
+                    "Filling with custom value of 0" <|
+                    "FILL 8, 0x0" <|
+                    Map.ofList []
+                unitTestFS <|
+                    "Filling with custom value of a label" <|
+                    "FILL 8, rock74" <|
+                    Map.ofList [(WA 4096u, 269488144u); (WA 4100u, 269488144u)]
+            ]
+            testList "SPACE" [
+                unitTestFS <|
+                    "SPACE of 0" <|
+                    "SPACE 0" <|
+                    Map.ofList []       
+                unitTestFS <|
+                    "SPACE of 10" <|
+                    "SPACE 10" <|
+                    Map.ofList []      
+            ]
         ]
