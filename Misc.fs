@@ -94,16 +94,16 @@ module Misc
                 | _ -> failwithf "Trying to execute unresolved DCD instruction"
             List.fold foldDCD (dp, mem) lst |> fst
 
-        // let executeDCB lst = 
-        //     let foldDCB (dp' mem') exp =
-        //         match exp with
-        //         | ExpResolvedByte data -> 
-        //         | _ -> failwithf "Trying to execute unresolved byte DCB instructon"
+        let executeDCB lst = 
+            let foldDCB (dp', mem') exp =
+                match exp with
+                | ExpResolvedByte data -> (updateMemByte data mem' dp', mem' + 1u)
+                | _ -> failwithf "Trying to execute unresolved byte DCB instructon"
+            List.fold foldDCB (dp, mem) lst |> fst
 
         match ins with
         | DCD lst -> executeDCD lst
-        //| DCB lst -> executeDCB lst
-            
+        | DCB lst -> executeDCB lst
 
     let parseExpr txt =
         match txt with

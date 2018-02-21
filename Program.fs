@@ -14,6 +14,8 @@ module Program
 
     open MiscTest
 
+    open Execution
+
     open TestFormats
 
     [<EntryPoint>]
