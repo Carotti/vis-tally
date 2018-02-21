@@ -29,7 +29,7 @@ module Program
             main argv |> ignore
             0 // return an integer exit code
         | _ ->
-            runMisc "test DCD Bar, Bar, 0" |> printfn "%A"
+            runMisc "FILL 17, 0xAB" |> printfn "%A"
             // initCaches testParas
             // testPropertyVis "DCD" sameAsVisualDCD
             // |> runTests defaultConfig |> ignore

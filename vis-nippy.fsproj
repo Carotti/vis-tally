@@ -13,6 +13,7 @@
     <Compile Include="CommonLex.fs" />
     <Compile Include="TestFormats.fs" />
     <Compile Include="Expressions.fs" />
+    <Compile Include="ExpressionTest.fs" />
     <Compile Include="Execution.fs" />
     <Compile Include="DP.fs" />
     <Compile Include="Memory.fs" />
