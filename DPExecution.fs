@@ -1,52 +1,11 @@
 module DPExecution
     open CommonData
-    open CommonLex
     open Helpers
     open DP
     open CommonTop
+    open Execution
 
-    let initDP : DataPath<Instr> =
-        let flags =
-            {N = false; C = false; Z = false; V = false}
-
-        let zeroedRegs =
-            [0u..15u]
-            |> List.zip [0u..15u]
-            |> List.map (fun (r, _v) -> (makeRegFromNum r, 0u))
-            |> Map.ofList
-                
-        {
-            Fl = flags; 
-            Regs = zeroedRegs; 
-            MM = Map.empty<WAddr,MemLoc<Instr>>
-        }                
-    
-    let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
-        let pc = cpuData.Regs.[R15]
-        let size = instr.PSize
-        setReg R15 (pc + size) cpuData
-
-    let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
-        let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
-        match instr.PCond with
-        | Cal -> true
-        | Cnv -> false
-        | Ceq -> z
-        | Cne -> (not z)
-        | Chs -> c
-        | Clo -> (not c)
-        | Cmi -> n
-        | Cpl -> (not n)
-        | Cvs -> v
-        | Cvc -> (not v)
-        | Chi -> (c && not z)
-        | Cls -> (not c || z)
-        | Cge -> (n = v)
-        | Clt -> (n <> v)
-        | Cgt -> (not z && (n = v))
-        | Cle -> (z || (n <> v))
-    
-    let execute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+    let executeDP (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
         let rotate reg amt = 
             let binaryMask = uint32 (2.0 ** (float amt) - 1.0)
             let lsbs = reg &&& binaryMask
@@ -135,19 +94,8 @@ module DPExecution
         let executeMVN suffix rd rm cpuData = 
             let value = 0xFFFFFFFFu ^^^ (getOp1 rm)
             executeInstr suffix rd (value |> uint64) cpuData
-        
-        let getOperands instr = 
-            match instr with
-            | LSL operands -> operands
-            | ASR operands -> operands
-            | LSR operands -> operands
-            | ROR operands -> operands
-            | RRX operands -> operands
-            | MOV operands -> operands
-            | MVN operands -> operands
 
-        let executeShift (instr: ShiftInstr) (cpuData: DataPath<Instr>) =
-            // let operands = getOperands instr
+        let executeInstr (instr: ShiftInstr) (cpuData: DataPath<Instr>) =
             match instr with
             | LSL operands -> 
                 executeLSL operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
@@ -167,8 +115,8 @@ module DPExecution
         match condExecute instr cpuData with
         | true -> 
             match instr.PInstr with
-            | CommonTop.IDP (ShiftDP instr') ->
-                executeShift instr' cpuData            
+            | CommonTop.IDP (Shift instr') ->
+                executeInstr instr' cpuData            
             | _ -> failwithf "Not a valid instruction"
         | false -> 
             updatePC instr cpuData
