@@ -11,6 +11,6 @@ rock74 EQU 16
 z1 EQU 139216
 visLabelEnd MOV R0, R0
 
-tstLab DCD 17 * 3, 44 + 0x3, 0x19 - &194, 0b1111 * &F
+tstLab DCB 0xAA, 0xBB, 0xCC, 0xDD
 MOV R13, #0x1000
 LDMIA R13, {R0-R12}

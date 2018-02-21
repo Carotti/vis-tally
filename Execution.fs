@@ -12,22 +12,26 @@ module Execution
         | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
         | _ -> failwithf "Trying to update memory at unaligned address"
 
-    /// Update a single byte in memory (Little Endian)
-    let updateMemByte (value : byte) (addr : uint32) dp =
-        let baseAddr = addr % 4u
-        let shft = (int (baseAddr * 8u))
-        let mask = 0xFFu <<< shft |> (~~~)
-        let newVal = 
-            match dp.MM.[WA baseAddr] with
-            | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
-            | _ -> failwithf "Updating byte at instruction address"
-        updateMem (DataLoc newVal) baseAddr dp
-
     let updateMemData value = updateMem (DataLoc value)
 
     /// Return the next aligned address after addr
     let alignAddress addr = (addr / 4u) * 4u
         
+    /// Update a single byte in memory (Little Endian)
+    let updateMemByte (value : byte) (addr : uint32) dp =
+        let baseAddr = alignAddress (addr)
+        let shft = (int ((addr % 4u)* 8u))
+        let mask = 0xFFu <<< shft |> (~~~)
+        let oldVal = 
+            match Map.containsKey (WA baseAddr) dp.MM with
+            | true -> dp.MM.[WA baseAddr]
+            | false -> DataLoc 0u // Uninitialised memory is zeroed
+        let newVal = 
+            match oldVal with
+            | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
+            | _ -> failwithf "Updating byte at instruction address"
+        updateMem (DataLoc newVal) baseAddr dp
+
     /// Return whether or not an instruction should be executed
     let condExecute ins (data : DataPath<'INS>) =
         let (n, c, z, v) = (data.Fl.N, data.Fl.C, data.Fl.Z, data.Fl.V)

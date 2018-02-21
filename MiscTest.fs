@@ -59,4 +59,7 @@ module MiscTest
                 unitTest "Overflow behaviour" "tstLab DCD 0x3FFFFFFF * 7"
                 unitTest "Multiple Expressions" "tstLab DCD 17 * 3, 44 + 0x3, 0x19 - &194, 0b1111 * &F"
             ]
+            testList "DCB Unit Tests" [
+                unitTest "Endianness" "tstLab DCB 0xAA, 0xBB, 0xCC, 0xDD"
+            ]
         ]
