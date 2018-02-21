@@ -3,29 +3,21 @@ module DPExecution
     open CommonLex
     open Helpers
     open DP
+    open CommonTop
 
-    let initDP n c z v (regVals: uint32 list) : DataPath<Instr> =
+    let initDP : DataPath<Instr> =
         let flags =
-            {N = n; C = c; Z = z; V = v;}
+            {N = false; C = false; Z = false; V = false}
 
-        let fillRegs (regVals: uint32 list) =
-            match List.length regVals with
-            | 16 ->
-                "Input Register Values" |> qp
-                regVals
-                |> List.zip [0u..15u]
-                |> List.map (fun (r,v) -> (makeRegFromNum r, v))
-                |> Map.ofList
-            | _ ->
-                "All Zeros" |> qp
-                [0u..15u]
-                |> List.zip [0u..15u]
-                |> List.map (fun (r, _v) -> (makeRegFromNum r, 0u))
-                |> Map.ofList
+        let zeroedRegs =
+            [0u..15u]
+            |> List.zip [0u..15u]
+            |> List.map (fun (r, _v) -> (makeRegFromNum r, 0u))
+            |> Map.ofList
                 
         {
             Fl = flags; 
-            Regs = fillRegs regVals; 
+            Regs = zeroedRegs; 
             MM = Map.empty<WAddr,MemLoc<Instr>>
         }                
     
@@ -143,8 +135,19 @@ module DPExecution
         let executeMVN suffix rd rm cpuData = 
             let value = 0xFFFFFFFFu ^^^ (getOp1 rm)
             executeInstr suffix rd (value |> uint64) cpuData
+        
+        let getOperands instr = 
+            match instr with
+            | LSL operands -> operands
+            | ASR operands -> operands
+            | LSR operands -> operands
+            | ROR operands -> operands
+            | RRX operands -> operands
+            | MOV operands -> operands
+            | MVN operands -> operands
 
         let executeShift (instr: ShiftInstr) (cpuData: DataPath<Instr>) =
+            // let operands = getOperands instr
             match instr with
             | LSL operands -> 
                 executeLSL operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
@@ -165,9 +168,8 @@ module DPExecution
         | true -> 
             match instr.PInstr with
             | CommonTop.IDP (ShiftDP instr') ->
-                executeShift instr' cpuData
-                |> Result.map (updatePC instr)
-            | _ -> Error "GAh!"
+                executeShift instr' cpuData            
+            | _ -> failwithf "Not a valid instruction"
         | false -> 
             updatePC instr cpuData
-            |> Ok
+            
