@@ -7,6 +7,11 @@ module DPExecution
 
     let inline (||||>) (a,b,c,d) f = f a b c d
 
+    let inline (>>>>) shift num = (>>>) num shift
+    
+    let inline (<<<<) shift num = (<<<) num shift
+
+
     let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
         let flags =
             {N = n; C = c; Z = z; V = v;}
@@ -71,22 +76,19 @@ module DPExecution
 
         let getBit n (value) =
             value
-            |> int32
-            |> (<<<) (31-n)
-            |> (>>>) (31)
+            |> (<<<<) (31-n)
+            |> (>>>>) (31)
         
         let getBitBool n (value:uint32) =
             getBit n value
             |> System.Convert.ToBoolean
 
-
         let calcRRX reg (dp:DataPath<Instr>) =
-            let c' = dp.Regs.[reg] % 2u |> System.Convert.ToBoolean
+            let c' = getBitBool 0 dp.Regs.[reg]
             let res =
                 dp.Regs.[reg] >>> 1
                 |> (|||) ((dp.Fl.C |> System.Convert.ToUInt32) <<< 31)
             let flags' = {dp.Fl with C = c'}
-            
             let dp' = {dp with Fl = flags'}
             (res, dp')
             
@@ -119,9 +121,9 @@ module DPExecution
             | LSL ->
                 shiftAndCarry (<<<) shift (fun s -> 32-s) dp
             | LSR ->
-                shiftAndCarry (<<<) shift (fun s -> s-1) dp
+                shiftAndCarry (>>>) shift (fun s -> s-1) dp
             | ASR ->
-                shiftAndCarry (fun a b -> (int a) >>> b |> uint32) shift (fun s -> s-1) dp
+                shiftAndCarry (fun a b -> (int32 a) >>> b |> uint32) shift (fun s -> s-1) dp
             | ROR ->
                 shiftAndCarry (doROR) shift (fun s -> s-1) dp
 
@@ -205,14 +207,22 @@ module DPExecution
                 | Reg reg       -> dp.Regs.[reg], dp
                 | Shift shift   -> calcShift shift dp
                 | RRX reg       -> calcRRX reg dp
+            
+            // dp' contains the CPSR updated by the barrel shifter
+            // dp contains the CPSR that hasn't been updatted by the barrel shifter
+            // if S is specified, pick the one that HAS, otherwise pick the original
+            let dp'' =
+                match operands.suff with
+                | Some S -> dp'
+                | None -> dp
 
             match instr with
-            | ADD _ -> executeADD dp' dest op1 op2 operands.suff
-            | ADC _ -> executeADD dp' dest (op1+C) op2 operands.suff
-            | AND _ -> executeLOGIC dp' dest (&&&) op1 op2 operands.suff
-            | ORR _ -> executeLOGIC dp' dest (|||) op1 op2 operands.suff
-            | EOR _ -> executeLOGIC dp' dest (^^^) op1 op2 operands.suff
-            | BIC _ -> executeLOGIC dp' dest (&&&) op1 (~~~op2) operands.suff
+            | ADD _ -> executeADD dp'' dest op1 op2 operands.suff
+            | ADC _ -> executeADD dp'' dest (op1+C) op2 operands.suff
+            | AND _ -> executeLOGIC dp'' dest (&&&) op1 op2 operands.suff
+            | ORR _ -> executeLOGIC dp'' dest (|||) op1 op2 operands.suff
+            | EOR _ -> executeLOGIC dp'' dest (^^^) op1 op2 operands.suff
+            | BIC _ -> executeLOGIC dp'' dest (&&&) op1 (~~~op2) operands.suff
              
         match condExecute instr dp with
         | true ->

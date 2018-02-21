@@ -1,0 +1,10 @@
+At the moment if S suffix is used then barrel shifter can update CPSR, regardless of instruction.
+This may get written over by the instruction itself though for example
+add r1, r1, #3
+adds r0, r0, r1, rrx -> c = 0 due to adds, otherwise would have been 1 due to rrx
+Done for integration reasons.
+More info regarding this here: http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/CIHFDDHB.html
+Also, not doing this...
+    When an Operand2 constant is used with the instructions MOVS, MVNS, ANDS, ORRS, ORNS, EORS, BICS, TEQ or TST, the carry flag is updated to bit[31]
+    of the constant, if the constant is greater than 255 and can be produced by shifting an 8-bit value. These instructions do not affect the carry
+    flag if Operand2 is any other constant.
