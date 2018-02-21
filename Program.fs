@@ -56,65 +56,62 @@ let instrLst = [
         "MVN r6, r7";
     ]
 
-let parseREPL cpuData =
-    let rec repl'() =
-        printf  "~> "
+let parseInstr input =
+    parseLine None (WA 0u) input
+
+let replParser () =
+    let rec repl' () = 
+        printf  "=>"
         System.Console.ReadLine().ToUpper()
-        |> parseLine None (WA 0u) 
+        |> parseInstr
         |> qp
-        repl'()
+        repl'() 
     repl'()
 
-let exeREPL cpuData =
-    let printRegs cpuData =
-        cpuData.Regs |> Map.toList |> qpl |> ignore
-    let printFlags cpuData =
-         cpuData.Fl |> qp |> ignore
-    
-    printRegs cpuData
-    printFlags cpuData
+let prettyPrint cpuData =
+    cpuData.Regs |> Map.toList |> qpl |> ignore
+    cpuData.Fl |> qp |> ignore
 
+let replExecute cpuData =
+    prettyPrint cpuData
     let rec repl' cpuData =
-        printf  "~> "
+        printf  "=> "
         System.Console.ReadLine().ToUpper()
-        |> parseLine None (WA 0u)
+        |> parseInstr
         |> function
-        | Error e ->
-            e |> qp
-            repl' cpuData
         | Ok instr ->
             execute instr cpuData
             |> function
             | cpuData' ->
-              printRegs cpuData'
-              printFlags cpuData'
+              prettyPrint cpuData'
               repl' cpuData'
-            | _ ->
-                "Nope" |> qp
-                repl' cpuData
+        | Error err -> 
+            err |> qp
+            repl' cpuData
     repl' cpuData
+        
+let listExecute cpuData lst = 
+    prettyPrint cpuData
+    let rec listExecute' cpuData' lst' = 
+        match lst' with
+        | head :: tail -> 
+            match head with
+            | Ok instr ->
+                instr |> qp |> ignore
+                execute instr cpuData'
+                |> function
+                | cpuData' ->
+                    prettyPrint cpuData'
+                    listExecute' cpuData' tail
+            | Error err ->
+                err |> qp
+                listExecute' cpuData' tail
+        | [] -> 0
+    List.map parseInstr lst
+    |> listExecute' cpuData
     
 
 
 [<EntryPoint>]
 let main argv =
-    match argv with
-<<<<<<< HEAD
-        | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
-=======
-        | [|"tests"|] -> 
-            "Running all Expecto tests..." |> qp
-            runTestsInAssembly defaultConfig [||]
-        | [|"vtests"|] -> 
-            "Running visUAL based tests..." |> qp
-            VProgram.runVisualTests ()
-        | [|"repl"|] ->
-            "Doug's Remarkable REPL..." |> qp
-            let cpuData = initDP false false false false [0u]
-            exeREPL cpuData
->>>>>>> Work
-        | _ -> 
-            List.map (parseLine None (WA 0u)) instrLst
-            |> qpl
-            |> ignore
-            0 // return an integer exit code
+        0
