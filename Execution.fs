@@ -9,15 +9,15 @@ module Execution
         let flags =
             {N = false; C = false; Z = false; V = false}
 
-        let zeroedRegs =
-            [0u..15u]
+        let initRegs vals =
+            vals
             |> List.zip [0u..15u]
-            |> List.map (fun (r, _v) -> (makeRegFromNum r, 0u))
+            |> List.map (fun (r, v) -> (makeRegFromNum r, v))
             |> Map.ofList
                 
         {
-            Fl = flags; 
-            Regs = zeroedRegs; 
+            Fl = flags;    
+            Regs = initRegs [0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0xFF000000u;0u;4u;] 
             MM = Map.ofList []
         }                
     
