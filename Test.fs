@@ -12,6 +12,7 @@
     open CommonData
     // open TestShifts
 
+    // from given files
     let memReadBase = 0x1000u
     let expectoConfig = { Expecto.Tests.defaultConfig with 
                             parallel = testParas.Parallel
@@ -37,15 +38,18 @@
     // up to 0x200 by 0x4 each time
     let visualToMem vMem = 
         let alst = 
-            [memReadBase..word..memReadBase + 0x30u]
+            [memReadBase..word..memReadBase + 0x30u] // need this to stop list complaints
             |> List.map WA
             |> List.rev
         List.zip alst (List.map DataLoc vMem)
         |> Map.ofList
-    
-    let loadRegParas = 
-        {defaultParas with Postlude = ""; Prelude = ""}
 
+    let returnData _ d =
+        match d with
+        | DataLoc dl -> dl
+        | _ -> 0u
+        
+    // pretty standard making cpuData
     let visualToDataPath visual = 
         let flags = {
                         N = visual.State.VFlags.FN; 
@@ -58,19 +62,14 @@
         {Fl = flags; Regs = regs; MM = mem}
     
     let returnVisualCpuData src = 
-        let vRes = RunVisualBaseWithLocksCached loadRegParas src 
+        let vRes = RunVisualBaseWithLocksCached defaultParas src 
                     |> Result.map visualToDataPath
         match vRes with
         | Ok res -> res
         | Error x -> failwithf "Visual failed to run with errors %A" x
 
     let returnCpuDataMem (cpuData: DataPath<CommonTop.Instr>) = 
-        let getData _ v =
-            match v with
-            | DataLoc dl -> dl
-            | _ -> 0u
-        cpuData.MM
-        |> Map.map getData
+        Map.map returnData cpuData.MM
 
     let returnCpuDataRegs (cpuData: DataPath<CommonTop.Instr>) =
         cpuData.Regs
