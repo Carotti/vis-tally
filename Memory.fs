@@ -5,6 +5,7 @@ module Memory
     open CommonLex
     open Expecto
     open Helpers
+    // open Execution
     open System.Text.RegularExpressions
     open FsCheck
     open System
@@ -325,8 +326,7 @@ module Memory
                 let optionNumToRegList n = 
                     match n with
                     | RegListExpand (low, high) -> 
-                        let makeReg = (string >> (+) "R")
-                        let fullRegList = List.map (fun r -> r |> makeReg) [int low..int high]
+                        let fullRegList = List.map (fun r -> r |> makeRegFn) [int low..int high]
                         fullRegList |> Some
                     | _ -> None
                 
