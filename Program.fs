@@ -4,6 +4,8 @@ open CommonTop
 open CommonData
 open Expecto
 open Helpers
+open VisualTest
+open DPExecution
 
 let instrLst = [
         "LSL R0, R1, #2";
@@ -54,10 +56,63 @@ let instrLst = [
         "MVN r6, r7";
     ]
 
+let parseREPL cpuData =
+    let rec repl'() =
+        printf  "~> "
+        System.Console.ReadLine().ToUpper()
+        |> parseLine None (WA 0u) 
+        |> qp
+        repl'()
+    repl'()
+
+let exeREPL cpuData =
+    let printRegs cpuData =
+        cpuData.Regs |> Map.toList |> qpl |> ignore
+    let printFlags cpuData =
+         cpuData.Fl |> qp |> ignore
+    
+    printRegs cpuData
+    printFlags cpuData
+
+    let rec repl' cpuData =
+        printf  "~> "
+        System.Console.ReadLine().ToUpper()
+        |> parseLine None (WA 0u)
+        |> function
+        | Error e ->
+            e |> qp
+            repl' cpuData
+        | Ok instr ->
+            execute instr cpuData
+            |> function
+            | cpuData' ->
+              printRegs cpuData'
+              printFlags cpuData'
+              repl' cpuData'
+            | _ ->
+                "Nope" |> qp
+                repl' cpuData
+    repl' cpuData
+    
+
+
 [<EntryPoint>]
 let main argv =
     match argv with
+<<<<<<< HEAD
         | [|"tests"|] -> runTestsInAssembly defaultConfig [||]
+=======
+        | [|"tests"|] -> 
+            "Running all Expecto tests..." |> qp
+            runTestsInAssembly defaultConfig [||]
+        | [|"vtests"|] -> 
+            "Running visUAL based tests..." |> qp
+            VProgram.runVisualTests ()
+        | [|"repl"|] ->
+            "Doug's Remarkable REPL..." |> qp
+            let cpuData = initDP false false false false [0u]
+            exeREPL cpuData
+>>>>>>> Work
         | _ -> 
             List.map (parseLine None (WA 0u)) instrLst
             |> qpl
