@@ -8,7 +8,8 @@ module MemExecution
     let executeMem (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
 
         let regContents r = cpuData.Regs.[r] // add 0 - 255
-        let memContents = cpuData.MM
+
+        let wordAligned addr = 4u * (addr / 4u)
 
         let (|Valid|_|) (input: uint32) = 
             if input % 4u = 0u 
@@ -38,12 +39,23 @@ module MemExecution
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
 
+        let setCorrectByte value addr = 
+            let shift = 8u * (addr % 4u) |> int32
+            (value &&& 0x000000FFu) <<< shift
 
-        // Only works on the first Byte at the moment
-        let wordOrByte suffix d = 
+        let getCorrectByte value addr = 
+            let shift = 8u * (addr % 4u) |> int32
+            ((0x000000FFu <<< shift) &&& value) >>> shift
+
+        let setWordOrByte suffix value addr = 
             match suffix with
-            | Some B -> d &&& 0x000000FFu
-            | None -> d
+            | Some B -> setCorrectByte value addr
+            | None -> value
+
+        let getWordOrByte suffix value addr = 
+            match suffix with
+            | Some B -> getCorrectByte value addr
+            | None -> value
 
         let getMem addr cpuData = 
             match addr with
@@ -68,14 +80,16 @@ module MemExecution
             | [] -> contentsLst |> List.rev
         
         let executeLDR suffix rn addr offset cpuData = 
-            let contents = getMem (regContents addr.addrReg + getOffsetType addr.offset) cpuData
-            let value = wordOrByte suffix contents
+            let alignedAddr = wordAligned (regContents addr.addrReg + getOffsetType addr.offset)
+            let contents = getMem alignedAddr cpuData
+            let value = getWordOrByte suffix contents (regContents addr.addrReg + getOffsetType addr.offset)
             let newCpuData = setReg rn value cpuData
             setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) newCpuData
                 
         let executeSTR suffix rn addr offset cpuData = 
-            let value = wordOrByte suffix (regContents rn)
-            let update = setMemData value (regContents addr.addrReg + getOffsetType addr.offset) cpuData
+            let value = setWordOrByte suffix (regContents rn) (regContents addr.addrReg + getOffsetType addr.offset)
+            let alignedAddr = wordAligned (regContents addr.addrReg + getOffsetType addr.offset)
+            let update = setMemData value alignedAddr cpuData
             setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
 
         let executeLDM suffix rn regList cpuData =
@@ -181,7 +195,8 @@ module MemExecution
         | true -> 
             match instr.PInstr with
             | CommonTop.IMEM (Mem instr') ->
-                executeInstr instr' cpuData            
+                let cpuData' = executeInstr instr' cpuData
+                updatePC instr cpuData'        
             | _ -> failwithf "Not a valid instruction"
         | false -> 
             updatePC instr cpuData
