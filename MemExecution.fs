@@ -51,28 +51,32 @@ module MemExecution
             | None -> d
 
         let getMem addr cpuData = 
-            let memValid m = Map.containsKey m cpuData.MM
-            let wordAddr = WA (regContents addr.addrReg + getOffsetType addr.offset)
-            match memValid wordAddr with
-            | true -> 
-                let memloc = cpuData.MM.[wordAddr] 
-                wordOrByte suffix (getMemData memloc)
-            | false -> 
-                "Nothing stored at provided address" |> qp
-                cpuData
+            match addr with
+            | x when (x < minAddress) ->
+                failwithf "getMem called with code section address: %x" addr
+            | _ -> 
+                let memValid m = Map.containsKey m cpuData.MM
+                let wordAddr = WA addr
+                match memValid wordAddr with
+                | true -> 
+                    let memloc = cpuData.MM.[wordAddr] 
+                    getMemData memloc
+                | false -> 
+                    "Nothing stored at provided address" |> qp
+                    0u
+        
+        let rec getMemMult addrList contentsLst cpuData = 
+            match addrList with
+            | head :: tail ->
+                let addedVal = (getMem head cpuData) :: contentsLst
+                getMemMult tail addedVal cpuData
+            | [] -> contentsLst |> List.rev
         
         let executeLDR suffix rn addr offset cpuData = 
-            let memValid m = Map.containsKey m memContents
-            let wordAddr = WA (regContents addr.addrReg + getOffsetType addr.offset)
-            match memValid wordAddr with
-            | true -> 
-                let memloc = memContents.[wordAddr] 
-                let value = wordOrByte suffix (getMemData memloc)
-                let update = setReg rn value cpuData
-                setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
-            | false -> 
-                "Nothing stored at provided address" |> qp
-                cpuData
+            let contents = getMem (regContents addr.addrReg + getOffsetType addr.offset) cpuData
+            let value = wordOrByte suffix contents
+            let newCpuData = setReg rn value cpuData
+            setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) newCpuData
                 
         let executeSTR suffix rn addr offset cpuData = 
             let value = wordOrByte suffix (regContents rn)
@@ -119,18 +123,14 @@ module MemExecution
                         (start - 4) 
                         |> makeOffsetList rl [] -4
                 List.map (fun el -> el |> uint32) lst
-
             let baseAddrInt = (regContents rn) |> int32
-            let wordAddrList = List.map wordAddress (offsetList baseAddrInt)
-            let memLocList = List.map (fun m -> memContents.[m]) wordAddrList
-            let dataLocList = List.map getMemData memLocList
-            setMultRegs rl dataLocList cpuData
+            let contents = getMemMult (offsetList baseAddrInt) [] cpuData
+            setMultRegs rl contents cpuData
 
         let executeSTM suffix rn regList cpuData = 
             let rl =
                 match regList with
                 | RegList rl -> rl  
-
             let offsetList start = 
                 let lst =
                     match suffix with
@@ -167,7 +167,6 @@ module MemExecution
                         (start - 4) 
                         |> makeOffsetList rl [] -4
                 List.map (fun el -> el |> uint32) lst
-
             let baseAddrInt = (regContents rn) |> int32
             let regContentsList = List.map regContents rl
             setMultMemData regContentsList (offsetList baseAddrInt) cpuData

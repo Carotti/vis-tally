@@ -3,6 +3,8 @@ module Helpers
     open System.Text.RegularExpressions
     open Expecto
     
+    let minAddress = 0x100u
+    let word = 0x4u
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
 
@@ -56,9 +58,13 @@ module Helpers
         | _ -> failwithf "Something went wrong with lists"
     
     let setMem contents (addr: uint32) cpuData =
-        match addr % 4u with
-        | 0u -> {cpuData with MM = Map.add (WA addr) contents cpuData.MM}
-        | _ -> failwithf "Not aligned, but should have been checked already."
+        match addr with
+        | x when (x < minAddress) ->
+            failwithf "setMem called with code section address: %x" addr
+        | _ ->
+            match addr % 4u with
+            | 0u -> {cpuData with MM = Map.add (WA addr) contents cpuData.MM}
+            | _ -> failwithf "Not aligned, but should have been checked already."
     
     let rec setMultMem contentsLst addrLst cpuData =
         match addrLst, contentsLst with
