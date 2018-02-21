@@ -4,6 +4,7 @@ module DP
     open CommonLex
     open System.Text.RegularExpressions
     open FsCheck
+    open System.Data.SqlTypes
 
     ////////////////////////////////////////////////////////////////////////////////
     // maccth helper functions, TODO: delete 
@@ -129,43 +130,24 @@ module DP
             rOp1: RName
         }
     
-    type Operand =
-        | DP2 of DP2Form
-        | DP3 of DP3Form
+    type DP3SInstr =
+        | ADD of DP3SForm
+        | ADC of DP3SForm
+        | AND of DP3SForm
+        | ORR of DP3SForm
+        | EOR of DP3SForm
+        | BIC of DP3SForm
 
-    type FullOperand =
-        | DP2S of DP2SForm
-        | DP3S of DP3SForm
+    type DP2SInstr =
+        | CMP of DP2SForm   
+        | CMN of DP2SForm
+        | TEQ of DP2SForm    
+        | TST of DP2SForm
 
     type Instr =
-        | ADD of FullOperand
-        | ADC of FullOperand
-        | AND of FullOperand
-        | ORR of FullOperand
-        | EOR of FullOperand
-        | BIC of FullOperand
-        | CMP of FullOperand
-        | CMN of FullOperand
-        | TST of FullOperand
-        | TEQ of FullOperand
-
-    let consFullOperand suffix (dp:Operand) =
-        match dp with
-        | DP2 dp2 ->
-            DP2S {
-                rOp1 = dp2.rOp1;
-                fOp2 = dp2.fOp2;
-                suff = suffix;
-            }
-        | DP3 dp3 ->
-            DP3S {
-                rDest = dp3.rDest;
-                rOp1 = dp3.rOp1;
-                fOp2 = dp3.fOp2;
-                suff = suffix;
-                
-            }
-       
+        | DP3S of DP3SInstr
+        | DP2S of DP2SInstr
+  
     /// Error types
     type ErrInstr =
         | ``Invalid literal``       of string
@@ -175,6 +157,22 @@ module DP
         | ``Invalid suffix``        of string
         | ``Invalid instruction``   of string
         | ``Syntax error``          of string
+
+    let consDP2S suffix (dp2:DP2Form) =
+        {
+            rOp1 = dp2.rOp1
+            fOp2 = dp2.fOp2
+            suff = suffix
+        }
+    
+    let consDP3S suffix (dp3:DP3Form) =
+        {
+            rDest = dp3.rDest
+            rOp1 = dp3.rOp1
+            fOp2 = dp3.fOp2
+            suff = suffix
+        }
+
 
     let DPSpec =
         {
@@ -265,12 +263,6 @@ module DP
     let consLitOp (b', r') =
         Lit (consLit (b', r'))
     
-    /// Creates a `DP32Form` from `rDest'` and `rOp1'`. Joins the `DP32Form` to a
-    ///  `FlexOp2` to create a `DP3Form`.
-    let partialDP rDest' rOp1' fOp2' =
-        let dp2 = consDP32 rDest' rOp1'
-        joinDP dp2 fOp2'
-
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
@@ -475,62 +467,51 @@ module DP
             | _ ->
                 failwith "Should never happen! Match statement always matches."
 
-        let operandsDP3 = lazy (
+        let operandsDP3 = 
+            lazy (
                 ld.Operands.Split([|','|])
                 |> Array.toList
                 |> List.map (fun op -> op.ToUpper())
                 |> function
                 | [rDest; rOp1; op2] ->
                     parse3Ops rDest rOp1 op2
-                    |> Result.map (DP3)
                 | [rDest; rOp1; rOp2; extn] ->
                     parse4Ops rDest rOp1 rOp2 extn
-                    |> Result.map (DP3)
                 | _ ->
                     "Syntax error. Instruction format is incorrect."
                     |> ``Invalid instruction``
                     |> Error
             )
             
-        let operandsDP2 = lazy (
-            ld.Operands.Split([|','|])
-            |> Array.toList
-            |> List.map (fun op -> op.ToUpper())
-            |> function
-            | [rOp1; op2] ->
-                match rOp1 with
-                | RegCheck rOp1' ->
-                    let dp2 = Result.map(consDP2R) rOp1'
-                    parseFOp2NoExtn op2 dp2
-                    |> Result.map (DP2)
+        let operandsDP2 = 
+            lazy (
+                ld.Operands.Split([|','|])
+                |> Array.toList
+                |> List.map (fun op -> op.ToUpper())
+                |> function
+                | [rOp1; op2] ->
+                    match rOp1 with
+                    | RegCheck rOp1' ->
+                        let dp2 = Result.map(consDP2R) rOp1'
+                        parseFOp2NoExtn op2 dp2
+                    | _ ->
+                        failwith "Should never happen! Match statement always matches."
+                | [rOp1; op2; extn] ->
+                    match rOp1 with
+                    | RegCheck rOp1' ->
+                        let dp2 = Result.map(consDP2R) rOp1'
+                        parseFOp2Extn op2 extn dp2
+                    | _ ->
+                        failwith "Should never happen! Match statement always matches."  
                 | _ ->
-                    failwith "Should never happen! Match statement always matches."
-            | [rOp1; op2; extn] ->
-                match rOp1 with
-                | RegCheck rOp1' ->
-                    let dp2 = Result.map(consDP2R) rOp1'
-                    parseFOp2Extn op2 extn dp2
-                    |> Result.map (DP2)
-                | _ ->
-                    failwith "Should never happen! Match statement always matches."  
-            | _ ->
-                "Syntax error. Instruction format is incorrect."
-                |> ``Invalid instruction``
-                |> Error
-        )
+                    "Syntax error. Instruction format is incorrect."
+                    |> ``Invalid instruction``
+                    |> Error
+            )   
             
-        let addSuffix (operands:Operand) suffix =
-            match suffix with
-            | "S" -> consFullOperand (Some S) operands |> Ok
-            | "" -> consFullOperand (None) operands |> Ok
-            | _ ->
-                suffix + " is not a valid suffix"
-                |> ``Invalid suffix``
-                |> Error
-
         let (WA la) = ld.LoadAddr
 
-        let makeInstr instr cond =
+        let makeInstr cond instr =
             {
                 PInstr  = instr; 
                 PLabel  = ld.Label |> Option.map (fun lab -> lab, la);
@@ -538,7 +519,7 @@ module DP
                 PCond   = cond
             }
 
-        let opcodesDP2 =
+        let opcodesDP3 =
             Map.ofList [
                 "ADD", ADD;
                 "ADC", ADC;
@@ -548,7 +529,7 @@ module DP
                 "BIC", BIC;
             ]
 
-        let opcodesDP3 =
+        let opcodesDP2 =
             Map.ofList [
                 "CMP", CMP;
                 "CMN", CMN;
@@ -557,16 +538,25 @@ module DP
             ]
         
         let parse' (_instrC, (root, suffix, cond)) =
-            let operands, opcode = 
-                match Map.containsKey root opcodesDP3 with
+            let suff = match suffix with "S" -> Some S | _ -> None
+            let instr =
+                match Map.containsKey root opcodesDP2 with
                 | true ->
-                    operandsDP2.Force(), opcodesDP3.[root]
+                    let opcode = opcodesDP2.[root]
+                    operandsDP2.Force()
+                    |> Result.map (consDP2S suff)
+                    |> Result.map (opcode) 
+                    |> Result.map (DP2S)
+                        
                 | false ->
-                    operandsDP3.Force(), opcodesDP2.[root]
-            operands
-            |> Result.bind (fun op -> addSuffix op suffix)
-            |> Result.map (opcode)
-            |> Result.map (fun instr -> makeInstr instr cond) 
+                    let opcode = opcodesDP3.[root]
+                    operandsDP3.Force()
+                    |> Result.map (consDP3S suff)
+                    |> Result.map (opcode) 
+                    |> Result.map (DP3S)
+            Result.map(makeInstr cond) instr
+                    
+
 
            
 
