@@ -34,11 +34,14 @@ module Memory
     [<Struct>]
     type InstrMemMult = {Rn: RName; rList: RegisterList; suff: Option<MultSuffix>}
 
-    type Instr = 
+    type MemInstr = 
         | LDR of InstrMemSingle
         | STR of InstrMemSingle
         | LDM of InstrMemMult
         | STM of InstrMemMult
+
+    type Instr = 
+        | Mem of MemInstr
 
     /// parse error (dummy, but will do)
     type ErrInstr = string
@@ -80,6 +83,7 @@ module Memory
                 suff = suffix;
             })
 
+<<<<<<< HEAD
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
         let pc = cpuData.Regs.[R15]
         let pcNext = pc + 4u
@@ -238,6 +242,8 @@ module Memory
 
         setReg R15 pcNext afterInstr
 
+=======
+>>>>>>> Memory excution running but currently not doing anything lmao
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
         let (|MemMatch|_|) str =
@@ -376,7 +382,7 @@ module Memory
 
             let make ops =
                 Ok { 
-                    PInstr= memTypeMultMap.[root] ops;
+                    PInstr= memTypeMultMap.[root] ops |> Mem;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
@@ -419,7 +425,7 @@ module Memory
 
             let make ops =
                 Ok { 
-                    PInstr= memTypeSingleMap.[root] ops;
+                    PInstr= memTypeSingleMap.[root] ops |> Mem;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 

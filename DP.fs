@@ -27,7 +27,7 @@ module DP
         | MVN of ShiftInstrType
 
     type Instr = 
-        | ShiftDP of ShiftInstr
+        | Shift of ShiftInstr
 
     type ErrInstr = string
 
@@ -169,7 +169,7 @@ module DP
 
             let make ops =
                 Ok { 
-                    PInstr = shiftTypeMap.[root] ops |> ShiftDP
+                    PInstr = shiftTypeMap.[root] ops |> Shift
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
