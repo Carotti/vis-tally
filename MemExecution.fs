@@ -67,7 +67,11 @@ module MemExecution
                 | RegList rl -> rl
             let offsetList start = 
                 let lst =
-                    match suffix with           
+                    match suffix with
+                    | None ->
+                         start
+                        |> makeOffsetList rl [] 4
+                        |> List.rev      
                     | Some IA -> 
                         start
                         |> makeOffsetList rl [] 4
@@ -96,7 +100,6 @@ module MemExecution
                     | Some EA ->
                         (start - 4) 
                         |> makeOffsetList rl [] -4
-                    | _ -> failwithf "Isn't a valid suffix"
                 List.map (fun el -> el |> uint32) lst
 
             let baseAddrInt = (regContents rn) |> int32
@@ -112,7 +115,11 @@ module MemExecution
 
             let offsetList start = 
                 let lst =
-                    match suffix with           
+                    match suffix with
+                    | None ->
+                        start
+                        |> makeOffsetList rl [] 4
+                        |> List.rev      
                     | Some IA -> 
                         start
                         |> makeOffsetList rl [] 4
@@ -141,7 +148,6 @@ module MemExecution
                     | Some FD ->
                         (start - 4) 
                         |> makeOffsetList rl [] -4
-                    | _ -> failwithf "Isn't a valid suffix"
                 List.map (fun el -> el |> uint32) lst
 
             let baseAddrInt = (regContents rn) |> int32
