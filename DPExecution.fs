@@ -34,7 +34,7 @@ module DPExecution
         let size = instr.PSize
         setReg R15 (pc + size) cpuData
 
-    let condExecute (instr: Parse<Instr>) (cpuData: DataPath<Instr>) =
+    let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
         let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
         match instr.PCond with
         | Cal -> true
@@ -54,7 +54,7 @@ module DPExecution
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
     
-    let execute (instr: ShiftInstr) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+    let execute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
         let rotate reg amt = 
             let binaryMask = uint32 (2.0 ** (float amt) - 1.0)
             let lsbs = reg &&& binaryMask
@@ -144,20 +144,30 @@ module DPExecution
             let value = 0xFFFFFFFFu ^^^ (getOp1 rm)
             executeInstr suffix rd (value |> uint64) cpuData
 
-        match instr with
-        | LSL operands -> 
-            executeLSL operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
-        | ASR operands -> 
-            executeASR operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
-        | LSR operands -> 
-            executeLSR operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
-        | ROR operands -> 
-            executeROR operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
-        | RRX operands -> 
-            executeRRX operands.suff operands.Rd operands.Op1 1 cpuData
-        | MOV operands ->
-            executeMOV operands.suff operands.Rd operands.Op1 cpuData
-        | MVN operands ->
-            executeMVN operands.suff operands.Rd operands.Op1 cpuData
+        let executeShift (instr: ShiftInstr) (cpuData: DataPath<Instr>) =
+            match instr with
+            | LSL operands -> 
+                executeLSL operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
+            | ASR operands -> 
+                executeASR operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
+            | LSR operands -> 
+                executeLSR operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
+            | ROR operands -> 
+                executeROR operands.suff operands.Rd operands.Op1 operands.Op2 cpuData
+            | RRX operands -> 
+                executeRRX operands.suff operands.Rd operands.Op1 1 cpuData
+            | MOV operands ->
+                executeMOV operands.suff operands.Rd operands.Op1 cpuData
+            | MVN operands ->
+                executeMVN operands.suff operands.Rd operands.Op1 cpuData
 
-    
+        match condExecute instr cpuData with
+        | true -> 
+            match instr.PInstr with
+            | CommonTop.IDP (ShiftDP instr') ->
+                executeShift instr' cpuData
+                |> Result.map (updatePC instr)
+            | _ -> Error "GAh!"
+        | false -> 
+            updatePC instr cpuData
+            |> Ok
