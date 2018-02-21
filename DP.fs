@@ -147,7 +147,7 @@ module DP
         | CMN of DP2SForm
         | TEQ of DP2SForm    
         | TST of DP2SForm
-
+    
     type Instr =
         | DP3S of DP3SInstr
         | DP2S of DP2SInstr
@@ -177,11 +177,10 @@ module DP
             suff = suffix
         }
 
-
     let DPSpec =
         {
             InstrC = DP
-            Roots = ["ADD";"ADC";"AND";"ORR";"EOR";"BIC"]
+            Roots = ["ADD";"ADC";"AND";"ORR";"EOR";"BIC"; "CMP"]
             Suffixes = [""; "S"]
         }
 

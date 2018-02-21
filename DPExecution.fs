@@ -3,12 +3,12 @@ module DPExecution
     open CommonLex
     open DP
     open CommonTop
+    open System.Linq
+    open FsCheck
 
 
-    let inline (||||>) (a,b,c,d) f = f a b c d
 
-    let inline (>>>>) shift num = (>>>) num shift
-    
+    let inline (>>>>) shift num = (>>>) num shift    
     let inline (<<<<) shift num = (<<<) num shift
 
 
@@ -89,8 +89,7 @@ module DPExecution
                 dp.Regs.[reg] >>> 1
                 |> (|||) ((dp.Fl.C |> System.Convert.ToUInt32) <<< 31)
             let flags' = {dp.Fl with C = c'}
-            let dp' = {dp with Fl = flags'}
-            (res, dp')
+            (res, flags')
             
         let doROR b r : uint32 =
             (b >>> r) ||| (b <<< (32-r))
@@ -114,7 +113,7 @@ module DPExecution
         let shiftAndCarry shifter shift bitNum dp =
             let res, shiftBy = doShift shifter shift dp
             let C' = getBitBool (bitNum shiftBy) dp.Regs.[shift.rOp2]
-            res, {dp with Fl = {dp.Fl with C = C'}}
+            res, {dp.Fl with C = C'}
 
         let calcShift (shift:FS2Form) dp =
             match shift.sInstr with
@@ -127,24 +126,24 @@ module DPExecution
             | ROR ->
                 shiftAndCarry (doROR) shift (fun s -> s-1) dp
 
-        let negCheck flags value =
+        let negCheck (flags,op1,op2,value) =
             match value >>> 31 with
-            | 1u    ->  {flags with N = true}, value
-            | _     ->  {flags with N = false}, value
+            | 1u    ->  {flags with N = true}, op1, op2, value
+            | _     ->  {flags with N = false},op2, op2, value
 
-        let zeroCheck flags value =
+        let zeroCheck (flags,op1,op2,value) =
             match value with
-            | 0u    ->  {flags with Z = true}, value
-            | _     ->  {flags with Z = false}, value
+            | 0u    ->  {flags with Z = true}, op1, op2, value
+            | _     ->  {flags with Z = false}, op1, op2, value
         
-        let carryCheckAdd flags (op1:uint32) (op2:uint32) value =
+        let carryCheckAdd (flags,op1,op2,value) =
             let carry = 2.0 ** 32.0 |> uint64
             let value' = (op1 |> uint64) + (op2 |> uint64)
             match value' with
-            | x when (x >= carry)   -> {flags with C = true}, value
-            | _                     -> {flags with C = false}, value
+            | x when (x >= carry)   -> {flags with C = true}, op1, op2, value
+            | _                     -> {flags with C = false}, op1, op2, value
 
-        let overflowCheckAdd flags (op1:uint32) (op2:uint32) value =
+        let overflowCheckAdd (flags,op1,op2,value) =
             match op1, op2 with
             | x, y when ((x >>> 31 = 0u) && (y >>> 31 = 0u)) ->
                 match value >>> 31 with
@@ -156,80 +155,130 @@ module DPExecution
                 | _  -> {flags with V = false}, op1, op2, value
             | _ -> flags, op1, op2, value
         
-        let flagChecksAdd flags (op1:uint32) (op2:uint32) value =
-            (flags, op1, op2, value)
-            ||||> overflowCheckAdd 
-            ||||> carryCheckAdd
-            ||> negCheck
-            ||> zeroCheck
-            |> fst
+        // let flagChecksAdd flags (op1:uint32) (op2:uint32) value =
+        //     (flags, op1, op2, value)
+        //     ||||> overflowCheckAdd 
+        //     ||||> carryCheckAdd
+        //     ||> negCheck
+        //     ||> zeroCheck
+        //     |> fst
 
-        let executeADD dp dest (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
-            let result = op1 + op2
-            let dp' = updateReg dest result dp
-            match suffix with
-            | Some S ->
-                let flags' = flagChecksAdd dp.Fl op1 op2 result
-                {dp' with Fl = flags'} |> Ok
-            | None ->
-                dp' |> Ok 
+        // let executeADD dp dest (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
+        //     let result = op1 + op2
+        //     let dp' = updateReg dest result dp
+        //     match suffix with
+        //     | Some S ->
+        //         let flags' = flagChecksAdd dp.Fl op1 op2 result
+        //         {dp' with Fl = flags'} |> Ok
+        //     | None ->
+        //         dp' |> Ok 
     
-        let executeLOGIC dp dest logic (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
-            let result = (logic) op1 op2
-            let dp' = updateReg dest result dp
+        // let executeLOGIC dp dest logic (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
+        //     let result = (logic) op1 op2
+        //     let dp' = updateReg dest result dp
+        //     match suffix with
+        //     | Some S ->
+        //         let flags' = (dp.Fl, result) ||> negCheck ||> zeroCheck |> fst 
+        //         {dp' with Fl = flags'} |> Ok
+        //     | None ->
+        //         dp' |> Ok 
+
+        let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Instr>,ErrExe>) =
+            let result = func op1 op2
+            let dp' =
+                match dest with
+                | Some destReg -> updateReg destReg result dp
+                | None -> dp
             match suffix with
             | Some S ->
-                let flags' = (dp.Fl, result) ||> negCheck ||> zeroCheck |> fst 
-                {dp' with Fl = flags'} |> Ok
+                flagTests
+                |> List.fold (fun flags test -> test flags) (dp'.Fl, op1, op2, result)
+                |> fun (f, _op1, _op2, _res) -> f
+                |> fun f -> {dp' with Fl = f}
+                |> Ok
             | None ->
-                dp' |> Ok 
+                dp'
+                |> Ok
 
-        let unpackOperands instr =
-            match instr with
-                | ADD ops -> ops
-                | ADC ops -> ops
-                | AND ops -> ops
-                | ORR ops -> ops
-                | EOR ops -> ops
-                | BIC ops -> ops
-                | _ -> failwithf "Only DP instructions have been implemented as of yet."
+        let (|DP3Match|_|) instr =
+            match instr.PInstr with
+            | CommonTop.IDP instr' ->
+                match instr' with
+                | DP3S instr'' -> 
+                    match instr'' with      
+                    | (ADD ops) -> Some (instr'', ops) 
+                    | (ADC ops) -> Some (instr'', ops)
+                    | (AND ops) -> Some (instr'', ops)
+                    | (ORR ops) -> Some (instr'', ops)
+                    | (EOR ops) -> Some (instr'', ops)
+                    | (BIC ops) -> Some (instr'', ops)
+                    | _ -> None
+                | _ -> None
+            | _ -> None
             
-        let executeDP3S (dp:DataPath<Instr>) (instr:DP3SInstr) : (Result<DataPath<Instr>,ErrExe>) =
-            let operands = unpackOperands instr
-            let dest = operands.rDest
-            let op1 = dp.Regs.[operands.rOp1]
-            let C = dp.Fl.C |> System.Convert.ToUInt32
-            // Must obtain another a DataPath since RRX can change CPSR if suffix S is used
-            // TODO: check others!
-            let op2, dp' =
-                match operands.fOp2 with
-                | Lit litVal    -> calcLiteral litVal, dp
-                | Reg reg       -> dp.Regs.[reg], dp
+        let (|DP2Match|_|) instr =
+            match instr.PInstr with
+            | CommonTop.IDP instr' ->
+                match instr' with
+                | DP2S instr'' -> 
+                    match instr'' with      
+                    | (CMP ops) -> Some (instr'', ops) 
+                    | (CMN ops) -> Some (instr'', ops)
+                    | (TEQ ops) -> Some (instr'', ops)
+                    | (TST ops) -> Some (instr'', ops)
+                    | _ -> None
+                | _ -> None
+            | _ -> None
+
+        let calcOp2 fOp2 dp =
+             match fOp2 with
+                | Lit litVal    -> calcLiteral litVal, dp.Fl
+                | Reg reg       -> dp.Regs.[reg], dp.Fl
                 | Shift shift   -> calcShift shift dp
                 | RRX reg       -> calcRRX reg dp
-            
+
+        let executeDP3S (dp:DataPath<Instr>) opcode (operands:DP3SForm) : (Result<DataPath<Instr>,ErrExe>) =
+            let dest = Some operands.rDest
+            let op1 = dp.Regs.[operands.rOp1]
+            let C = dp.Fl.C |> System.Convert.ToUInt32
+
+            let op2, flags' = calcOp2 operands.fOp2 dp       
             // dp' contains the CPSR updated by the barrel shifter
             // dp contains the CPSR that hasn't been updatted by the barrel shifter
             // if S is specified, pick the one that HAS, otherwise pick the original
-            let dp'' =
+            let dp' =
                 match operands.suff with
-                | Some S -> dp'
+                | Some S -> {dp with Fl = flags'}
                 | None -> dp
+            
+            match opcode with
+            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [overflowCheckAdd; carryCheckAdd; negCheck; zeroCheck]
+            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [overflowCheckAdd; carryCheckAdd; negCheck; zeroCheck]
+            | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
+            | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
+            | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
+            | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff [negCheck; zeroCheck]
+            // SOME MORE TO GO!!!
 
-            match instr with
-            | ADD _ -> executeADD dp'' dest op1 op2 operands.suff
-            | ADC _ -> executeADD dp'' dest (op1+C) op2 operands.suff
-            | AND _ -> executeLOGIC dp'' dest (&&&) op1 op2 operands.suff
-            | ORR _ -> executeLOGIC dp'' dest (|||) op1 op2 operands.suff
-            | EOR _ -> executeLOGIC dp'' dest (^^^) op1 op2 operands.suff
-            | BIC _ -> executeLOGIC dp'' dest (&&&) op1 (~~~op2) operands.suff
+        let executeDP2S (dp:DataPath<Instr>) opcode (operands:DP2SForm) : (Result<DataPath<Instr>,ErrExe>) =
+            let op1 = dp.Regs.[operands.rOp1]
+            let C = dp.Fl.C |> System.Convert.ToUInt32
+            let op2, flags' = calcOp2 operands.fOp2 dp
+            let dp' = {dp with Fl = flags'}
+            match opcode with
+            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [overflowCheckAdd; carryCheckAdd; negCheck; zeroCheck]
+            | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [negCheck; zeroCheck]
+            | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [negCheck; zeroCheck]
+            // JUST CMN TO GO!
+
+
+        
              
         match condExecute instr dp with
         | true ->
-            match instr.PInstr with
-            | CommonTop.IDP (DP3S instr') ->
-                executeDP3S dp instr'
-                |> Result.map(updatePC instr)
+            match instr with            
+            | DP3Match (instr', ops) -> executeDP3S dp instr' ops
+            | DP2Match (instr', ops) -> executeDP2S dp instr' ops
             | _ ->
                 "Just a dummy error"
                 |> ``Run time error``
