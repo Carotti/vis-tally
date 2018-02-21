@@ -11,6 +11,7 @@ module DPTests
     open Execution
     open ExecutionTop
     open Expecto
+    open Helpers
 
     let shiftTests = 
         [
@@ -52,7 +53,7 @@ module DPTests
     let runDP input = execute (makeDP input) initDataPath
 
     let hope ins = (runDP ins |> returnCpuDataRegs)
-    
+
     let fate ins = (returnVisualCpuData ins |> returnCpuDataRegs)
 
     let sameAnswerDP ins = 
@@ -60,7 +61,10 @@ module DPTests
 
     let unitTest name input hope fate =
         testCase name <| fun () ->
+            hope |> Map.toList |> qp |> ignore
+            fate |> Map.toList |> qp |> ignore
             Expect.equal hope fate input
+            
     
     let visualTest name input = 
         unitTest name input <| (hope input) <| (fate input) 
