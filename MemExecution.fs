@@ -38,13 +38,8 @@ module MemExecution
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
 
-        let setMemData contents = setMem (DataLoc contents)
-        let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
 
-        let getMemData = function
-            | DataLoc dl -> dl
-            | _ -> failwithf "Ain't the data we want bra" 
-
+        // Only works on the first Byte at the moment
         let wordOrByte suffix d = 
             match suffix with
             | Some B -> d &&& 0x000000FFu

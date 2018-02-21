@@ -10,7 +10,7 @@
     open System.Threading
     open System.IO
     open CommonData
-    open TestShifts
+    // open TestShifts
 
     let memReadBase = 0x1000u
     let expectoConfig = { Expecto.Tests.defaultConfig with 
@@ -57,9 +57,20 @@
         let mem = visualToMem visual.State.VMemData
         {Fl = flags; Regs = regs; MM = mem}
     
-    let visualMemRun src = 
+    let returnVisualCpuData src = 
         let vRes = RunVisualBaseWithLocksCached loadRegParas src 
                     |> Result.map visualToDataPath
         match vRes with
         | Ok res -> res
         | Error x -> failwithf "Visual failed to run with errors %A" x
+
+    let returnCpuDataMem (cpuData: DataPath<CommonTop.Instr>) = 
+        let getData _ v =
+            match v with
+            | DataLoc dl -> dl
+            | _ -> 0u
+        cpuData.MM
+        |> Map.map getData
+
+    let returnCpuDataRegs (cpuData: DataPath<CommonTop.Instr>) =
+        cpuData.Regs

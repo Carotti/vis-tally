@@ -10,8 +10,7 @@
     <Compile Include="Visual.fs" />
     <Compile Include="VTest.fs" />
     <Compile Include="CommonData.fs" />
-    <Compile Include="CommonLex.fs" />
-    <Compile Include="DPTests.fs" />
+    <Compile Include="CommonLex.fs" />    
     <Compile Include="Helpers.fs"/>
     <Compile Include="DP.fs" />
     <Compile Include="Memory.fs" />
@@ -21,6 +20,8 @@
     <Compile Include="MemExecution.fs" />
     <Compile Include="ExecutionTop.fs" />
     <Compile Include="Test.fs" />
+    <Compile Include="DPTests.fs" />
+    <Compile Include="MemTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,17 @@
 module DPTests
+
+    open CommonData
+    open CommonLex
+    open CommonTop
+
+    open Test
+    open DP
+
+    open DPExecution
+    open Execution
+    open ExecutionTop
+    open Expecto
+
     let shiftTests = 
         [
         "LSL R0, R1, #2";
@@ -29,4 +42,33 @@ module DPTests
         "MOV r3, #4";
         "MVNS r4, #0x56";
         "MVN r6, r7";
+        ]
+
+    let makeDP input = 
+        match parseLine None (WA 0u) input with
+        | Ok parsed -> parsed
+        | _ -> failwithf "Some error" 
+        
+    let runDP input = execute (makeDP input) initDataPath
+
+    let hope ins = (runDP ins |> returnCpuDataRegs)
+    
+    let fate ins = (returnVisualCpuData ins |> returnCpuDataRegs)
+
+    let sameAnswerDP ins = 
+       hope ins = fate ins
+
+    let unitTest name input hope fate =
+        testCase name <| fun () ->
+            Expect.equal hope fate input
+    
+    let visualTest name input = 
+        unitTest name input <| (hope input) <| (fate input) 
+
+    [<Tests>]
+    let visualTests =
+        testList "DP Tests compared to visual, let us pray..." [
+            testList "MOV unit tests" [
+                visualTest "Test1" "MOV R0, #4"
+            ]
         ]
