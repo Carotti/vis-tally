@@ -74,6 +74,14 @@ module Helpers
         | [], [] -> cpuData
         | _ -> failwithf "Something went wrong with lists"
 
+    let setMemData contents = setMem (DataLoc contents)
+    let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
+
+    let getMemData = function
+        | DataLoc dl -> dl
+        | _ -> 0u
+        
+
     [<Tests>]
     let helperTests =
         let validRegisterCheck (reg: string) ans =

@@ -2,43 +2,29 @@
 
 ## Doug
 - `MOV`
+- `MOVS`
 - `MVN`
+- `MVNS`
 - `LSL`
+- `LSLS`
 - `LSR`
+- `LSRS`
 - `ASR`
+- `ASRS`
 - `ROR`
+- `RORS`
 - `RRX`
+- `RRXS`
 - `STR`
-- `LDR`
 - `STRB`
+- `LDR`
 - `LDRB`
 - `STM`
-- `LDM`
-
-## Chris
-- `ADD`
-- `ADC`
-- `SUB`
-- `SBC`
-- `RSB`
-- `RSC`
-- `AND`
-- `EOR`
-- `BIC`
-- `ORR`
-
-- `CMP`
-- `CMN`
-- `TST`
-- `TEQ`
-
-## Tom
-- `B`
-- `BL`
-- `DCD`
-- `DCB`
-- `ADR`
-- `LDR=`
-- `FILL`
-- `EQU`
-- `END`
+- `STMIA` `STMEA`
+- `STMIB` `STMFA`
+- `STMDA` `STMED`
+- `STMDB` `STMFD`
+- `LDMIA` `LDMFD`
+- `LDMIB` `LDMED`
+- `LDMDA` `LDMFA`
+- `LDMDB` `LDMEA`
