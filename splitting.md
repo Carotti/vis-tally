@@ -16,16 +16,16 @@
 - `LDM`
 
 ## Chris
-- `ADD`
-- `ADC`
+- `ADD` done
+- `ADC` done
 - `SUB`
 - `SBC`
 - `RSB`
 - `RSC`
-- `AND`
-- `EOR`
-- `BIC`
-- `ORR`
+- `AND` done
+- `EOR` done
+- `BIC` done
+- `ORR` done
 - `CMP`
 - `CMN`
 - `TST`

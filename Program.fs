@@ -23,7 +23,7 @@ let parseREPL dp =
 
 let exeREPL dp =
     let printRegs dp =
-        dp.Regs |> Map.toList |> qpl |> ignore
+        dp.Regs |> Map.toList |> List.map (fun (r, v) -> printfn "%A : %x" r v) |> ignore
     let printFlags dp =
          dp.Fl |> qp |> ignore
     
