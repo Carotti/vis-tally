@@ -4,9 +4,10 @@ open CommonTop
 open CommonData
 open Expecto
 open Helpers
-open VisualTest
+// open VisualTest
 open Execution
 open ExecutionTop
+open Test
 
 let instrLst = [
         // "LSL R0, R1, #2";
@@ -38,7 +39,7 @@ let instrLst = [
         "MOV r3, #4";
         "MOV r4, #0x100";
         "STMIA r4, {r0-r3}";
-        "LDR r6, [r4, #4]";
+        "LDMIA r4, {r5-r8}";
         // "LDRB r0, [r1], #4"
         // "LDR r0, [r1, #4]!"
         // "LDRB r0, [r1, #4]";
@@ -128,7 +129,7 @@ let main argv =
             runTestsInAssembly defaultConfig [||]
         | [|"vtests"|] -> 
             "Running visUAL based tests..." |> qp
-            VProgram.runVisualTests ()
+            runVisualTests ()
         | [|"repl"|] ->
             "Doug's Remarkable REPL..." |> qp
             replExecute initDataPath
