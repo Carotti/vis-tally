@@ -9,9 +9,9 @@
     <Compile Include="VLog.fs" />
     <Compile Include="Visual.fs" />
     <Compile Include="VTest.fs" />
-    <Compile Include="VProgram.fs" />
     <Compile Include="CommonData.fs" />
     <Compile Include="CommonLex.fs" />
+    <Compile Include="TestFormats.fs" />
     <Compile Include="Expressions.fs" />
     <Compile Include="Execution.fs" />
     <Compile Include="DP.fs" />

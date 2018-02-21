@@ -91,8 +91,15 @@ module Misc
                 | _ -> failwithf "Trying to execute unresolved DCD instruction"
             List.fold foldDCD (dp, mem) lst |> fst
 
+        // let executeDCB lst = 
+        //     let foldDCB (dp' mem') exp =
+        //         match exp with
+        //         | ExpResolvedByte data -> 
+        //         | _ -> failwithf "Trying to execute unresolved byte DCB instructon"
+
         match ins with
         | DCD lst -> executeDCD lst
+        //| DCB lst -> executeDCB lst
             
 
     let parseExpr txt =

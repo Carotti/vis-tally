@@ -6,20 +6,21 @@ module TestTop
     open VisualTest.VCommon
 
     open CommonData
-    open VisualTest
 
-    // Symbol table used by all tests, AND in visUAL prelude
-    let ts = Map.ofList [
-                "moo", 17123u
-                "fOO", 402u
-                "Bar", 19721u
-                "z1", 139216u
-                "rock74", 16u
-                "Nice1", 0xF0F0F0F0u
-                "Nice2", 0x0F0F0F0Fu
-                "bigNum", 0xFFFFFFFFu
-                "n0thing", 0u
-        ]
+    open Expecto
+
+    open TestFormats
+
+    let expectoConfig = { Expecto.Tests.defaultConfig with 
+                            parallel = testParas.Parallel
+                            parallelWorkers = 6 // try increasing this if CPU use is less than 100%
+                }
+
+    let runVisualTests () = 
+        initCaches testParas
+        let rc = runTestsInAssembly expectoConfig [||]
+        finaliseCaches testParas
+        rc // return an integer exit code - 0 if all tests pass
 
     let assumedMemBase = 0x1000u
 
@@ -30,12 +31,20 @@ module TestTop
         |> List.map snd
         |> List.reduce (+)
 
-    // Have to set register to 0 because else Visual doesn't output for data directives
+    // Have to set register because else Visual doesn't output for data directives
     let loadRegParas = 
         {defaultParas with 
             Postlude = READMEMORY assumedMemBase
-            Prelude = visualSyms + (SETREG 0 0u)
+            Prelude = visualSyms + "visLabelEnd MOV R0, R0\n"
         }
+
+    let fsConfig = {
+            FsCheckConfig.defaultConfig with
+                replay = Some (0,0)
+                maxTest = 100
+            }
+
+    let testPropertyVis name tst = testPropertyWithConfig fsConfig name tst
 
     let vRegDPReg reg =
         match reg with
@@ -76,20 +85,17 @@ module TestTop
 
 
     /// Remove all zeroed memory from the memory map for comparison with visUAL
-    let removeZeroedMemory dp =
+    let removeZeroedMemory mm =
         let filter _ v =
             match v with
             | DataLoc x when x = 0u -> false
             | _ -> true
-        {dp with MM = Map.filter filter dp.MM}
+        Map.filter filter mm
 
-    let compareDpDataMem (dp1 : DataPath<CommonTop.Instr>) (dp2 : DataPath<CommonTop.Instr>) =
-        let dp1' = removeZeroedMemory dp1
-        let dp2' = removeZeroedMemory dp2
-        let dataMem dp =
-            Map.map (fun _ v -> 
-                match v with
-                | DataLoc x -> x
-                | _ -> 0u
-            ) dp.MM
-        (dataMem dp1') = (dataMem dp2')
+    let getDpDataMem (dp : DataPath<CommonTop.Instr>) =
+        let getData _ v =
+            match v with
+            | DataLoc x -> x
+            | _ -> 0u
+        removeZeroedMemory dp.MM
+        |> Map.map getData

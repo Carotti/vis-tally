@@ -6,10 +6,22 @@ module Execution
     let updateReg value rX dp =
         {dp with Regs = Map.add rX value dp.Regs}
 
+    // Update the whole word at addr with value in dp
     let updateMem value (addr : uint32) dp =
         match addr % 4u with
         | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
         | _ -> failwithf "Trying to update memory at unaligned address"
+
+    /// Update a single byte in memory (Little Endian)
+    let updateMemByte (value : byte) (addr : uint32) dp =
+        let baseAddr = addr % 4u
+        let shft = (int (baseAddr * 8u))
+        let mask = 0xFFu <<< shft |> (~~~)
+        let newVal = 
+            match dp.MM.[WA baseAddr] with
+            | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
+            | _ -> failwithf "Updating byte at instruction address"
+        updateMem (DataLoc newVal) baseAddr dp
 
     let updateMemData value = updateMem (DataLoc value)
 
