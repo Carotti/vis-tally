@@ -18,7 +18,7 @@ module Execution
         {
             Fl = flags; 
             Regs = zeroedRegs; 
-            MM = Map.empty<WAddr,MemLoc<Instr>>
+            MM = Map.ofList []
         }                
     
     let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =

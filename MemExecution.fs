@@ -38,11 +38,12 @@ module MemExecution
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
 
-        let dataFn m =
-            match m with 
+        let setMemData contents = setMem (DataLoc contents)
+        let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
+
+        let getMemData = function
             | DataLoc dl -> dl
-            // | Code c -> c
-            | _ -> failwithf "Ah"
+            | _ -> failwithf "Ain't the data we want bra" 
 
         let wordOrByte suffix d = 
             match suffix with
@@ -51,13 +52,13 @@ module MemExecution
         
         let executeLDR suffix rn addr offset cpuData = 
             let memloc = memContents.[wordAddress (regContents addr.addrReg + getOffsetType addr.offset)] 
-            let value = wordOrByte suffix (dataFn memloc)
+            let value = wordOrByte suffix (getMemData memloc)
             let update = setReg rn value cpuData
             setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
                 
         let executeSTR suffix rn addr offset cpuData = 
             let value = wordOrByte suffix (regContents rn)
-            let update = setMem (wordAddress (regContents addr.addrReg + getOffsetType addr.offset)) value cpuData
+            let update = setMemData value (regContents addr.addrReg + getOffsetType addr.offset) cpuData
             setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
 
         let executeLDM suffix rn regList cpuData =
@@ -101,7 +102,7 @@ module MemExecution
             let baseAddrInt = (regContents rn) |> int32
             let wordAddrList = List.map wordAddress (offsetList baseAddrInt)
             let memLocList = List.map (fun m -> memContents.[m]) wordAddrList
-            let dataLocList = List.map dataFn memLocList
+            let dataLocList = List.map getMemData memLocList
             setMultRegs rl dataLocList cpuData
 
         let executeSTM suffix rn regList cpuData = 
@@ -144,9 +145,8 @@ module MemExecution
                 List.map (fun el -> el |> uint32) lst
 
             let baseAddrInt = (regContents rn) |> int32
-            let wordAddrList = List.map wordAddress (offsetList baseAddrInt)
             let regContentsList = List.map regContents rl
-            setMultMem wordAddrList regContentsList cpuData
+            setMultMemData regContentsList (offsetList baseAddrInt) cpuData
 
         let executeInstr (instr: MemInstr) (cpuData: DataPath<Instr>) = 
             match instr with
