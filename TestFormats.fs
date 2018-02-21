@@ -14,41 +14,54 @@ module TestFormats
                     "bigNum", 0xFFFFFFFFu
                     "n0thing", 0u
                 ]
-
-    let symbolArray =
-        Map.toList ts
+    let symbolArrayOf table =
+        Map.toList table
         |> List.map (fun (x, _) -> x)
         |> List.toArray
 
-    let indexSymbolArray l =
-        symbolArray.[(abs l) % (Array.length symbolArray)]
+    /// All Symbols
+    let symbolArray = symbolArrayOf ts
+
+    /// Symbols which are valid bytes
+    let byteSymbolArray =
+        Map.filter (fun _ v -> v < 256u) ts
+        |> symbolArrayOf
+
+    let indexSymbolArray l (s : string []) =
+        s.[(abs l) % (Array.length s)]
 
      /// DUT of possible literal format representations
     type LiteralFormat =
         | Decimal
-        | LowerHex0 // Lowercase prefixed with 0x
-        | UpperHex0 // Uppercase prefixed with 0x
+        | LowerHex01 // Lowercase prefixed with 0x
+        | UpperHex01 // Uppercase prefixed with 0x
+        | LowerHex02 // Lowercase prefixed with 0x
+        | UpperHex02 // Uppercase prefixed with 0x
         | LowerHexA // Lowercase prefixed with &
         | UpperHexA // Uppercase prefixed with &
-        | Binary
+        | Binary1
+        | Binary2
 
     /// Format a uint32 into the binary format
-    let binFormatter x =
+    let binFormatter fmt x =
         let rec bin a =
             let bit = string (a % 2u)
             match a with 
             | 0u | 1u -> bit
             | _ -> bin (a / 2u) + bit
-        sprintf "0b%s" (bin x)
+        sprintf fmt (bin x)
 
     /// Map DUT of literal formats to functions which do formatting
     let litFormatters = Map.ofList [
                             Decimal, sprintf "%u"
-                            LowerHex0, sprintf "0x%x"
-                            UpperHex0, sprintf "0x%X"
+                            LowerHex01, sprintf "0x%x"
+                            UpperHex01, sprintf "0x%X"
+                            LowerHex02, sprintf "0X%x"
+                            UpperHex02, sprintf "0X%X"
                             LowerHexA, sprintf "&%x"
                             UpperHexA, sprintf "&%X"
-                            Binary, binFormatter
+                            Binary1, binFormatter "0b%s"
+                            Binary2, binFormatter "0B%s"
                         ]
 
     type TestLiteralConstant = {value : uint32 ; fmt : LiteralFormat}
@@ -60,9 +73,19 @@ module TestFormats
     let appFmt (x : TestLiteral) = 
         match x with
         | Lit l -> litFormatters.[l.fmt] l.value
-        | Label l -> indexSymbolArray l
+        | Label l -> indexSymbolArray l symbolArray
 
     let valFmt (x : TestLiteral) =
         match x with
         | Lit l -> l.value
-        | Label l -> ts.[indexSymbolArray l]
+        | Label l -> ts.[indexSymbolArray l symbolArray]
+    
+    type ByteTestLiteralConstant = {value : byte ; fmt : LiteralFormat}
+    type ByteTestLiteral =
+        | ByteLit of ByteTestLiteralConstant
+        | ByteLabel of int
+
+    let byteAppFmt (x : ByteTestLiteral) =
+        match x with
+        | ByteLit l -> litFormatters.[l.fmt] (uint32 l.value)
+        | ByteLabel l -> indexSymbolArray l byteSymbolArray

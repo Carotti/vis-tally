@@ -13,8 +13,8 @@ module Misc
         | ExpResolved of uint32
         | ExpResolvedByte of byte // For DCB
 
-    type FILLVal = {value : SymbolExp ; valueSize : int}
-    type FILLInstr = {numBytes : SymbolExp ; fillWith : FILLVal Option}
+    // Don't support valueSize yet, always set to 1
+    type FILLInstr = {numBytes : SymbolExp ; value : SymbolExp ; valueSize : int}
 
     type Instr =
         | DCD of SymbolExp list
@@ -26,7 +26,6 @@ module Misc
     type ErrInstr =
         | InvalidExp of string
         | InvalidExpList of string
-        | InvalidFillSize of string
         | InvalidFill of string
         | LabelRequired
 
@@ -34,6 +33,7 @@ module Misc
     type ErrResolve =
         | InvalidByteExp of uint32
         | SymbolErrors of EvalErr list
+        | InvalidFillMultiple // When numBytes is not a multiple of valueSize
 
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is
@@ -68,39 +68,56 @@ module Misc
             |> lstResUnfold
             |> Result.map DCB
         | FILL fins ->
-            let fillMap f =
-                match f.fillWith with
-                | Some fv -> 
-                    let fillValMap x = FILL {f with fillWith = Some {fv with value = x}}
-                    Result.map fillValMap (evalSymExp fv.value)
-                | None -> FILL f |> Ok
+            let valBind x = 
+                evalSymExp fins.value
+                |> Result.map (fun v -> {x with value = v})
             evalSymExp fins.numBytes
-            |> Result.map (fun x -> {fins with numBytes = x}) 
-            |>  Result.bind fillMap
+            |> Result.map (fun n -> {fins with numBytes = n})
+            |> Result.bind valBind
+            |> Result.map FILL
         | EQU exp -> 
             evalSymExp exp
             |> Result.map EQU
 
     /// Execute a MISC instruction against the datapath
     /// mem is where to start placing in memory
-    let execute ins dp mem =
+    /// Return new mem which is where the next instruction
+    /// would begin placing in memory
+    let execute (dp, mem) ins =
+        let expectResolved exp =
+            match exp with
+            | ExpResolved data -> data
+            | _ -> failwithf "Trying to execute unresolved data"
+
         let executeDCD lst =
             let foldDCD (dp', mem') exp =
                 match exp with
                 | ExpResolved data -> (updateMemData data (alignAddress mem') dp', mem' + 4u)
                 | _ -> failwithf "Trying to execute unresolved DCD instruction"
-            List.fold foldDCD (dp, mem) lst |> fst
+            List.fold foldDCD (dp, mem) lst
 
         let executeDCB lst = 
             let foldDCB (dp', mem') exp =
                 match exp with
                 | ExpResolvedByte data -> (updateMemByte data mem' dp', mem' + 1u)
                 | _ -> failwithf "Trying to execute unresolved byte DCB instructon"
-            List.fold foldDCB (dp, mem) lst |> fst
+            List.fold foldDCB (dp, mem) lst
+
+        let executeFILL fIns =
+            let numBytes = expectResolved fIns.numBytes
+            let fillVal = expectResolved fIns.value
+            // Currently assume that valueSize is always 1
+            let rec doFillByte mem' dp' =
+                match mem' = mem + numBytes with
+                | false -> doFillByte (mem' + 1u) (updateMemByte (byte fillVal) mem' dp')
+                | true -> (dp', mem')
+            doFillByte mem dp
 
         match ins with
         | DCD lst -> executeDCD lst
         | DCB lst -> executeDCB lst
+        | FILL fIns -> executeFILL fIns
+        | EQU _ -> failwithf "Can't execute EQU"
 
     let parseExpr txt =
         match txt with
@@ -161,24 +178,30 @@ module Misc
                 ) (parseExpr ls.Operands)
             labelBinder parseEQU'
 
+        let fillMap parseFunc = 
+            Result.map (fun ins ->
+                {
+                    PInstr = ins;
+                    PLabel = ls.Label |> Option.map (fun lab -> lab, la);
+                    PSize = 4u;
+                    PCond = Cal;
+                }
+            ) parseFunc
+
+        let fillPack (num, fval, vsize) =
+            FILL {
+                numBytes = ExpUnresolved num;
+                value = ExpUnresolved fval;
+                valueSize = vsize;
+            }
+
         let parseFILL () =
             let parseFILL' = 
-                let fillMap (num, fillval) =
-                    let fillValBind (v, vs) =
-                        Some {value = ExpUnresolved v; valueSize = vs}
-                    FILL {
-                        numBytes = ExpUnresolved num;
-                        fillWith = Option.bind fillValBind fillval;
-                    }
                 match ls.Operands.Split([|','|]) |> Array.toList with
-                | [Expr (num, "") ; Expr (v, "") ; RegexPrefix "[124]" (vs, "")] -> 
-                    Ok (num, Some (v, int vs))
                 | [Expr (num, "") ; Expr (v, "")] -> 
-                    Ok (num, Some (v, 1))
+                    Ok (num, v, 1)
                 | [Expr (num, "")] -> 
-                    Ok (num, None)
-                | [Expr (_, "") ; Expr (_, "") ; inv] -> 
-                    InvalidFillSize inv |> Error
+                    Ok (num, Literal 0u, 1)
                 | [Expr (_, "") ; inv ; _ ]
                 | [Expr (_, "") ; inv] -> 
                     InvalidExp inv |> Error
@@ -187,21 +210,26 @@ module Misc
                 | [inv] -> 
                     InvalidExp inv |> Error
                 | _ -> InvalidFill ls.Operands |> Error
-                |> Result.map fillMap
-            Result.map (fun ins ->
-                {
-                    PInstr = ins;
-                    PLabel = ls.Label |> Option.map (fun lab -> lab, la);
-                    PSize = 4u;
-                    PCond = Cal;
-                }
-            ) parseFILL'
+                |> Result.map fillPack
+            fillMap parseFILL'
+
+        let parseSPACE () =
+            let parseSPACE' =
+                parseExpr ls.Operands
+                |> Result.map (fun num -> 
+                    FILL {
+                        numBytes = num
+                        value = ExpUnresolved (Literal 0u)
+                        valueSize = 1
+                    })
+            fillMap parseSPACE'
 
         match ls.OpCode with
         | "DCD" -> parseDCD () |> Some
         | "DCB" -> parseDCB () |> Some
         | "EQU" -> parseEQU () |> Some
         | "FILL" -> parseFILL () |> Some
+        | "SPACE" -> parseSPACE () |> Some
         | _ -> None
 
     /// Parse Active Pattern used by top-level code

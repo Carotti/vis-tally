@@ -55,8 +55,8 @@ module Expressions
     let rec (|Expr|_|) expTxt =
         let (|LiteralExpr|_|) txt = 
             match txt with
-            | RegexPrefix "0x[0-9a-fA-F]+" (num, rst) 
-            | RegexPrefix "0b[0-1]+" (num, rst)
+            | RegexPrefix "0[xX][0-9a-fA-F]+" (num, rst) 
+            | RegexPrefix "0[bB][0-1]+" (num, rst)
             | RegexPrefix "[0-9]+" (num, rst) -> 
                 (uint32 num |> Literal, rst) |> Some
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
