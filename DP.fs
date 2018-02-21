@@ -7,6 +7,33 @@ module DP
     open Expecto
     open VisualTest
 
+    [<Struct>]
+    type RotVal =
+        | Rot0     | Rot2     | Rot4     | Rot6
+        | Rot8     | Rot10    | Rot12    | Rot14  
+        | Rot16    | Rot18    | Rot20    | Rot22 
+        | Rot24 | Rot26 | Rot28 | Rot30
+
+
+    let RotNums =
+        Map.ofList [
+            (Rot0, 0);   (Rot2, 2);     (Rot4, 4);   (Rot6, 6);
+            (Rot8, 8);   (Rot10, 10);   (Rot12, 12); (Rot14, 14);  
+            (Rot16, 16); (Rot18, 18);   (Rot20, 20); (Rot22, 22); 
+            (Rot24, 24); (Rot26, 26);   (Rot28, 28); (Rot30, 30);
+        ]
+    
+    let RotVals =
+        Map.ofList [
+            (0, Rot0);   (2, Rot2);     (4, Rot4);   (6, Rot6);
+            (8, Rot8);   (10, Rot10);   (12, Rot12); (14, Rot14);  
+            (16, Rot16); (18, Rot18);   (20, Rot20); (22, Rot22); 
+            (24, Rot24); (26, Rot26);   (28, Rot28); (30, Rot30);
+        ]
+    
+    [<Struct>]
+    type Literal = {b: byte; r: RotVal;}
+
     type ShiftType = 
         | Rs of RName
         | N of uint32
@@ -30,6 +57,8 @@ module DP
         | Shift of ShiftInstr
 
     type ErrInstr = string
+
+    let constructLiteral (b', r') = {b = b'; r = RotVals.[r']}
 
     let constructShift rd op1 sh sf =
         
@@ -60,6 +89,7 @@ module DP
             "MOV", MOV;
             "MVN", MVN;
         ]
+<<<<<<< HEAD
 <<<<<<< HEAD
 
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
@@ -120,6 +150,10 @@ module DP
 =======
   
 >>>>>>> Refactored DP execution code
+=======
+
+          
+>>>>>>> LMAO mov tests without flex op2 cos
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =

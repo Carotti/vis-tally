@@ -73,6 +73,14 @@ module DPTests
     let visualTests =
         testList "DP Tests compared to visual, let us pray..." [
             testList "MOV unit tests" [
-                visualTest "Test1" "MOV R0, #4"
+                visualTest "MOV decimal" "MOV R0, #4";
+                visualTest "MOV hex 1a" "MOV R4, #0xa7";
+                visualTest "MOV HEX 1a" "MOV R2, #0xB2";
+                visualTest "MOV hex 1b" "MOV R3, #0Xa7";
+                visualTest "MOV HEX 1b" "MOV R3, #0XB2";
+                visualTest "MOV hex 2a" "MOV R4, #&8f";
+                visualTest "MOV HEX 2b" "MOV R4, #&FF";
+                visualTest "MOV binary" "MOV R7, #0b01011100";
+                visualTest "MOV BINARY" "MOV R7, #0B01110011";
             ]
         ]

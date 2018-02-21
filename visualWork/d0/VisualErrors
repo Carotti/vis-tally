@@ -1,0 +1,10 @@
+ line="2">Invalid immediate operand value.runtime error in
+[|"<?xml version="1.0" encoding="UTF-8" standalone="no"?>";
+  "<VisUAL xmlns="http://bitbucket.org/salmanarif/visual">";
+  "    <runtime-error line="2">Invalid immediate operand value.</runtime-error>";
+  "</VisUAL>"|]
+ line="2">Invalid immediate operand value.runtime error in
+[|"<?xml version="1.0" encoding="UTF-8" standalone="no"?>";
+  "<VisUAL xmlns="http://bitbucket.org/salmanarif/visual">";
+  "    <runtime-error line="2">Invalid immediate operand value.</runtime-error>";
+  "</VisUAL>"|]
