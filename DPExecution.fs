@@ -69,6 +69,17 @@ module DPExecution
 
     let execute (dp:DataPath<Instr>) (instr:CommonLex.Parse<Instr>) : (Result<DataPath<Instr>,ErrExe>) =
 
+        let getBit n (value) =
+            value
+            |> int32
+            |> (<<<) (31-n)
+            |> (>>>) (31)
+        
+        let getBitBool n (value:uint32) =
+            getBit n value
+            |> System.Convert.ToBoolean
+
+
         let calcRRX reg (dp:DataPath<Instr>) =
             let c' = dp.Regs.[reg] % 2u |> System.Convert.ToBoolean
             let res =
@@ -91,16 +102,28 @@ module DPExecution
             | RegShift reg -> dp.Regs.[reg]
         
         let doShift shifter shift dp =
-            calcShiftOperand shift.sOp dp
-            |> int32
-            |> shifter dp.Regs.[shift.rOp2]
-  
+            let shiftBy = calcShiftOperand shift.sOp dp |> int32
+            let res =
+                shiftBy
+                |> int32
+                |> shifter dp.Regs.[shift.rOp2]
+            (res, shiftBy)
+        
+        let shiftAndCarry shifter shift bitNum dp =
+            let res, shiftBy = doShift shifter shift dp
+            let C' = getBitBool (bitNum shiftBy) dp.Regs.[shift.rOp2]
+            res, {dp with Fl = {dp.Fl with C = C'}}
+
         let calcShift (shift:FS2Form) dp =
             match shift.sInstr with
-            | LSL -> doShift (<<<) shift dp
-            | LSR -> doShift (>>>) shift dp
-            | ASR -> doShift (fun a b -> (int a) >>> b |> uint32) shift dp
-            | ROR -> doShift (doROR) shift dp
+            | LSL ->
+                shiftAndCarry (<<<) shift (fun s -> 32-s) dp
+            | LSR ->
+                shiftAndCarry (<<<) shift (fun s -> s-1) dp
+            | ASR ->
+                shiftAndCarry (fun a b -> (int a) >>> b |> uint32) shift (fun s -> s-1) dp
+            | ROR ->
+                shiftAndCarry (doROR) shift (fun s -> s-1) dp
 
         let negCheck flags value =
             match value >>> 31 with
@@ -180,7 +203,7 @@ module DPExecution
                 match operands.fOp2 with
                 | Lit litVal    -> calcLiteral litVal, dp
                 | Reg reg       -> dp.Regs.[reg], dp
-                | Shift shift   -> calcShift shift dp, dp
+                | Shift shift   -> calcShift shift dp
                 | RRX reg       -> calcRRX reg dp
 
             match instr with
