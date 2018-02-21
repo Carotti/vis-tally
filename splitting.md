@@ -1,6 +1,8 @@
 # Splitting
 
 ## Doug
+- `MOV`
+- `MVN`
 - `LSL`
 - `LSR`
 - `ASR`
@@ -14,8 +16,6 @@
 - `LDM`
 
 ## Chris
-- `MOV`
-- `MVN`
 - `ADD`
 - `ADC`
 - `SUB`

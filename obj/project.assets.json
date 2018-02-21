@@ -5094,28 +5094,30 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Douglas Brion\\.nuget\\packages\\": {},
+    "C:\\Users\\DAJB\\.nuget\\packages\\": {},
     "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Douglas Brion\\Documents\\GitHub\\vis-tally\\vis-tally.fsproj",
+      "projectUniqueName": "C:\\Users\\DAJB\\Documents\\GitHub\\vis-tally\\vis-tally.fsproj",
       "projectName": "vis-tally",
-      "projectPath": "C:\\Users\\Douglas Brion\\Documents\\GitHub\\vis-tally\\vis-tally.fsproj",
-      "packagesPath": "C:\\Users\\Douglas Brion\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Douglas Brion\\Documents\\GitHub\\vis-tally\\obj\\",
+      "projectPath": "C:\\Users\\DAJB\\Documents\\GitHub\\vis-tally\\vis-tally.fsproj",
+      "packagesPath": "C:\\Users\\DAJB\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\DAJB\\Documents\\GitHub\\vis-tally\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "C:\\Users\\Douglas Brion\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\DAJB\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "netcoreapp2.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {

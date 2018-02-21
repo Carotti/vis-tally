@@ -50,6 +50,9 @@ let instrLst = [
         "LDM r0!, {r0-r15}";
         "MOV r0, r1";
         "MOVS r1, r1";
+        "MOV r3, #4";
+        "MVNS r4, #0x56";
+        "MVN r6, r7";
     ]
 
 [<EntryPoint>]

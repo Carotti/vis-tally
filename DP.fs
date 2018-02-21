@@ -8,6 +8,7 @@ module DP
     open Helpers
     // open Execution
     open Expecto
+    open VisualTest
 
     type ShiftType = 
         | Rs of RName
@@ -17,7 +18,7 @@ module DP
         | S
 
     [<Struct>]
-    type InstrShift =  {Rd: RName; Rm: RName; shifter: Option<ShiftType>; suff: Option<Suffix>}
+    type InstrShift =  {Rd: RName; Op1: ShiftType; shifter: Option<ShiftType>; suff: Option<Suffix>}
 
     type Instr = 
         | LSL of InstrShift // 0-31
@@ -26,14 +27,17 @@ module DP
         | ROR of InstrShift // 1-31
         | RRX of InstrShift
         | MOV of InstrShift
+        | MVN of InstrShift
 
     type ErrInstr = string
 
-    let constructShift rd rm sh sf = 
+    let constructShift rd op1 sh sf =
+        
+        
         Result.map (fun _ -> 
             {
                 Rd = regNames.[rd];
-                Rm = regNames.[rm];
+                Op1 = op1;
                 shifter = sh;
                 suff = sf;
             })
@@ -42,7 +46,7 @@ module DP
     /// very incomplete!
     let dPSpec = {
         InstrC = DP
-        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX";"MOV"]
+        Roots = ["LSL";"LSR";"ASR";"ROR";"RRX";"MOV";"MVN";]
         Suffixes = ["";"S"]
     }
 
@@ -54,6 +58,7 @@ module DP
             "ROR", ROR;
             "RRX", RRX;
             "MOV", MOV;
+            "MVN", MVN;
         ]
 
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
@@ -68,7 +73,7 @@ module DP
         let pcNext = pc + 4u
         let regContents r = cpuData.Regs.[r] // add 0 - 255
 
-        let getShifter sh = 
+        let getRegOrNum sh = 
             match sh with
             | Some (Rs reg) -> regContents reg |> int32
             | Some (N num) -> num |> int32
@@ -77,24 +82,30 @@ module DP
         let afterInstr = 
             match instr.PInstr with
             | LSL operands -> 
-                let value = (regContents operands.Rm) <<< (getShifter operands.shifter)
+                let value = (getRegOrNum (Some operands.Op1) |> uint32) <<< (getRegOrNum operands.shifter)
                 setReg operands.Rd value cpuData
             | ASR operands -> 
-                let value = ((regContents operands.Rm) |> int32) >>> (getShifter operands.shifter) |> uint32
+                let value = (getRegOrNum (Some operands.Op1)) >>> (getRegOrNum operands.shifter) |> uint32
                 setReg operands.Rd value cpuData
             | LSR operands -> 
-                let value = (regContents operands.Rm) >>> (getShifter operands.shifter)
+                let value = (getRegOrNum (Some operands.Op1) |> uint32) >>> (getRegOrNum operands.shifter)
                 setReg operands.Rd value cpuData
             | ROR operands -> 
-                let value = rotate (regContents operands.Rm) (getShifter operands.shifter)
+                let value = rotate (getRegOrNum (Some operands.Op1) |> uint32) (getRegOrNum operands.shifter)
                 setReg operands.Rd value cpuData
             | RRX operands when cpuData.Fl.C -> 
                 // LSB needs to be put into C
-                let value = (regContents operands.Rm) >>> 1 |> (|||) (uint32 0x80000000)
+                let value = (getRegOrNum (Some operands.Op1) |> uint32) >>> 1 |> (|||) (uint32 0x80000000)
                 setReg operands.Rd value cpuData
             | RRX operands -> 
                 // LSB needs to be put into C
-                let value = (regContents operands.Rm) >>> 1
+                let value = (getRegOrNum (Some operands.Op1) |> uint32) >>> 1
+                setReg operands.Rd value cpuData
+            | MOV operands ->
+                let value = (getRegOrNum (Some operands.Op1) |> uint32)
+                setReg operands.Rd value cpuData
+            | MVN operands ->
+                let value = 0xFFFFFFFFu ^^^ (getRegOrNum (Some operands.Op1) |> uint32)
                 setReg operands.Rd value cpuData
 
         setReg R15 pcNext afterInstr
@@ -106,7 +117,7 @@ module DP
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
 
-        let (|Op2Match|_|) str =
+        let (|LitMatch|_|) str =
             let optionN n = N (uint32 n) |> Some
             let optionRs = function
                 | a when (regValid a) -> Rs (regNames.[a]) |> Some
@@ -132,13 +143,19 @@ module DP
 
             let ops =
                 match splitOps with
-                | [dest; op1] when (checkValid2 splitOps) ->
-                    (Ok splitOps) |> constructShift dest op1 None (checkSuffix suffix) // RRX, MOV
+                | [dest; op1] when (regValid dest) ->
+                    match op1 with
+                    | LitMatch regOrNum ->
+                        (Ok splitOps) |> constructShift dest regOrNum None (checkSuffix suffix) // RRX, MOV
+                    | _ -> Error "LitMatch failed"
                 | [dest; op1; op2] when (checkValid2 splitOps) ->
-                    match op2 with
-                    | Op2Match regOrNum -> 
-                        (Ok splitOps) |> constructShift dest op1 (Some regOrNum) (checkSuffix suffix)// ASR, LSL, LSR ROR
-                    | _ -> Error "Op2Match failed"
+                    match op1 with
+                    | LitMatch regOrNum1 -> 
+                        match op2 with
+                        | LitMatch regOrNum2 ->
+                            (Ok splitOps) |> constructShift dest regOrNum1 (Some regOrNum2) (checkSuffix suffix)// ASR, LSL, LSR ROR
+                        | _ -> Error "LitMatch failed"
+                    | _ -> Error "LitMatch failed"
                 | _ -> Error "splitOps did not match with \'op1, op2\' or \'op1, op2, op3\'"
             
 
