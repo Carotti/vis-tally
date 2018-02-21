@@ -18,7 +18,7 @@ module Execution
         {
             Fl = flags; 
             Regs = zeroedRegs; 
-            MM = Map.empty<WAddr,MemLoc<Instr>>
+            MM = Map.ofList []
         }                
     
     let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
@@ -26,27 +26,6 @@ module Execution
         let size = instr.PSize
         setReg R15 (pc + size) cpuData
 
-<<<<<<< HEAD
-//     let condExecute (instr: Parse<Instr>) (cpuData: DataPath<Instr>) =
-//         let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
-//         match instr.PCond with
-//         | Cal -> true
-//         | Cnv -> false
-//         | Ceq -> z
-//         | Cne -> (not z)
-//         | Chs -> c
-//         | Clo -> (not c)
-//         | Cmi -> n
-//         | Cpl -> (not n)
-//         | Cvs -> v
-//         | Cvc -> (not v)
-//         | Chi -> (c && not z)
-//         | Cls -> (not c || z)
-//         | Cge -> (n = v)
-//         | Clt -> (n <> v)
-//         | Cgt -> (not z && (n = v))
-//         | Cle -> (z || (n <> v))
-=======
     let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
         let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
         match instr.PCond with
@@ -67,4 +46,3 @@ module Execution
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
     
->>>>>>> Memory excution running but currently not doing anything lmao

@@ -55,12 +55,18 @@ module Helpers
         | [], [] -> cpuData
         | _ -> failwithf "Something went wrong with lists"
     
-    let setMem mem contents cpuData =
-        let setter mem' old =
-            match mem' with
-            | x when x = mem -> contents
-            | _ -> old
-        {cpuData with MM = Map.map setter cpuData.MM}
+    let setMem contents (addr: uint32) cpuData =
+        match addr % 4u with
+        | 0u -> {cpuData with MM = Map.add (WA addr) contents cpuData.MM}
+        | _ -> failwithf "Not aligned, but should have been checked already."
+    
+    let rec setMultMem contentsLst addrLst cpuData =
+        match addrLst, contentsLst with
+        | mhead :: mtail, chead :: ctail when (List.length addrLst = List.length contentsLst) ->
+            let newCpuData = setMem chead mhead cpuData
+            setMultMem ctail mtail newCpuData
+        | [], [] -> cpuData
+        | _ -> failwithf "Something went wrong with lists"
 
     [<Tests>]
     let helperTests =
