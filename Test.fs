@@ -37,7 +37,7 @@
     // up to 0x200 by 0x4 each time
     let visualToMem vMem = 
         let alst = 
-            [memReadBase..word..memReadBase + 0x100u]
+            [memReadBase..word..memReadBase + 0x30u]
             |> List.map WA
             |> List.rev
         List.zip alst (List.map DataLoc vMem)

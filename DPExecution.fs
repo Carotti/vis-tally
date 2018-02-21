@@ -112,11 +112,13 @@ module DPExecution
             | MVN operands ->
                 executeMVN operands.suff operands.Rd operands.Op1 cpuData
 
+
         match condExecute instr cpuData with
         | true -> 
             match instr.PInstr with
             | CommonTop.IDP (Shift instr') ->
-                executeInstr instr' cpuData            
+                let cpuData' = executeInstr instr' cpuData   
+                updatePC instr cpuData'
             | _ -> failwithf "Not a valid instruction"
         | false -> 
             updatePC instr cpuData
