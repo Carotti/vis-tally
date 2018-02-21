@@ -54,16 +54,20 @@ module MiscTest
         let startTxt = sprintf "dcdtstlab DCD %s" (appFmt dataFirst)
         formatData startTxt data 12 appFmt// Only the first 13 words of memory        
         |> sameResult
-        
+    
+    /// Generate a DCB instruction from a list of test byte literals
+    /// Only actually use the first 52 (first 13 words of memory)
     let sameAsVisualDCB (dataFirst : ByteTestLiteral) (data: ByteTestLiteral list) =
         let startTxt = sprintf "dcbtstlab DCB %s" (byteAppFmt dataFirst)
         formatData startTxt data 51 byteAppFmt
         |> sameResult
 
+    /// Construct a unit test
     let unitTest name txt expected actual =
         testCase name <| fun () ->
             Expect.equal actual expected txt
 
+    /// Construct a unit test which is run against visUAL
     let unitTestV name ins =
         unitTest name ins <|
             (runVisualGetMem ins |> getDpDataMem) <|
@@ -79,6 +83,7 @@ module MiscTest
             | EQU (ExpResolved value) when value = (valFmt data) -> true
             | _ -> false
 
+    /// Check EQU parses and resolves correctly
     let unitTestEQU name txt expected =
         let res = 
             match produceMisc txt with
@@ -86,6 +91,8 @@ module MiscTest
             | _ -> ~~~expected // Anything else make sure test fails
         unitTest name txt expected res
 
+    /// Produce a Unit test for FILL/SPACE instructions
+    /// where we want to check memory is in the correct state
     let unitTestFS name txt expected =
         txt
         |> runMisc
@@ -117,7 +124,7 @@ module MiscTest
     // Can't really test EQU/FILL/SPACE against visUAL since
     // behaviour is different
     let otherTests =
-        testList "Non-Visual Tests" [
+        testList "Misc Non-Visual Tests" [
             testList "EQU" [
                 testProperty "EQU resolves" correctEQU
                 unitTestEQU "Constant" "tstlab123 EQU 176" 176u
