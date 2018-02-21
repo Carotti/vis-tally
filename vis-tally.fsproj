@@ -7,10 +7,10 @@
     <Compile Include="CommonData.fs" />
     <Compile Include="CommonLex.fs" />
     <Compile Include="Helpers.fs"/>
-    <!-- <Compile Include="Execution.fs"/> -->
     <Compile Include="DP.fs" />
     <Compile Include="Memory.fs" />
     <Compile Include="CommonTop.fs" />
+    <Compile Include="DPExecution.fs"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

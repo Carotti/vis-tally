@@ -12,6 +12,13 @@ module Helpers
        then Some (m.Groups.[1].Value)
        else None
 
+    let makeReg r = regNames.[r]
+
+    let makeRegFn = (string >> (+) "R") // needed elsewhere
+
+    let makeRegFromNum r =
+        r |> makeRegFn |> makeReg
+
     let regValid r =
         Map.containsKey r regNames
 
@@ -32,6 +39,7 @@ module Helpers
         | h1 :: h2 :: _ when (regsValid [h1 ; h2]) -> true 
         | _ -> false
 
+    
     let setReg reg contents cpuData =
         let setter reg' old = 
             match reg' with

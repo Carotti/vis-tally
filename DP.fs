@@ -15,8 +15,8 @@ module DP
         | S
 
     [<Struct>]
-    type InstrShift =  {Rd: RName; Op1: ShiftType; shifter: Option<ShiftType>; suff: Option<Suffix>}
-
+    type InstrShift =  {Rd: RName; Op1: ShiftType; Op2: Option<ShiftType>; suff: Option<Suffix>}
+        
     type Instr = 
         | LSL of InstrShift // 0-31
         | LSR of InstrShift // 1-32
@@ -35,7 +35,7 @@ module DP
             {
                 Rd = regNames.[rd];
                 Op1 = op1;
-                shifter = sh;
+                Op2 = sh;
                 suff = sf;
             })
 
@@ -57,6 +57,7 @@ module DP
             "MOV", MOV;
             "MVN", MVN;
         ]
+<<<<<<< HEAD
 
     let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
         let rotate reg amt = 
@@ -113,6 +114,9 @@ module DP
 
 
    
+=======
+  
+>>>>>>> Refactored DP execution code
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
