@@ -48,13 +48,31 @@ module MemExecution
         let wordOrByte suffix d = 
             match suffix with
             | Some B -> d &&& 0x000000FFu
-            | None -> d 
+            | None -> d
+
+        let getMem addr cpuData = 
+            let memValid m = Map.containsKey m cpuData.MM
+            let wordAddr = WA (regContents addr.addrReg + getOffsetType addr.offset)
+            match memValid wordAddr with
+            | true -> 
+                let memloc = cpuData.MM.[wordAddr] 
+                wordOrByte suffix (getMemData memloc)
+            | false -> 
+                "Nothing stored at provided address" |> qp
+                cpuData
         
         let executeLDR suffix rn addr offset cpuData = 
-            let memloc = memContents.[wordAddress (regContents addr.addrReg + getOffsetType addr.offset)] 
-            let value = wordOrByte suffix (getMemData memloc)
-            let update = setReg rn value cpuData
-            setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
+            let memValid m = Map.containsKey m memContents
+            let wordAddr = WA (regContents addr.addrReg + getOffsetType addr.offset)
+            match memValid wordAddr with
+            | true -> 
+                let memloc = memContents.[wordAddr] 
+                let value = wordOrByte suffix (getMemData memloc)
+                let update = setReg rn value cpuData
+                setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
+            | false -> 
+                "Nothing stored at provided address" |> qp
+                cpuData
                 
         let executeSTR suffix rn addr offset cpuData = 
             let value = wordOrByte suffix (regContents rn)
