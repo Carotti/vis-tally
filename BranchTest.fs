@@ -9,8 +9,6 @@ module BranchTest
     open CommonData
 
     open Expecto
-    open System.Linq.Expressions
-    open System.Linq.Expressions
 
     /// Hacky but used to downcast from the toplevel parse function
     /// to a BRANCH instruction
@@ -111,6 +109,30 @@ module BranchTest
                 condTest "VC" true true false false true
                 condTest "VC" false false false true false
                 condTest "VC" true false false true false
+                condTest "HI" false true true true false
+                condTest "HI" false false false false false
+                condTest "HI" true true false false true
+                condTest "HI" false true false false true
+                condTest "LS" false true true true true
+                condTest "LS" false false false false true
+                condTest "LS" true true false false false
+                condTest "LS" false true false false false
+                condTest "GE" false false true true false
+                condTest "GE" true true false false false
+                condTest "GE" true false false true true
+                condTest "GE" false true true false true
+                condTest "LT" false false true true true
+                condTest "LT" true true false false true
+                condTest "LT" true false false true false
+                condTest "LT" false true true false false
+                condTest "GT" false false true false false
+                condTest "GT" false false false true false
+                condTest "GT" false true false false true
+                condTest "GT" true false false true true
+                condTest "LE" false false true false true
+                condTest "LE" false false false true true
+                condTest "LE" false true false false false
+                condTest "LE" true false false true false
             ]
 
     [<Tests>]
