@@ -7,7 +7,10 @@ module VTest =
     open Expecto
     open VCommon
     open VLog
+<<<<<<< HEAD
     open VData
+=======
+>>>>>>> added test files and sorted error
     open Visual
     open System.Threading
     open System.IO
@@ -24,7 +27,11 @@ module VTest =
         Cached = true                // true if results are stored in a cache on disk and reused to speed 
                                      // up future repeat simulations
         VisualPath =  
+<<<<<<< HEAD
             @"visualapp/visual/"  // the directory in which the downloaded VisUAL.exe can be found
+=======
+            @""  // the directory in which the downloaded VisUAL.exe can be found
+>>>>>>> added test files and sorted error
         WorkFileDir = 
             @"VisualWork/"        // the directory in which both temporary files and the persistent cache file are put
         CacheFileName = 
@@ -37,6 +44,10 @@ module VTest =
         Prelude = ""                  // this is overwritten by code
     } 
     
+<<<<<<< HEAD
+=======
+    
+>>>>>>> added test files and sorted error
     /// run an expecto test of VisUAL
     /// name - name of test
     ///
@@ -151,7 +162,17 @@ module VTest =
 
     [<Tests>]
     let tests = 
+<<<<<<< HEAD
         testList "Testing Against Visual" [
                 VisualFrameworkTest defaultParas // Check the framework works correctly
+=======
+        testList "Minimal Visual Unit Tests"
+            [
+            VisualFrameworkTest defaultParas
+            vTest "SUB test" "SUB R0, R0, #1" "0000" [R 0, -1]
+            vTest "SUBS test" "SUBS R0, R0, #0" "0110" [R 0, 0]
+            vTest "This ADDS test should fail" "ADDS R0, R0, #4" "0000" [R 0, 4; R 1, 0] 
+            // R1 should be 10 but is specified here as 0
+>>>>>>> added test files and sorted error
             ]
 

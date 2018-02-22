@@ -32,6 +32,7 @@ module Visual =
         let runOpts = VisualOpts + sprintf " --meminstsize:0x%x " 0x1000
         let visualHeadlessExec srcFile outputFile opts = 
             "java -jar " + paras.VisualPath + @"content/visual_headless.jar --headless " + srcFile + " " + outputFile 
+            //"/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java -jar " + paras.VisualPath + @"visual_headless.jar --headless " + srcFile + " " + outputFile 
             + " " + opts
         let addQuotes s = sprintf "\"%s\"" s
         //printfn "Paths are: %s" visDir

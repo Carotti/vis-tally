@@ -2,7 +2,7 @@ module DPExecution
     open CommonData
     open CommonLex
     open DP
-    open CommonTop
+
 
     let inline (>>>>) shift num = (>>>) num shift    
     let inline (<<<<) shift num = (<<<) num shift
@@ -27,7 +27,7 @@ module DPExecution
         {
             Fl = flags; 
             Regs = fillRegs regVals; 
-            MM = Map.empty<WAddr,MemLoc<Instr>>
+            MM = Map.empty<WAddr,MemLoc<DP.Instr>>
         }                
 
     /// Return a new datapath with reg rX set to value
@@ -67,7 +67,7 @@ module DPExecution
     type ErrExe =
         | ``Run time error`` of string
 
-    let execute (dp:DataPath<Instr>) (instr:CommonLex.Parse<Instr>) : (Result<DataPath<Instr>,ErrExe>) =
+    let executeDP (dp:DataPath<Instr>) (instr:CommonLex.Parse<Instr>) : (Result<DataPath<Instr>,ErrExe>) =
 
         let getBit n (value) =
             value
@@ -192,33 +192,29 @@ module DPExecution
 
         let (|DP3SMatch|_|) instr =
             match instr.PInstr with
-            | CommonTop.IDP instr' ->
-                match instr' with
-                | DP3S instr'' -> 
-                    match instr'' with      
-                    | (ADD ops) -> Some (instr'', ops) 
-                    | (ADC ops) -> Some (instr'', ops)
-                    | (SUB ops) -> Some (instr'', ops) 
-                    | (SBC ops) -> Some (instr'', ops)
-                    | (RSB ops) -> Some (instr'', ops)
-                    | (RSC ops) -> Some (instr'', ops)
-                    | (AND ops) -> Some (instr'', ops)
-                    | (ORR ops) -> Some (instr'', ops)
-                    | (EOR ops) -> Some (instr'', ops)
-                    | (BIC ops) -> Some (instr'', ops)
+            | (DP3S instr') ->
+                match instr' with      
+                | (ADD ops) -> Some (instr', ops) 
+                | (ADC ops) -> Some (instr', ops)
+                | (SUB ops) -> Some (instr', ops) 
+                | (SBC ops) -> Some (instr', ops)
+                | (RSB ops) -> Some (instr', ops)
+                | (RSC ops) -> Some (instr', ops)
+                | (AND ops) -> Some (instr', ops)
+                | (ORR ops) -> Some (instr', ops)
+                | (EOR ops) -> Some (instr', ops)
+                | (BIC ops) -> Some (instr', ops)
                 | _ -> None
             | _ -> None
             
         let (|DP2Match|_|) instr =
             match instr.PInstr with
-            | CommonTop.IDP instr' ->
-                match instr' with
-                | DP2 instr'' -> 
-                    match instr'' with      
-                    | (CMP ops) -> Some (instr'', ops) 
-                    | (CMN ops) -> Some (instr'', ops)
-                    | (TEQ ops) -> Some (instr'', ops)
-                    | (TST ops) -> Some (instr'', ops)
+            | (DP2 instr') ->
+                match instr' with      
+                | (CMP ops) -> Some (instr', ops) 
+                | (CMN ops) -> Some (instr', ops)
+                | (TEQ ops) -> Some (instr', ops)
+                | (TST ops) -> Some (instr', ops)
                 | _ -> None
             | _ -> None
 
