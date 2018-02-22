@@ -2,7 +2,7 @@
 
 All opCodes are forced to upper case before checking which allows instructions to have any mixture of upper and lower case letters in them. 
 
-## Misc Instructions
+## Misc Instructions (Misc.fs)
 
 `FILL` instruction accepts both an expression for the number of bytes to fill and the value to put in them. At present, the value size is hard-coded to 1 and cannot be input. Might be added later.
 
@@ -21,7 +21,7 @@ If during resolution, a `DCB` expression evaluates to a value larger than `255` 
 
 `DCD` values which "overflow" are allowed, as they are in visUAL, in that they are modulo `2^32`.
 
-## Branch Instructions
+## Branch Instructions (Branch.fs)
 
 `END` is supported by returning an EXIT runtime Error. This will be caught in the global execution function
 
