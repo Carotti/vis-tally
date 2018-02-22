@@ -27,12 +27,11 @@ module Visual =
             paras.Postlude
             |> Seq.filter ((=) '\n') 
             |> Seq.length
-        let visualJarExec vp = vp + @"jre\bin\java -jar "
         //printfn "\n\nVisual Temp files:%s\n" tempFilePath
         Directory.CreateDirectory paras.WorkFileDir |> ignore
         let runOpts = VisualOpts + sprintf " --meminstsize:0x%x " 0x1000
         let visualHeadlessExec srcFile outputFile opts = 
-            (visualJarExec paras.VisualPath) + paras.VisualPath + @"content\visual_headless.jar --headless " + srcFile + " " + outputFile 
+            "java -jar " + paras.VisualPath + @"content/visual_headless.jar --headless " + srcFile + " " + outputFile 
             + " " + opts
         let addQuotes s = sprintf "\"%s\"" s
         //printfn "Paths are: %s" visDir
@@ -40,11 +39,11 @@ module Visual =
         File.WriteAllText(srcF, src )
         //printfn "srcF=%s" srcF
         let outputF = Path.Combine(paras.WorkFileDir, "visoutput.log")
-        let cmdArgs = "/C " + (addQuotes <| visualHeadlessExec srcF outputF runOpts)
+        let cmdArgs = "-c " + (addQuotes <| visualHeadlessExec srcF outputF runOpts) + " &> /dev/null"
         //printfn "%s" cmdArgs
         File.WriteAllText(paras.WorkFileDir + "comstr.txt", cmdArgs)
         try 
-            let proc = System.Diagnostics.Process.Start("cmd", cmdArgs)
+            let proc = System.Diagnostics.Process.Start("bash", cmdArgs)
             proc.WaitForExit()
         with e -> ()//printfn "%s" e.Message
         let visLog = File.ReadAllLines outputF
@@ -52,7 +51,7 @@ module Visual =
         let recordError e = 
             let mess = sprintf "\n>>---SOURCE:\n%s\n-------\n\n>>>>>>>>>>>>>>>>>>>>>>\n\n%A\n----------------------\n" src "none"
             printfn "%s" mess
-            File.AppendAllText( paras.WorkFileDir+"\\VisualErrors", String.concat "\n" e)
+            File.AppendAllText( paras.WorkFileDir+"/VisualErrors", String.concat "\n" e)
         match visOutput with
         | Error e -> recordError e
         | _ -> ()
@@ -67,10 +66,8 @@ module Visual =
             let cache = workerCache
             cache.[n] <- {cache.[n] with Dat = cache.[n].Dat.Add(src, (vOkRes.Regs, vOkRes.RegsAfterPostlude))}
             if cache.[n].Dat.Count > cache.[n].Limit then
-                cLock.WaitOne() |> ignore
                 appendMapToCache cacheFName cache.[n].Dat
                 cache.[n] <- { Dat = Map.empty; Limit = paras.CacheLimit}
-                cLock.Release() |> ignore
 
     /// all-purpose Visual test run, with parallel execution and cacheing supported
     let RunVisualBaseWithLocksCached (paras: Params) src =
@@ -79,7 +76,6 @@ module Visual =
         let rec prepDir' n =
             let dir = sprintf "%sd%d/" paras.WorkFileDir n
             let workerParas = {paras with WorkFileDir = dir}
-            gLock.[n].WaitOne() |> ignore
             dirUsedHint.[n] <- true
             Directory.CreateDirectory dir |> ignore
             let res =
@@ -93,7 +89,6 @@ module Visual =
                     visRes
                   
             dirUsedHint.[n] <- false
-            gLock.[n].Release() |> ignore
             res
 
         let possN = 
@@ -129,10 +124,6 @@ module Visual =
     /// initialise caches and semaphores for correct cached parallel operation
     /// called before any VisuAL process is started
     let initCaches (paras:Params) = 
-        cLock <- new Semaphore(1,1,"visualCache")
-        gLock <- 
-            [|0..paras.MaxConcurrentVisualDirs-1|]
-            |> Array.map (fun n -> new Semaphore(1,1,sprintf "visualDir%d" n))
         dirUsedHint <- Array.replicate paras.MaxConcurrentVisualDirs false
         workerCache <- Array.replicate paras.MaxConcurrentVisualDirs { Dat = Map.empty; Limit = paras.CacheLimit }
         if File.Exists paras.CacheFileName then 
@@ -150,4 +141,3 @@ module Visual =
         workerCache
         |> cMap
         |> appendMapToCache paras.CacheFileName
-
