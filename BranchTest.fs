@@ -1,3 +1,7 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//                   Branch Instruction Test Module
+//////////////////////////////////////////////////////////////////////////////////////////
+
 module BranchTest
     open TestTop
     open TestFormats
@@ -53,30 +57,48 @@ module BranchTest
     let unitTestB name txt dpStart dpExp =
         unitTest name txt dpExp (runBranch txt dpStart)
 
-    /// Construct tests for either B or BL depending on the op given
+    /// Construct tests for either B BL and END depending on the op given
     let makeBTests op =
         // BL sets the link register if condition true executed
         let idpT' =
             match op with
+            | "END"
             | "B" -> idpT
             | "BL" -> {idpT with Regs = (Map.add R14 4u idpT.Regs)}
-            | _ -> failwithf "CannotmakeBTests with anything other than B or BL"
+            | _ -> failwithf "Cannot makeBTests with anything other than B, BL or END"
 
-        let condTest cond n c z v ex =
+        let condUnitProd op cond n c z v ex txt res =
+            unitTestB <|
+                op + cond + (sprintf " %A %A %A %A %A" n c z v ex) <|
+                op + cond + txt <|
+                flags n c z v idp <|
+                res
+
+        let condTestBBL cond n c z v ex =
             let res = 
                 match ex with
                 | true -> Ok (flags n c z v idpT')
                 | false -> Ok (flags n c z v idpF)
-            unitTestB <|
-                op + cond + " " + (sprintf "%A %A %A %A %A" n c z v ex) <|
-                op + cond + " branchTarget" <|
-                flags n c z v idp <|
-                res
+            condUnitProd op cond n c z v ex " branchTarget" res
+
+        let condTestEND cond n c z v ex =
+            let res =
+                match ex with
+                | true -> Error EXIT
+                | false -> Ok (flags n c z v idpF)
+            condUnitProd op cond n c z v ex "" res
+
+        let condTest =
+            match op with
+            | "END" -> condTestEND
+            | _ -> condTestBBL
 
         testList op [
                 condTest "" false false false false true
                 condTest "AL" false false false false true
+                condTest "AL" false true true true true
                 condTest "NV" false false false false false
+                condTest "NV" false true true false false
                 condTest "EQ" false false true false true
                 condTest "EQ" false false true true true
                 condTest "EQ" false false false false false
@@ -138,33 +160,7 @@ module BranchTest
     [<Tests>]
     let branchTests = 
         testList "Branch Tests" [
-            testList "END" [
-                unitTestB <|
-                    "Always end" <|
-                    "END" <|
-                    idp <|
-                    (Error EXIT)
-                unitTestB <|
-                    "Always end lowercase" <|
-                    "end" <|
-                    idp <|
-                    (Error EXIT)
-                unitTestB <|
-                    "Always end mixcase" <|
-                    "eND" <|
-                    idp <|
-                    (Error EXIT)
-                unitTestB <|
-                    "Always end suffix" <|
-                    "ENDAL" <|
-                    idp <|
-                    (Error EXIT)
-                unitTestB <|
-                    "Never end suffix" <|
-                    "ENDNV" <|
-                    idp <|
-                    Ok idpF
-            ]
+            makeBTests "END"
             makeBTests "B"
             makeBTests "BL"
         ]
