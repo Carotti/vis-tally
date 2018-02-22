@@ -29,5 +29,4 @@ module Program
             main argv |> ignore
             0 // return an integer exit code
         | _ ->
-            runBranch "BLAL branchTarget" idp |> (fun x -> Result.map (fun y -> y.Regs.[R14]) x) |> printfn "%A" 
             0            
