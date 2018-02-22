@@ -18,8 +18,8 @@
 ## Chris
 - `ADD` done
 - `ADC` done
-- `SUB`
-- `SBC`
+- `SUB` done
+- `SBC` done
 - `RSB`
 - `RSC`
 - `AND` done

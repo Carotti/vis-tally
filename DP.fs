@@ -8,7 +8,6 @@ module DP
     open CommonLex
     open System.Text.RegularExpressions
     open FsCheck
-    open System.Data.SqlTypes
 
     ////////////////////////////////////////////////////////////////////////////////
     // maccth helper functions, TODO: delete 
@@ -137,20 +136,24 @@ module DP
     type DP3SInstr =
         | ADD of DP3SForm
         | ADC of DP3SForm
+        | SUB of DP3SForm
+        | SBC of DP3SForm
+        | RSB of DP3SForm
+        | RSC of DP3SForm
         | AND of DP3SForm
         | ORR of DP3SForm
         | EOR of DP3SForm
         | BIC of DP3SForm
 
-    type DP2SInstr =
-        | CMP of DP2SForm   
-        | CMN of DP2SForm
-        | TEQ of DP2SForm    
-        | TST of DP2SForm
+    type DP2Instr =
+        | CMP of DP2Form   
+        | CMN of DP2Form
+        | TEQ of DP2Form    
+        | TST of DP2Form
     
     type Instr =
         | DP3S of DP3SInstr
-        | DP2S of DP2SInstr
+        | DP2 of DP2Instr
   
     /// Error types
     type ErrInstr =
@@ -180,7 +183,7 @@ module DP
     let DPSpec =
         {
             InstrC = DP
-            Roots = ["ADD";"ADC";"AND";"ORR";"EOR";"BIC"; "CMP"]
+            Roots = ["ADD"; "ADC"; "SUB"; "SBC"; "RSB"; "RSC"; "AND"; "ORR"; "EOR"; "BIC"; "CMP"; "CMN"; "TST"; "TEQ"]
             Suffixes = [""; "S"]
         }
 
@@ -526,6 +529,9 @@ module DP
             Map.ofList [
                 "ADD", ADD;
                 "ADC", ADC;
+                "SUB", SUB;
+                "SBC", SBC;
+                "RSB", RSC;
                 "AND", AND;
                 "ORR", ORR;
                 "EOR", EOR;
@@ -547,9 +553,10 @@ module DP
                 | true ->
                     let opcode = opcodesDP2.[root]
                     operandsDP2.Force()
-                    |> Result.map (consDP2S suff)
+                    // This will be required for DP2S instructions such as MOV
+                    // |> Result.map (consDP2S suff)
                     |> Result.map (opcode) 
-                    |> Result.map (DP2S)
+                    |> Result.map (DP2)
                         
                 | false ->
                     let opcode = opcodesDP3.[root]
