@@ -12,3 +12,8 @@ Also, not doing this...
 
 
 will accept CMPS etc. WRONG!!!!
+
+
+
+
+No op{cond} {Rd,} Rn, #imm12: http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/BABIHJGA.html  

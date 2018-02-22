@@ -26,10 +26,10 @@
 - `EOR` done
 - `BIC` done
 - `ORR` done
-- `CMP`
-- `CMN`
-- `TST`
-- `TEQ`
+- `CMP` 
+- `CMN` done
+- `TST` done
+- `TEQ` done
 
 ## Tom
 - `B`
