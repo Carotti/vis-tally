@@ -11,7 +11,6 @@ module DPExecution
     let inline (>>>>) shift num = (>>>) num shift    
     let inline (<<<<) shift num = (<<<) num shift
 
-
     let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
         let flags =
             {N = n; C = c; Z = z; V = v;}
@@ -238,7 +237,7 @@ module DPExecution
         let CVCheckAdd = [additiveOverflowCheck; additiveCarryCheck;]
         let CVCheckSub = [subtractiveOverFlowCheck; subtractiveCarryCheck]
 
-        let executeDP3S (dp:DataPath<Instr>) opcode (operands:DP3SForm) : (Result<DataPath<Instr>,ErrExe>) =
+        let executeDP3S dp opcode (operands:DP3SForm) : (Result<DataPath<Instr>,ErrExe>) =
             let dest = Some operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
             let Cb = dp.Fl.C
@@ -264,7 +263,7 @@ module DPExecution
             | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff NZCheck
             | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff NZCheck
 
-        let executeDP2 (dp:DataPath<Instr>) opcode (operands:DP2Form) : (Result<DataPath<Instr>,ErrExe>) =
+        let executeDP2 dp opcode (operands:DP2Form) : (Result<DataPath<Instr>,ErrExe>) =
             let op1 = dp.Regs.[operands.rOp1]
             let C = dp.Fl.C |> System.Convert.ToUInt32
             let op2, flags' = calcOp2 operands.fOp2 dp
@@ -282,7 +281,7 @@ module DPExecution
             | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops
             | DP2Match (instr', ops) -> executeDP2 dp instr' ops
             | _ ->
-                "Just a dummy error"
+                "Instruction has not been implemented"
                 |> ``Run time error``
                 |> Error
         | false ->

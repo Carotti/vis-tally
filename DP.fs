@@ -295,11 +295,7 @@ module DP
     /// the result is None if the opcode does not match
     /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ld: LineData) : Result<Parse<Instr>,ErrInstr> option =
-    
-        let checkReg regStr = Map.containsKey regStr regNames
       
-        let checkRegs regLst = regLst |> List.fold (fun s r -> s && (checkReg r)) true
-
         let checkLiteral lit =
             let rotMask n = (0xFFu >>> n) ||| (0xFFu <<< 32 - n)
             [0..2..30] 
@@ -340,7 +336,6 @@ module DP
                 None
 
         let (|RegCheck|_|) txt =
-            // regCheck txt |> Some
             match Map.tryFind txt regNames with
             | Some reg ->
                 reg |> Ok |> Some
@@ -476,22 +471,6 @@ module DP
                 //     |> applyResultMapError dp32
             | _ ->
                 failwith "Should never happen! Match statement always matches."
-
-        let operandsDP3 = 
-            lazy (
-                ld.Operands.Split([|','|])
-                |> Array.toList
-                |> List.map (fun op -> op.ToUpper())
-                |> function
-                | [rDest; rOp1; op2] ->
-                    parse3Ops rDest rOp1 op2
-                | [rDest; rOp1; rOp2; extn] ->
-                    parse4Ops rDest rOp1 rOp2 extn
-                | _ ->
-                    "Syntax error. Instruction format is incorrect."
-                    |> ``Invalid instruction``
-                    |> Error
-            )
             
         let operandsDP2 = 
             lazy (
@@ -517,7 +496,23 @@ module DP
                     "Syntax error. Instruction format is incorrect."
                     |> ``Invalid instruction``
                     |> Error
-            )   
+            ) 
+
+        let operandsDP3 = 
+            lazy (
+                ld.Operands.Split([|','|])
+                |> Array.toList
+                |> List.map (fun op -> op.ToUpper())
+                |> function
+                | [rDest; rOp1; op2] ->
+                    parse3Ops rDest rOp1 op2
+                | [rDest; rOp1; rOp2; extn] ->
+                    parse4Ops rDest rOp1 rOp2 extn
+                | _ ->
+                    "Syntax error. Instruction format is incorrect."
+                    |> ``Invalid instruction``
+                    |> Error
+            )  
             
         let (WA la) = ld.LoadAddr
 
@@ -557,7 +552,8 @@ module DP
                 | true, None ->
                     let opcode = opcodesDP2.[root]
                     operandsDP2.Force()
-                    // This will be required for DP2S instructions such as MOV
+                    // The commened-out code below will be required for DP2S instructions such as MOV
+                    // I have kept it here to allow for faster integration with group
                     // |> Result.map (consDP2S suff)
                     |> Result.map (opcode) 
                     |> Result.map (DP2)
@@ -573,17 +569,7 @@ module DP
                     |> Result.map (DP3S)
             Result.map(makeInstr cond) instr
                     
+        Map.tryFind ld.OpCode opCodes
+        |> Option.map parse' 
 
-
-           
-
-        // Optional value comes from here!
-        // Error returned if opcode IS an opcode (.tryFind does not return None)
-        //  but there is a problem elsewhere, once parse' has been called since
-        //  this will only be called if .tryMap does not return a None.
-        //  for example LITERAL VALUE IS NOT OKAY!!!!
-        Map.tryFind ld.OpCode opCodes // lookup opcode to see if it is known
-        |> Option.map parse' // if unknown keep none, if known parse it.
-
-    /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
