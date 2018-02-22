@@ -12,7 +12,7 @@ module Program
     open VTest
     open TestTop
 
-    open MiscTest
+    open BranchTest
 
     open Execution
 
@@ -29,9 +29,5 @@ module Program
             main argv |> ignore
             0 // return an integer exit code
         | _ ->
-            runMisc "FILL 17, 0xAB" |> printfn "%A"
-            // initCaches testParas
-            // testPropertyVis "DCD" sameAsVisualDCD
-            // |> runTests defaultConfig |> ignore
-            // finaliseCaches testParas
+            runBranch "BLAL branchTarget" idp |> (fun x -> Result.map (fun y -> y.Regs.[R14]) x) |> printfn "%A" 
             0            

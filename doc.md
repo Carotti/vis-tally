@@ -5,3 +5,5 @@
 `EQU` execution doesn't actually do anything, since this will happen during the symbol resolution phase. It is tested by checking that the expression it is set to is evaluated correctly. The symbol binding will be done during group stage.
 
 Anywhere where there is a mathematical expression, as in visUAL it is supported except that now operator precedence between `+` `-` and `*` is correct. All expressions can also be bracketed. Literal formats are the same as specified by visUAL.
+
+`DCB` is Little Endian, the same as visUAL. 

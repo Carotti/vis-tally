@@ -13,6 +13,7 @@ module TestFormats
                     "Nice2", 0x0F0F0F0Fu
                     "bigNum", 0xFFFFFFFFu
                     "n0thing", 0u
+                    "branchTarget", 4444u
                 ]
     let symbolArrayOf table =
         Map.toList table

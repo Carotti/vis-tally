@@ -26,15 +26,7 @@ module Misc
     type ErrInstr =
         | InvalidExp of string
         | InvalidExpList of string
-<<<<<<< HEAD
-        | InvalidFillSize of string
-        | InvalidFillValue of string
-        | InvalidFillNum of string
-        | InvalidFillExp of string
-        | EmptyFillExp
-=======
         | InvalidFill of string
->>>>>>> EQU property testing
         | LabelRequired
 
     /// Errors which can occur during resolving of an expression
@@ -232,7 +224,7 @@ module Misc
                     })
             fillMap parseSPACE'
 
-        match ls.OpCode with
+        match ls.OpCode.ToUpper() with
         | "DCD" -> parseDCD () |> Some
         | "DCB" -> parseDCB () |> Some
         | "EQU" -> parseEQU () |> Some
