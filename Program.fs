@@ -1,18 +1,41 @@
-﻿// Learn more about F# at http://fsharp.org
-module Program
-open System
+﻿module Program
+
+open Expecto
+open FsCheck
+
 open CommonTop
 open CommonData
+open CommonLex
 open DP
 open DPExecution
-open System.Linq
 
 
+open VisualTest.VCommon
+open VisualTest.VLog
+open VisualTest.Visual
+open VisualTest.VTest
+
+open System
+open System.Threading
+open System.IO
+
+// Comments
 let qp thing = thing |> printfn "%A"
 
 let qpl lst = lst |> List.map (qp)
 
-let parseREPL dp =
+let covertToDP (ins : Parse<CommonTop.Instr>) : Parse<DP.Instr> =
+    match ins.PInstr with
+    | IDP dpIns -> 
+        {
+            PInstr = dpIns
+            PLabel = ins.PLabel
+            PSize = ins.PSize
+            PCond = ins.PCond
+        }
+    | _ -> failwithf "Invalid downcast to DP"
+
+let parseREPL() =
     let rec repl'() =
         printf  "~> "
         System.Console.ReadLine().ToUpper()
@@ -21,25 +44,24 @@ let parseREPL dp =
         repl'()
     repl'()
 
-let exeREPL dp =
-    let printRegs dp =
+// (dp:DataPath<Instr>)
+let exeREPL (dp:DataPath<Instr>) =
+    let printRegs (dp:DataPath<Instr>) =
         dp.Regs |> Map.toList |> List.map (fun (r, v) -> printfn "%A : %x" r v) |> ignore
-    let printFlags dp =
+    let printFlags (dp:DataPath<Instr>) =
          dp.Fl |> qp |> ignore
     
     printRegs dp
     printFlags dp
 
-    let rec repl' dp =
+    let rec repl' (dp:DataPath<Instr>) =
         printf  "~> "
         System.Console.ReadLine().ToUpper()
         |> parseLine None (WA 0u)
         |> function
-        | Error e ->
-            e |> qp
-            repl' dp
         | Ok instr ->
-            execute dp instr
+            covertToDP instr
+            |> executeDP dp
             |> function
             | Ok dp' ->
               printRegs dp'
@@ -48,36 +70,36 @@ let exeREPL dp =
             | Error e' ->
                 e' |> qp
                 repl' dp
+         | Error e ->
+            e |> qp
+            repl' dp
     repl' dp
-    
 
+/// configuration for this testing framework      
+/// configuration for expecto. Note that by default tests will be run in parallel
+/// this is set by the fields oif testParas above
+let expectoConfig = { Expecto.Tests.defaultConfig with 
+                        parallel = testParas.Parallel
+                        parallelWorkers = 6 // try increasing this if CPU use is less than 100%
+                }
 
 [<EntryPoint>]
 let main argv =
-    /// test the initProjectLexer code
-    // let instrLst = [
-    //     "hello: ADD R1, R2, #0xf000000f";
-    //     "ADD R2, R4, #0xf8000007";
-    //     "ADD R20, R4, #0xf8000007";
-    //     "ADD R1, R2, R3, R4";
-    //     "ADD R0, R1, R2 ";
-    //     "ADD R1, R2, R20, RRX";
-    // ]
-
-    // instrLst
-    // |> List.map (fun instr -> (instr + "\n", parseLine None (WA 0u) instr))
-    // |> qpl
-    // |> ignore
-
-    // let test = parseLine None (WA 0u) "ADD R1, R2, R3, RRX"
-    // test |> qp
+    initCaches testParas
+    let rc = runTestsInAssembly expectoConfig [||]
+    finaliseCaches testParas
+    System.Console.ReadKey() |> ignore                
+    rc // return an integer exit code - 0 if all tests pass
 
 
-    // "ready to REPL..." |> (printfn "%s")
-    // parseREPL() |> ignore
+
+    "ready to REPL..." |> (printfn "%s")
+    parseREPL |> ignore
 
     "ready to REPL..." |> qp
     let dp = initialiseDP false false false false [0u]
     exeREPL dp |> ignore
 
-    0 // return an integer exit code
+    0
+
+
