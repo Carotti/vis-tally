@@ -1,34 +1,23 @@
 module DPExecution
     open CommonData
     open CommonLex
+    open CommonTop
     open DP
 
 
     let inline (>>>>) shift num = (>>>) num shift    
     let inline (<<<<) shift num = (<<<) num shift
 
-    let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
-        let flags =
-            {N = n; C = c; Z = z; V = v;}
-
-        let fillRegs (regVals:uint32 list) =
-            match List.length regVals with
-            | 16 ->
-                regVals
-                |> List.zip [0u..15u]
-                |> List.map (fun (r,v) -> (consRegG r, v))
-                |> Map.ofList
-            | _ ->
-                [0u..15u]
-                |> List.zip [0u..15u]
-                |> List.map (fun (r, _v) -> (consRegG r, 0u))
-                |> Map.ofList
-                
-        {
-            Fl = flags; 
-            Regs = fillRegs regVals; 
-            MM = Map.empty<WAddr,MemLoc<DP.Instr>>
-        }                
+    let covertToDP (ins : Parse<CommonTop.Instr>) : Parse<DP.Instr> =
+        match ins.PInstr with
+        | CommonTop.IDP dpIns -> 
+            {
+                PInstr = dpIns
+                PLabel = ins.PLabel
+                PSize = ins.PSize
+                PCond = ins.PCond
+            }
+        | _ -> failwithf "Invalid downcast to DP"             
 
     /// Return a new datapath with reg rX set to value
     let updateReg rX value dp =
@@ -204,7 +193,6 @@ module DPExecution
                 | (ORR ops) -> Some (instr', ops)
                 | (EOR ops) -> Some (instr', ops)
                 | (BIC ops) -> Some (instr', ops)
-                | _ -> None
             | _ -> None
             
         let (|DP2Match|_|) instr =
@@ -215,7 +203,6 @@ module DPExecution
                 | (CMN ops) -> Some (instr', ops)
                 | (TEQ ops) -> Some (instr', ops)
                 | (TST ops) -> Some (instr', ops)
-                | _ -> None
             | _ -> None
 
         let calcOp2 fOp2 dp =

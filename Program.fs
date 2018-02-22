@@ -8,7 +8,7 @@ open CommonData
 open CommonLex
 open DP
 open DPExecution
-
+open DPTests
 
 open VisualTest.VCommon
 open VisualTest.VLog
@@ -18,22 +18,12 @@ open VisualTest.VTest
 open System
 open System.Threading
 open System.IO
+open DP
 
 // Comments
 let qp thing = thing |> printfn "%A"
 
 let qpl lst = lst |> List.map (qp)
-
-let covertToDP (ins : Parse<CommonTop.Instr>) : Parse<DP.Instr> =
-    match ins.PInstr with
-    | IDP dpIns -> 
-        {
-            PInstr = dpIns
-            PLabel = ins.PLabel
-            PSize = ins.PSize
-            PCond = ins.PCond
-        }
-    | _ -> failwithf "Invalid downcast to DP"
 
 let parseREPL() =
     let rec repl'() =
@@ -44,13 +34,28 @@ let parseREPL() =
         repl'()
     repl'()
 
-// (dp:DataPath<Instr>)
+let visCompareREPL() =
+    let rec repl'() =
+        printf  "~> "
+        let srcIn =
+            System.Console.ReadLine().ToUpper()
+        srcIn
+        |> zeroTest
+        |> function
+        | true ->
+            "\n**************************"  |> (printfn "%s")
+            srcIn                           |> qp
+            "AGREES with VisUAL"            |> (printfn "%s")
+            "**************************\n"  |> (printfn "%s")
+        | false ->
+            "\n**************************"  |> (printfn "%s")
+            srcIn                           |> qp
+            "DOES NOT AGREE with VisUAL"    |> (printfn "%s")
+            "**************************"    |> (printfn "%s")
+        repl'()
+    repl'()
+
 let exeREPL (dp:DataPath<Instr>) =
-    let printRegs (dp:DataPath<Instr>) =
-        dp.Regs |> Map.toList |> List.map (fun (r, v) -> printfn "%A : %x" r v) |> ignore
-    let printFlags (dp:DataPath<Instr>) =
-         dp.Fl |> qp |> ignore
-    
     printRegs dp
     printFlags dp
 
@@ -75,6 +80,7 @@ let exeREPL (dp:DataPath<Instr>) =
             repl' dp
     repl' dp
 
+
 /// configuration for this testing framework      
 /// configuration for expecto. Note that by default tests will be run in parallel
 /// this is set by the fields oif testParas above
@@ -85,20 +91,49 @@ let expectoConfig = { Expecto.Tests.defaultConfig with
 
 [<EntryPoint>]
 let main argv =
-    initCaches testParas
-    let rc = runTestsInAssembly expectoConfig [||]
-    finaliseCaches testParas
-    System.Console.ReadKey() |> ignore                
-    rc // return an integer exit code - 0 if all tests pass
+    // initCaches testParas
+    // let rc = runTestsInAssembly expectoConfig [||]
+    // finaliseCaches testParas
+    // System.Console.ReadKey() |> ignore                
+    // rc // return an integer exit code - 0 if all tests pass
+
+    
+    // let myFlags = {FN=false;FZ=false; FC=false;FV=false}
+    // let myRegs = [0u..14u]
+    // let myParams = {defaultParas with InitFlags = myFlags; InitRegs = myRegs}
+    // let instruction = "ADDS r1, r2, #0x10"
+    // initCaches testParas
+    // let _, out =
+    //     RunVisualWithFlagsOut myParams instruction
+    // finaliseCaches testParas
+    // let visDP = out |> visToDP
+    // let dp = initialiseDP false false false false myRegs
+    // let myDP =
+    //     instruction
+    //     |> parseLine None (WA 0u)
+    //     |> function
+    //     | Ok instr ->
+    //         covertToDP instr
+    //         |> executeDP dp
+    //         |> function
+    //         | Ok dp' -> dp'
+
+    // printRegs myDP
+    // printRegs visDP
+    // printFlags myDP
+    // printFlags visDP
+    // equalDP myDP visDP |> qp
 
 
+    // "ready to REPL..." |> (printfn "%s")
+    // parseREPL |> ignore
 
     "ready to REPL..." |> (printfn "%s")
-    parseREPL |> ignore
+    visCompareREPL()
 
-    "ready to REPL..." |> qp
-    let dp = initialiseDP false false false false [0u]
-    exeREPL dp |> ignore
+    // "ready to REPL..." |> qp
+    // let dp = initialiseDP false false false false [0u]
+    // exeREPL dp |> ignore
 
     0
 
