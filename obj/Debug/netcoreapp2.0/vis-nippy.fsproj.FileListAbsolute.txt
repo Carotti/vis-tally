@@ -1,0 +1,7 @@
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-nippy.deps.json
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-nippy.runtimeconfig.json
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-nippy.runtimeconfig.dev.json
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-nippy.dll
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\bin\Debug\netcoreapp2.0\vis-nippy.pdb
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\obj\Debug\netcoreapp2.0\vis-nippy.dll
+C:\Users\Douglas Brion\Documents\GitHub\vis-tally\obj\Debug\netcoreapp2.0\vis-nippy.pdb

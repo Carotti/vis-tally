@@ -61,8 +61,14 @@
         let mem = visualToMem visual.State.VMemData
         {Fl = flags; Regs = regs; MM = mem}
 
+    let loadRegParas = 
+        {   defaultParas with 
+            Postlude = ""
+            Prelude = ""
+        }
+
     let returnVisualCpuData src = 
-        let vRes = RunVisualBaseWithLocksCached defaultParas src 
+        let vRes = RunVisualBaseWithLocksCached loadRegParas src 
                     |> Result.map visualToDataPath
         match vRes with
         | Ok res -> res

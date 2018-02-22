@@ -1,2 +1,4 @@
 
-MOV R1, #5
+MOV R4, #0xa7
+MOV R13, #0x1000
+LDMIA R13, {R0-R12}
