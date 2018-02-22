@@ -1,5 +1,11 @@
 module DPTests
 
+    open VisualTest.VCommon
+    open VisualTest.VLog
+    open VisualTest.Visual
+    open VisualTest.VTest
+    open VisualTest.VData
+
     open CommonData
     open CommonLex
     open CommonTop
@@ -66,30 +72,39 @@ module DPTests
     let unitTest name input hope fate =
         testCase name <| fun () ->
             input |> qp |> ignore
-            fst hope |> Map.toList |> qp |> ignore
-            fst fate |> Map.toList |> qp |> ignore
-            snd hope |> qp |> ignore
-            snd fate |> qp |> ignore
+            // fst hope |> Map.toList |> qp |> ignore
+            // fst fate |> Map.toList |> qp |> ignore
+            // snd hope |> qp |> ignore
+            // snd fate |> qp |> ignore
             Expect.equal hope fate input
 
     let visualTest name input = 
-        unitTest name input <| (hopeRegs input, hopeFlags input) <| (fateRegs input, fateFlags input) 
+        // unitTest name input <| (hopeRegs input, hopeFlags input) <| (fateRegs input, fateFlags input)
+        unitTest name input <| (hopeRegs input) <| (fateRegs input) 
 
-    [<Tests>]
-    let visualTests =
-        testList "DP Tests compared to visual, let us pray..." [
-            testList "MOV unit tests" [
-                visualTest "MOV hex 1a" "MOV R4, #0xa7";
-                visualTest "MOV HEX 1a" "MOV R2, #0xB2";
-                visualTest "MOV hex 1b" "MOV R3, #0Xa7";
-                visualTest "MOV HEX 1b" "MOV R3, #0XB2";
-                visualTest "MOV hex 2a" "MOV R4, #&8f";
-                visualTest "MOV HEX 2b" "MOV R4, #&FF";
-                visualTest "MOV binary" "MOV R7, #0b01011100";
-                visualTest "MOV BINARY" "MOV R7, #0B01110011";
-                visualTest "MOV decimal" "MOV R1, #5";
-            ]
-            testList "MOVS unit tests" [
-                visualTest "MOVS with 0" "MOVS R3, #0";
-            ]
-        ]
+
+    // [<Tests>]
+    // let visualTests =
+    //     testList "DP Tests compared to visual, let us pray..." [
+    //         testList "MOV unit tests" [
+    //             visualTest "MOV hex 1a" "MOV R4, #0xa7";
+    //             visualTest "MOV HEX 1a" "MOV R2, #0xB2";
+    //             visualTest "MOV hex 1b" "MOV R3, #0Xa7";
+    //             visualTest "MOV HEX 1b" "MOV R3, #0XB2";
+    //             visualTest "MOV hex 2a" "MOV R4, #&8f";
+    //             visualTest "MOV HEX 2b" "MOV R4, #&FF";
+    //             visualTest "MOV binary" "MOV R7, #0b01011100";
+    //             visualTest "MOV BINARY" "MOV R7, #0B01110011";
+    //             visualTest "MOV decimal" "MOV R1, #5";
+    //             visualTest "MOV diff reg" "MOV R1, R14";
+    //             visualTest "MOV same reg" "MOV R3, R3";
+    //         ]
+    //         testList "MOVS unit tests" [
+    //             visualTest "MOVS with 0" "MOVS R3, #0";
+    //             visualTest "MOVS with register" "MOVS R3, R2";
+    //             visualTest "MOVS with hex value" "MOVS R3, #0xff";
+    //         ]
+    //         testList "MVN unit tests" [
+    //             visualTest "MVN hex 1a" "MVN R4, #0XAF";
+    //         ]
+    //     ]

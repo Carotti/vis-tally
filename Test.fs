@@ -62,13 +62,14 @@
         {Fl = flags; Regs = regs; MM = mem}
 
     let loadRegParas = 
-        {   defaultParas with 
-            Postlude = ""
-            Prelude = ""
+        {   
+            defaultParas with 
+                Postlude = READMEMORY memReadBase
+                Prelude = ""
         }
 
     let returnVisualCpuData src = 
-        let vRes = RunVisualBaseWithLocksCached loadRegParas src 
+        let vRes = RunVisualBaseWithLocksCached defaultParas src 
                     |> Result.map visualToDataPath
         match vRes with
         | Ok res -> res
@@ -81,4 +82,4 @@
         cpuData.Regs
     
     let returnCpuDataFlags (cpuData: DataPath<CommonTop.Instr>) =
-        [cpuData.Fl.N;cpuData.Fl.C;cpuData.Fl.Z;cpuData.Fl.V;]
+        [cpuData.Fl.N; cpuData.Fl.C; cpuData.Fl.Z; cpuData.Fl.V;]
