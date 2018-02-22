@@ -73,11 +73,11 @@ let main argv =
     // test |> qp
 
 
-    // "ready to REPL..." |> (printfn "%s")
-    // parseREPL() |> ignore
+    "ready to REPL..." |> (printfn "%s")
+    parseREPL() |> ignore
 
-    "ready to REPL..." |> qp
-    let dp = initialiseDP false false false false [0u]
-    exeREPL dp |> ignore
+    // "ready to REPL..." |> qp
+    // let dp = initialiseDP false false false false [0u]
+    // exeREPL dp |> ignore
 
     0 // return an integer exit code
