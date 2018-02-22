@@ -183,7 +183,7 @@ module Misc
                 {
                     PInstr = ins;
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la);
-                    PSize = 4u;
+                    PSize = 0u;
                     PCond = Cal;
                 }
             ) parseFunc
