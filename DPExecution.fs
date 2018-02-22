@@ -136,53 +136,36 @@ module DPExecution
             | 0u    ->  {flags with Z = true}, op1, op2, value
             | _     ->  {flags with Z = false}, op1, op2, value
         
-        let carryCheckAdd (flags,op1,op2,value) =
+        let additiveCarryCheck (flags,op1,op2,value) =
             let carry = 2.0 ** 32.0 |> uint64
             let value' = (op1 |> uint64) + (op2 |> uint64)
             match value' with
             | x when (x >= carry)   -> {flags with C = true}, op1, op2, value
             | _                     -> {flags with C = false}, op1, op2, value
 
-        let overflowCheckAdd (flags,op1,op2,value) =
+        let subtractiveCarryCheck (flags, op1, op2, value) =
+            let value' = (op1 |> uint64) - (op2 |> uint64)
+            match value' with
+            | 0UL                                       -> {flags with C = true}, op1, op2, value
+            | v when ( v |> uint32 |> getBit 31 = 0u)   -> {flags with C = true}, op1, op2, value
+            | _                                         -> {flags with C = false}, op1, op2, value
+
+        let additiveOverflowCheck (flags,op1,op2,value) =
             match op1, op2 with
-            | x, y when ((x >>> 31 = 0u) && (y >>> 31 = 0u)) ->
-                match value >>> 31 with
+            // | x, y when ((x >>> 31 = 0u) && (y >>> 31 = 0u)) ->
+            | x, y when ((getBit 31 x = 0u) && (getBit 31 y = 0u)) ->
+                // match value >>> 31 with
+                match getBit 31 value with                
                 | 1u -> {flags with V = true}, op1, op2, value
                 | _  -> {flags with V = false}, op1, op2, value
-            | x, y when ((x >>> 31 = 1u) && (y >>> 31 = 1u)) ->
-                match value >>> 31 with
+            // | x, y when ((x >>> 31 = 1u) && (y >>> 31 = 1u)) ->
+            | x, y when ((getBit 31 x = 1u) && (getBit 31 y = 1u)) ->
+                // match value >>> 31 with
+                match getBit 31 value with                
                 | 0u -> {flags with V = true}, op1, op2, value
                 | _  -> {flags with V = false}, op1, op2, value
             | _ -> flags, op1, op2, value
         
-        // let flagChecksAdd flags (op1:uint32) (op2:uint32) value =
-        //     (flags, op1, op2, value)
-        //     ||||> overflowCheckAdd 
-        //     ||||> carryCheckAdd
-        //     ||> negCheck
-        //     ||> zeroCheck
-        //     |> fst
-
-        // let executeADD dp dest (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
-        //     let result = op1 + op2
-        //     let dp' = updateReg dest result dp
-        //     match suffix with
-        //     | Some S ->
-        //         let flags' = flagChecksAdd dp.Fl op1 op2 result
-        //         {dp' with Fl = flags'} |> Ok
-        //     | None ->
-        //         dp' |> Ok 
-    
-        // let executeLOGIC dp dest logic (op1:uint32) (op2:uint32) suffix : (Result<DataPath<Instr>,ErrExe>) =
-        //     let result = (logic) op1 op2
-        //     let dp' = updateReg dest result dp
-        //     match suffix with
-        //     | Some S ->
-        //         let flags' = (dp.Fl, result) ||> negCheck ||> zeroCheck |> fst 
-        //         {dp' with Fl = flags'} |> Ok
-        //     | None ->
-        //         dp' |> Ok 
-
         let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Instr>,ErrExe>) =
             let result = func op1 op2
             let dp' =
@@ -241,7 +224,6 @@ module DPExecution
             let dest = Some operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
             let C = dp.Fl.C |> System.Convert.ToUInt32
-
             let op2, flags' = calcOp2 operands.fOp2 dp       
             // dp' contains the CPSR updated by the barrel shifter
             // dp contains the CPSR that hasn't been updatted by the barrel shifter
@@ -252,8 +234,9 @@ module DPExecution
                 | None -> dp
             
             match opcode with
-            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [overflowCheckAdd; carryCheckAdd; negCheck; zeroCheck]
-            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [overflowCheckAdd; carryCheckAdd; negCheck; zeroCheck]
+            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [additiveOverflowCheck; additiveCarryCheck; negCheck; zeroCheck]
+            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [additiveOverflowCheck; additiveCarryCheck; negCheck; zeroCheck]
+            | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff []
             | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
             | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
             | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
@@ -264,16 +247,14 @@ module DPExecution
             let op1 = dp.Regs.[operands.rOp1]
             let C = dp.Fl.C |> System.Convert.ToUInt32
             let op2, flags' = calcOp2 operands.fOp2 dp
+            // No suffix, but can effect CPSR
             let dp' = {dp with Fl = flags'}
             match opcode with
-            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [overflowCheckAdd; carryCheckAdd; negCheck; zeroCheck]
+            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [additiveOverflowCheck; additiveCarryCheck; negCheck; zeroCheck]
             | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [negCheck; zeroCheck]
             | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [negCheck; zeroCheck]
             // JUST CMN TO GO!
-
-
-        
-             
+                     
         match condExecute instr dp with
         | true ->
             match instr with            
