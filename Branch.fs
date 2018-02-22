@@ -27,7 +27,7 @@ module Branch
         | NoLabel
 
     /// Resolve the symbols for an instruction which requires it
-    let resolveBranch ins (syms : SymbolTable) =
+    let resolvePInstr (syms : SymbolTable) ins =
         let lookup which sym =
             match syms.ContainsKey sym with
             | true -> which (SymResolved syms.[sym]) |> Ok
@@ -37,6 +37,10 @@ module Branch
         | BL (SymUnresolved sym) -> lookup BL sym
         | _ -> Ok ins // Symbol is already resolved
 
+    let resolve (syms : SymbolTable) ins =
+        resolvePInstr syms ins.PInstr
+        |> Result.map (fun x -> {ins with PInstr = x})
+
     // Branch instructions have no suffixes
     let branchSpec = {
         InstrC = BRANCH
@@ -45,7 +49,7 @@ module Branch
     }
 
     /// Execute a Branch instruction
-    let executeBranch dp (ins : Parse<Instr>) =
+    let execute dp ins =
         let nxt = dp.Regs.[R15] + 4u // Address of the next instruction
         match condExecute ins dp with
         | false -> 
@@ -73,24 +77,29 @@ module Branch
     let opCodes = opCodeExpand branchSpec
 
     let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
-        let parse' (_instrC, (root,_suffix,pCond)) =
-            let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
+
+        let bindB t =
             match ls.Operands with
-            | LabelExpr (l, "") ->
-                Ok { 
-                    PInstr = 
-                        match root with
-                        | "B" -> B (SymUnresolved l)
-                        | "BL" -> BL (SymUnresolved l)
-                        | "END" -> END
-                        | _ -> failwithf "Unexpected root in Misc.parse"
+            | LabelExpr (l, "") -> Ok l
+            | _ -> NoLabel |> Error
+            |> Result.map (SymUnresolved >> t)
+
+        let parse' (_instrC, ((root : string),_suffix,pCond)) =
+            let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
+            match root.ToUpper () with
+            | "B" -> bindB B
+            | "BL" -> bindB BL
+            | "END" -> Ok END
+            | _ -> failwithf "Unexpected root in Misc.parse"
+            |> Result.map (fun ins ->
+                { 
+                    PInstr = ins
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
-                }
-            | _ -> NoLabel |> Error
+                })
 
-        Map.tryFind ls.OpCode opCodes // lookup opcode to see if it is known
+        Map.tryFind (ls.OpCode.ToUpper ()) opCodes // lookup opcode to see if it is known
         |> Option.map parse' // if unknown keep none, if known parse it.
 
     /// Parse Active Pattern used by top-level code

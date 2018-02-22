@@ -224,7 +224,7 @@ module Misc
                     })
             fillMap parseSPACE'
 
-        match ls.OpCode with
+        match ls.OpCode.ToUpper() with
         | "DCD" -> parseDCD () |> Some
         | "DCB" -> parseDCB () |> Some
         | "EQU" -> parseEQU () |> Some

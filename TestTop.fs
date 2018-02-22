@@ -6,10 +6,12 @@ module TestTop
     open VisualTest.VCommon
 
     open CommonData
+    open CommonTop
 
     open Expecto
 
     open TestFormats
+    open VisualTest.VCommon
 
     let expectoConfig = { Expecto.Tests.defaultConfig with 
                             parallel = testParas.Parallel
@@ -74,14 +76,27 @@ module TestTop
             MM = vMemDPMem vData.State.VMemData
         }
 
-    // Run a command src, returning the equivalent datapath ONLY reading the first 13 words of memory
-    // Just going to have to assume the rest of memory works!
-    let runVisualGetMem src =
-        let vRes = RunVisualBaseWithLocksCached loadRegParas src 
+    let runVisualRun paras src =
+        let vRes = RunVisualBaseWithLocksCached paras src
                     |> Result.map vDataToUsefulData
         match vRes with
         | Ok res -> res
-        | Error x -> failwithf "Visual failed to run with errors %A" x
+        | Error x -> failwithf "Visual failed to run with errors: %A" x
+
+    // Run a command src, returning the equivalent datapath ONLY reading the first 13 words of memory
+    // Just going to have to assume the rest of memory works!
+    let runVisualGetMem = runVisualRun loadRegParas
+
+    let runVisualWithFlags n c z v =
+        runVisualRun {defaultParas with 
+                        InitFlags = 
+                            {
+                                FN = n
+                                FC = c
+                                FZ = z
+                                FV = v
+                            }
+                    }
 
 
     /// Remove all zeroed memory from the memory map for comparison with visUAL
@@ -99,3 +114,23 @@ module TestTop
             | _ -> 0u
         removeZeroedMemory dp.MM
         |> Map.map getData
+
+    /// Construct a unit test
+    let unitTest name txt expected actual =
+        testCase name <| fun () ->
+            Expect.equal actual expected txt
+
+    let parseTop = parseLine (Some ts) (WA 0u)
+
+    /// Highest level for producing a function from its text
+    /// Only this can be at this level since the other functions
+    /// rely on functions which are module dependent
+    let produceTop resolver downcaster txt = 
+        // Don't care about the word address for these instructions
+        let ins = parseTop txt
+        match ins with 
+        | Ok top ->
+            match resolver ts (downcaster top) with
+            | Ok miscIns -> miscIns
+            | _ -> failwithf "Invalid symbol"
+        | _ -> failwithf "Invalid production of instruction"

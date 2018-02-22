@@ -16,17 +16,9 @@ module MiscTest
     let miscDowncast (ins : Parse<CommonTop.Instr>) =
         match ins.PInstr with
         | IMISC miscIns -> miscIns
-        | _ -> failwithf "Invalid downcast"
+        | _ -> failwithf "Invalid downcast to MISC"
 
-    let produceMisc txt = 
-        // Don't care about the word address for these instructions
-        let ins = parseLine (Some ts) (WA 0u) txt
-        match ins with 
-        | Ok top ->
-            match Misc.resolve ts (miscDowncast top) with
-            | Ok miscIns -> miscIns
-            | _ -> failwithf "Invalid symbol for MISC"
-        | _ -> failwithf "Invalid MISC text"
+    let produceMisc = produceTop resolve miscDowncast
 
     let runMisc txt : DataPath<CommonTop.Instr> = 
         execute (initialDp (), assumedMemBase) (produceMisc txt) |> fst
@@ -61,11 +53,6 @@ module MiscTest
         let startTxt = sprintf "dcbtstlab DCB %s" (byteAppFmt dataFirst)
         formatData startTxt data 51 byteAppFmt
         |> sameResult
-
-    /// Construct a unit test
-    let unitTest name txt expected actual =
-        testCase name <| fun () ->
-            Expect.equal actual expected txt
 
     /// Construct a unit test which is run against visUAL
     let unitTestV name ins =
