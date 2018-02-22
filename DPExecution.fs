@@ -166,6 +166,18 @@ module DPExecution
                 | _  -> {flags with V = false}, op1, op2, value
             | _ -> flags, op1, op2, value
         
+        let subtractiveOverFlowCheck (flags,op1,op2,value) =
+            match op1, op2 with
+            | x, y when ((getBit 31 x = 1u) && (getBit 31 y = 0u)) ->
+                match getBit 31 value with                
+                | 0u -> {flags with V = true}, op1, op2, value
+                | _  -> {flags with V = false}, op1, op2, value
+            | x, y when ((getBit 31 x = 0u) && (getBit 31 y = 1u)) ->
+                match getBit 31 value with                
+                | 1u -> {flags with V = true}, op1, op2, value
+                | _  -> {flags with V = false}, op1, op2, value
+            | _ -> flags, op1, op2, value
+        
         let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Instr>,ErrExe>) =
             let result = func op1 op2
             let dp' =
@@ -183,7 +195,7 @@ module DPExecution
                 dp'
                 |> Ok
 
-        let (|DP3Match|_|) instr =
+        let (|DP3SMatch|_|) instr =
             match instr.PInstr with
             | CommonTop.IDP instr' ->
                 match instr' with
@@ -191,11 +203,14 @@ module DPExecution
                     match instr'' with      
                     | (ADD ops) -> Some (instr'', ops) 
                     | (ADC ops) -> Some (instr'', ops)
+                    | (SUB ops) -> Some (instr'', ops) 
+                    | (SBC ops) -> Some (instr'', ops)
+                    | (RSB ops) -> Some (instr'', ops)
+                    | (RSC ops) -> Some (instr'', ops)
                     | (AND ops) -> Some (instr'', ops)
                     | (ORR ops) -> Some (instr'', ops)
                     | (EOR ops) -> Some (instr'', ops)
                     | (BIC ops) -> Some (instr'', ops)
-                    | _ -> None
                 | _ -> None
             | _ -> None
             
@@ -203,13 +218,12 @@ module DPExecution
             match instr.PInstr with
             | CommonTop.IDP instr' ->
                 match instr' with
-                | DP2S instr'' -> 
+                | DP2 instr'' -> 
                     match instr'' with      
                     | (CMP ops) -> Some (instr'', ops) 
                     | (CMN ops) -> Some (instr'', ops)
                     | (TEQ ops) -> Some (instr'', ops)
                     | (TST ops) -> Some (instr'', ops)
-                    | _ -> None
                 | _ -> None
             | _ -> None
 
@@ -220,11 +234,16 @@ module DPExecution
                 | Shift shift   -> calcShift shift dp
                 | RRX reg       -> calcRRX reg dp
 
+        let NZCheck = [negCheck; zeroCheck]
+        let CVCheckAdd = [additiveOverflowCheck; additiveCarryCheck;]
+        let CVCheckSub = [subtractiveOverFlowCheck; subtractiveCarryCheck]
+
         let executeDP3S (dp:DataPath<Instr>) opcode (operands:DP3SForm) : (Result<DataPath<Instr>,ErrExe>) =
             let dest = Some operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
+            let Cb = dp.Fl.C
             let C = dp.Fl.C |> System.Convert.ToUInt32
-            let op2, flags' = calcOp2 operands.fOp2 dp       
+            let op2, flags' = calcOp2 operands.fOp2 dp
             // dp' contains the CPSR updated by the barrel shifter
             // dp contains the CPSR that hasn't been updatted by the barrel shifter
             // if S is specified, pick the one that HAS, otherwise pick the original
@@ -234,32 +253,34 @@ module DPExecution
                 | None -> dp
             
             match opcode with
-            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [additiveOverflowCheck; additiveCarryCheck; negCheck; zeroCheck]
-            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [additiveOverflowCheck; additiveCarryCheck; negCheck; zeroCheck]
-            | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff []
-            | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
-            | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
-            | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [negCheck; zeroCheck]
-            | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff [negCheck; zeroCheck]
-            // SOME MORE TO GO!!!
+            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff (CVCheckAdd @ NZCheck)
+            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff (CVCheckAdd @ NZCheck)
+            | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff (CVCheckSub @ NZCheck)
+            | SBC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 (op2 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff (CVCheckSub @ NZCheck)
+            | RSB _ -> execute dp' (fun op1 op2 -> op2 - op1) dest op1 op2 operands.suff (CVCheckSub @ NZCheck)
+            | RSC _ -> execute dp' (fun op1 op2 -> op2 - op1) dest (op1 + (Cb |> not |> System.Convert.ToUInt32)) op2 operands.suff (CVCheckSub @ NZCheck)
+            | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff NZCheck
+            | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff NZCheck
+            | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff NZCheck
+            | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff NZCheck
 
-        let executeDP2S (dp:DataPath<Instr>) opcode (operands:DP2SForm) : (Result<DataPath<Instr>,ErrExe>) =
+        let executeDP2 (dp:DataPath<Instr>) opcode (operands:DP2Form) : (Result<DataPath<Instr>,ErrExe>) =
             let op1 = dp.Regs.[operands.rOp1]
             let C = dp.Fl.C |> System.Convert.ToUInt32
             let op2, flags' = calcOp2 operands.fOp2 dp
             // No suffix, but can effect CPSR
             let dp' = {dp with Fl = flags'}
             match opcode with
-            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [additiveOverflowCheck; additiveCarryCheck; negCheck; zeroCheck]
-            | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [negCheck; zeroCheck]
-            | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [negCheck; zeroCheck]
-            // JUST CMN TO GO!
-                     
+            | CMN _ -> execute dp' (fun op1 op2 -> op1 - op2) None op1 op2 (Some S) (CVCheckSub @ NZCheck)
+            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) (CVCheckAdd @ NZCheck)
+            | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) NZCheck
+            | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) NZCheck
+        
         match condExecute instr dp with
         | true ->
             match instr with            
-            | DP3Match (instr', ops) -> executeDP3S dp instr' ops
-            | DP2Match (instr', ops) -> executeDP2S dp instr' ops
+            | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops
+            | DP2Match (instr', ops) -> executeDP2 dp instr' ops
             | _ ->
                 "Just a dummy error"
                 |> ``Run time error``
