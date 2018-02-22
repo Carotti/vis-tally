@@ -40,6 +40,7 @@ module Visual =
         File.WriteAllText(srcF, src )
         //printfn "srcF=%s" srcF
         let outputF = Path.Combine(paras.WorkFileDir, "visoutput.log")
+        // let cmdArgs = "-c " + (addQuotes <| visualHeadlessExec srcF outputF runOpts) + " > /dev/null"
         let cmdArgs = "-c " + (addQuotes <| visualHeadlessExec srcF outputF runOpts) + " &> /dev/null"
         //printfn "%s" cmdArgs
         File.WriteAllText(paras.WorkFileDir + "comstr.txt", cmdArgs)

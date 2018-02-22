@@ -25,6 +25,7 @@
     <Compile Include="BranchTest.fs" />
     <Compile Include="Execution.fs" />
     <Compile Include="DPExecution.fs" />
+    <Compile Include="DPTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -21,6 +21,7 @@ module VTest =
     /// Postlude can contain instructions to move CPU state (flags, memory locations) into rgeisters
     /// standard Postlude moves flags into R1
     /// Simulation reads VisUAL log and returns registers after test assembly code, and also after postlude
+    
     let defaultParas = {
         Parallel = false              // parallel testing is now supported!
         MaxConcurrentVisualDirs = 10 // should only need the same number as of cores
