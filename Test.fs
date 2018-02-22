@@ -60,14 +60,7 @@
         let regs = visualToRegs visual.Regs
         let mem = visualToMem visual.State.VMemData
         {Fl = flags; Regs = regs; MM = mem}
-
-    let loadRegParas = 
-        {   
-            defaultParas with 
-                Postlude = READMEMORY memReadBase
-                Prelude = ""
-        }
-
+    
     let returnVisualCpuData src = 
         let vRes = RunVisualBaseWithLocksCached defaultParas src 
                     |> Result.map visualToDataPath
@@ -82,4 +75,4 @@
         cpuData.Regs
     
     let returnCpuDataFlags (cpuData: DataPath<CommonTop.Instr>) =
-        [cpuData.Fl.N; cpuData.Fl.C; cpuData.Fl.Z; cpuData.Fl.V;]
+        [cpuData.Fl.N;cpuData.Fl.C;cpuData.Fl.Z;cpuData.Fl.V;]
