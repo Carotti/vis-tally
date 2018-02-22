@@ -1,3 +1,5 @@
+Coudldn't submit the version which would work under windows as the JRE would be too large for the upload link. Submitted version able to run under linux which has a suitable JRE aliased to `java`.
+
 # Specification
 
 All opCodes are forced to upper case before checking which allows instructions to have any mixture of upper and lower case letters in them. 
