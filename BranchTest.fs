@@ -103,6 +103,14 @@ module BranchTest
                 condTest "PL" false false true false true
                 condTest "PL" true false false false false
                 condTest "PL" true true false false false
+                condTest "VS" false false false false false
+                condTest "VS" true true false false false
+                condTest "VS" false false false true true
+                condTest "VS" true false false true true
+                condTest "VC" false false false false true
+                condTest "VC" true true false false true
+                condTest "VC" false false false true false
+                condTest "VC" true false false true false
             ]
 
     [<Tests>]
