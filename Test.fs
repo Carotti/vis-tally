@@ -60,7 +60,7 @@
         let regs = visualToRegs visual.Regs
         let mem = visualToMem visual.State.VMemData
         {Fl = flags; Regs = regs; MM = mem}
-    
+
     let returnVisualCpuData src = 
         let vRes = RunVisualBaseWithLocksCached defaultParas src 
                     |> Result.map visualToDataPath
