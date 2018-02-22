@@ -8,10 +8,18 @@ All opCodes are forced to upper case before checking which allows instructions t
 
 `SPACE` can also be used to fill with zeroed memory, unlike Visual where `FILL` does this, but without accepting a value to be filled.
 
-`EQU` execution doesn't actually do anything, since this will happen during the symbol resolution phase. It is tested by checking that the expression it is set to is evaluated correctly. The symbol binding will be done during group stage. Somehow a symbol table will need to be built from all instructions which have labels.
+`FILL` and `SPACE` optionally accept a label, `EQU`, `DCB` and `DCD` require it.
+
+All `MISC` instruction have `PSize` set to `0u` and `PCond` to `Cal` just for consistent meaning. These are not instructions placed in memory, so have no size and they cannot have conditions so are always executed.
+
+`EQU` execution doesn't actually do anything, since this will happen during the symbol resolution phase. The symbol binding will be done during group stage. Somehow a symbol table will need to be built from all instructions which have labels.
 
 `DCB` is Little Endian, the same as visUAL.
 `DCD` should also behave the same way as visUAL.
+
+If during resolution, a `DCB` expression evaluates to a value larger than `255` then an error is thrown, as visUAL does.
+
+`DCD` values which "overflow" are allowed, as they are in visUAL, in that they are modulo `2^32`.
 
 Anywhere where there is a mathematical expression, as in visUAL it is supported except that now operator precedence between `+` `-` and `*` is correct. All expressions can also be bracketed. Literal formats are the same as specified by visUAL.
 
@@ -45,5 +53,4 @@ The `Execution` module contains some helper functions for manipulating datapaths
 
 `DCB` and `DCD` are tested directly against visUAL using the functions `sameAsVisualDCB` and `sameAsVisualDCD` which run the same instructions against visual. The visUAL prelude will contain the test symbol table `ts` defined in `TestFormats`. This is because one format option for randomly generated expressions are symbols. These are resolved when executing my version, and `EQU` is used to define them in VisUAL. A random list of these expressions are generated, which could be literals of any format or labels. Only up to 13 words of memory are generated since that is all that can be received from the test framework at the output of visUAL. The only things that are compared after testing these directive instructions is the first 13 words of memory from the assumed memory base. Another issue in this testing was that getting the memory out of the visUAL framwork will set the memory locations to zero, whereas in my data path, they would simply be unset. This meant I had to write a function to ignore the zeroed memory before comparing it.
 
-`FILL`, `SPACE` and `EQU` are tested with their own unit test constructors ensuring that the output of executing them after resolution is as expected. `EQU` is expected to be a `ExpResolved` of `uint32` with the value equal to the value of the evaluated right hand side.
-
+`FILL`, `SPACE` and `EQU` are tested with their own unit test constructors ensuring that the output of executing them after resolution is as expected. `EQU` is expected to be a `ExpResolved` of `uint32` with the value equal to the value of the evaluated right hand side. This led to the discovery that I had accidentally forced `SPACE` and `FILL` to accept a label in the same way that `DCB`, `DCD` and `EQU` do. I modified the code and fixed this.
