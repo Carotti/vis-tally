@@ -21,8 +21,6 @@ If during resolution, a `DCB` expression evaluates to a value larger than `255` 
 
 `DCD` values which "overflow" are allowed, as they are in visUAL, in that they are modulo `2^32`.
 
-Anywhere where there is a mathematical expression, as in visUAL it is supported except that now operator precedence between `+` `-` and `*` is correct. All expressions can also be bracketed. Literal formats are the same as specified by visUAL.
-
 ## Branch Instructions
 
 `END` is supported by returning an EXIT runtime Error. This will be caught in the global execution function
@@ -34,6 +32,8 @@ Anywhere where there is a mathematical expression, as in visUAL it is supported 
 Since `B`, `BL`, `EQU`, `DCB`, `DCD`, `SPACE` and `FILL` all require a label of some sort which may not necessarily be known, both `MISC` instructions and `BRANCH` instructions have a `resolve` function which can resolve these labels against a currently known symbol table. In the caseof `EQU`, `DCB`, `DCD`, `SPACE` and `FILL`, these may also be expressions which are also evaluated in `resolve`. `B` and `BL` simply match the labels which they branch to. This means that these instructions only have to be parsed once, but there will be a seperate symbol resolution phase, the semantics of which are undecided at present (multi-pass or dependency detection!?). This means the flow for using this module is `parse` -> `resolve` -> `execute`. Trying to execute any `MISC` instruction which hasn't been resolved currently causes a failure, so it is important to do `resolution` and check that it has occured correctly on an instruction before executing it. 
 
 ## Expressions
+
+Anywhere where there is a mathematical expression, as in visUAL it is supported.
 
 The `Expression` module can be used to match epxressions and parse them into the `Expression` AST for later execution. This is tested in `ExpressionTest` and tests a number of literals in varying generated formats given in `TestFormat`. This allows for randomly generating a literal and its format. A number of other tests ensure operator precedence is correct, bracketing works correctly as well as a few unit tests for sanity. This module should be reasonably standalone and rightly so, since it is potentially used by a number of classes of instructions.
 
