@@ -3,10 +3,6 @@ module DPExecution
     open CommonLex
     open DP
     open CommonTop
-    open System.Linq
-    open FsCheck
-
-
 
     let inline (>>>>) shift num = (>>>) num shift    
     let inline (<<<<) shift num = (<<<) num shift
@@ -275,15 +271,21 @@ module DPExecution
             | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) NZCheck
             | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) NZCheck
         
-        match condExecute instr dp with
-        | true ->
-            match instr with            
-            | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops
-            | DP2Match (instr', ops) -> executeDP2 dp instr' ops
-            | _ ->
-                "Instruction has not been implemented"
-                |> ``Run time error``
-                |> Error
-        | false ->
-            updatePC instr dp
-            |> Ok
+        let dp' =
+            match condExecute instr dp with
+            | true ->
+                match instr with            
+                | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops
+                | DP2Match (instr', ops) -> executeDP2 dp instr' ops
+                | _ ->
+                    "Instruction has not been implemented"
+                    |> ``Run time error``
+                    |> Error
+            | false ->
+                updatePC instr dp
+                |> Ok
+
+        Result.map(updatePC instr) dp'
+        
+        
+ 
