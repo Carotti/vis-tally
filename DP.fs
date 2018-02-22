@@ -370,40 +370,44 @@ module DP
             | _ -> None
 
         let (|ShiftMatch|_|) (reg:string) (txt:string) =
-            let instr = txt.[0..2]
-            let oprnds = txt.[3..]
-            match instr with
-            | ShiftInstr sInstr ->
-                match reg with
-                | RegCheck reg' ->
-                    match reg' with
-                    | Ok reg'' ->
-                        let partialFS2 = consFS2R reg'' sInstr
-                        match oprnds with
-                        | LitMatch litVal ->
-                            litVal
-                            |> Result.map(consLit)
-                            |> Result.map(ConstShift)
-                            |> Result.map(partialFS2)
-                            |> Some
-                        | RegMatch rOp3 ->
-                            rOp3
-                            |> Result.map(RegShift)
-                            |> Result.map(partialFS2)
-                            |> Some
-                        | _ ->
-                            oprnds + " is not a valid literal or register."
-                            |> ``Invalid shift``
+            match String.length txt with
+            | x when x < 5 ->
+                None
+            | _ ->
+                let instr = txt.[0..2]
+                let oprnds = txt.[3..]
+                match instr with
+                | ShiftInstr sInstr ->
+                    match reg with
+                    | RegCheck reg' ->
+                        match reg' with
+                        | Ok reg'' ->
+                            let partialFS2 = consFS2R reg'' sInstr
+                            match oprnds with
+                            | LitMatch litVal ->
+                                litVal
+                                |> Result.map(consLit)
+                                |> Result.map(ConstShift)
+                                |> Result.map(partialFS2)
+                                |> Some
+                            | RegMatch rOp3 ->
+                                rOp3
+                                |> Result.map(RegShift)
+                                |> Result.map(partialFS2)
+                                |> Some
+                            | _ ->
+                                oprnds + " is not a valid literal or register."
+                                |> ``Invalid shift``
+                                |> Error
+                                |> Some
+                        | Error e ->
+                            e
                             |> Error
                             |> Some
-                    | Error e ->
-                        e
-                        |> Error
-                        |> Some
+                    | _ ->
+                        failwith "Should never happen! Match statement always matches."
                 | _ ->
-                    failwith "Should never happen! Match statement always matches."
-            | _ ->
-                None  
+                    None  
 
         let parseFOp2NoExtn op2 createOp =
             match op2 with
@@ -422,8 +426,8 @@ module DP
         let parseFOp2Extn rOp2 extn createOp =
             match extn with
             | RrxMatch rOp2 reg ->
-                    let reg' = Result.map (RRX) reg
-                    applyResultMapError createOp reg'
+                let reg' = Result.map (RRX) reg
+                applyResultMapError createOp reg'
             | ShiftMatch rOp2 shift ->
                 let shift' = Result.map (Shift) shift
                 applyResultMapError createOp shift'
@@ -549,16 +553,19 @@ module DP
         let parse' (_instrC, (root, suffix, cond)) =
             let suff = match suffix with "S" -> Some S | _ -> None
             let instr =
-                match Map.containsKey root opcodesDP2 with
-                | true ->
+                match Map.containsKey root opcodesDP2, suff with
+                | true, None ->
                     let opcode = opcodesDP2.[root]
                     operandsDP2.Force()
                     // This will be required for DP2S instructions such as MOV
                     // |> Result.map (consDP2S suff)
                     |> Result.map (opcode) 
                     |> Result.map (DP2)
-                        
-                | false ->
+                | true, Some _suff' ->
+                    "This instruction cannot have a suffix."
+                    |> ``Invalid suffix``
+                    |> Error
+                | false, _ ->
                     let opcode = opcodesDP3.[root]
                     operandsDP3.Force()
                     |> Result.map (consDP3S suff)
