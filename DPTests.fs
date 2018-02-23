@@ -8,6 +8,7 @@ module DPTests
     open Expecto
     open Helpers
 
+    /// Removes the last item in a list
     let removeTail lst = 
         match List.rev lst with 
         | _ :: tail -> List.rev tail
@@ -223,6 +224,16 @@ module DPTests
                 "asrs r3, r4, #1";
                 "ror r7, r2, r1";
             ]
+        let shiftTest5 = 
+            [
+                "movs r0, #0b1";
+                "mvns r1, r0";
+                "lsls r2, r0, #&1";
+                "lsrs r3, r1, r2";
+                "rrxs r0, r0";
+                "asrs r3, r4, #1";
+                "rors r7, r2, r1";
+            ]
 
         testList "DP Tests compared to visual, let us pray..." [
             testList "MOV unit tests" [
@@ -280,10 +291,10 @@ module DPTests
             ]
             testList "ROR unit tests" [
                 visualTest "ROR basic" "ROR r8, r1, #0x5" defaultParas defaultParas;
-                visualTest "RORS large shift" "ROR r4, r1, #100" defaultParas defaultParas;
                 visualTest "ROR no shift" "ROR r7, r1, #0b0" defaultParas defaultParas;
                 visualTest "RORS reg shift" "ROR r9, r2, r1" defaultParas defaultParas;
                 visualTest "ROR reg with 0 shift" "ROR r10, r2, r0" defaultParas defaultParas;
+                visualTest "ROR reg" "ROR r3, r2, #14" defaultParas defaultParas;
             ]
             testList "RRX unit tests" [
                 visualTest "RRX basic" "RRX r8, r4" defaultParas defaultParas;
@@ -297,5 +308,6 @@ module DPTests
                 visualTestList "Shift Test 2" "2" shiftTest2 zeroParam zeroParam
                 visualTestList "Shift Test 3" "3" shiftTest3 zeroParam zeroParam
                 visualTestList "Shift Test 4" "4" shiftTest4 zeroParam zeroParam
+                visualTestList "Shift Test 5" "5" shiftTest4 zeroParam zeroParam
             ]
         ]

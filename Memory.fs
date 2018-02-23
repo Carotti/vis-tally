@@ -2,31 +2,56 @@ module Memory
     open CommonData
     open CommonLex
     open Helpers
-    open System.Text.RegularExpressions
 
+    // *********** //
+    // LDR AND STR //
+    // *********** //
+
+    /// either a number or a register
     type OffsetType =
         | ImmPre of uint32
         | RegPre of RName
     
+    /// Address consisting of register for base
+    /// and an pre index offset of OffsetType
+    /// being either a register or number
     [<Struct>]
     type Address = {addrReg: RName; offset: Option<OffsetType>}
     
+    /// post index
+    /// either register or number
+    /// ldr r0, [r1], PostIndex
     type PostIndex =
         | ImmPost of uint32
         | RegPost of RName
     
+    /// Suffix of LDR and STR instructions
     type SingleSuffix = 
         | B
 
+    /// Single Store/Load memory instruction. LDR, LDRB, STR, STRB
+    /// op{type}{cond} Rt, [Rn {, #offset}]        ; immediate offset
+    /// op{type}{cond} Rt, [Rn, #offset]!          ; pre-indexed
+    /// op{type}{cond} Rt, [Rn], #offset           ; post-indexed
     [<Struct>]
     type InstrMemSingle = {Rn: RName; addr: Address; postOffset: Option<PostIndex>; suff: Option<SingleSuffix>}
     
+    // *********** //
+    // LDM AND STM //
+    // *********** //
+
+    /// {....} list for LDM and STM
+    /// either LDM r0, {r1, r2, r3}
+    /// or     LDM r0, {r1 - r3}
     type RegisterList = | RegList of List<RName>
 
+    /// Suffixes for LDM and STM
     type MultSuffix = 
         | IA | IB | DA | DB
         | FD | ED | FA | EA
 
+    /// Multiple Store/Load memory instruction. LDM, STM
+    /// op{addr_mode}{cond} Rn{!}, reglist
     [<Struct>]
     type InstrMemMult = {Rn: RName; rList: RegisterList; suff: Option<MultSuffix>}
 
@@ -39,7 +64,6 @@ module Memory
     type Instr = 
         | Mem of MemInstr
 
-    /// parse error (dummy, but will do)
     type ErrInstr = string
 
     let memSpec = {
@@ -62,6 +86,7 @@ module Memory
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand memSpec
 
+    /// Contructs an Instruction of InstrMemSingle for LDR, STR
     let consMemSingle reg mem preoffset postoffset suffix = 
         Result.map (fun _ -> 
             {
@@ -71,6 +96,7 @@ module Memory
                 suff = suffix;
             })
     
+    /// Contructs an Instruction of InstrMemMult for LDM, STM
     let consMemMult reg rLst suffix =
         Result.map (fun _ ->
             {
@@ -79,28 +105,42 @@ module Memory
                 suff = suffix;
             })
 
+    /// Where everything happens
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
 
+        /// Partial Active pattern for matching regexes
+        /// Looking for something like [r1] or [r13
+        /// For matching the address location 
         let (|MemMatch|_|) str =
             match str with 
             | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> Some
             | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
             | _ -> None
 
+        /// For matching the list of regs
         let (|RegListMatch|_|) str =
             match str with 
             | ParseRegex "([rR][0-9]{1,2})}" address -> address |> Some
             | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
             | _ -> None
         
+        /// Partial active pattern for matching both pre and post indexes
+        /// e.g. str r0, [r1], r2   str r0, [r1], #4
+        /// e.g. str r0, [r1, r2]   str r0, [r1, #4]
+        /// e.g. str r0, [r1, r2]!  str r0, [r1, #4]!
         let (|OffsetMatch|_|) str =
+
+            /// Register Post Index, No Pre Index
+            /// e.g. str r0, [r1], r2
             let regNoPrePost = function
                 | r when (regValid r) -> 
                     let postInd = Some (RegPost (regNames.[r]))
                     let preInd = None
                     (preInd, postInd) |> Some
                 | _ -> None
-                
+
+            /// Register Pre Index, No Post Index
+            /// e.g. str r0, [r1, r2]
             let regPreNoPost = function
                 | r when (regValid r) -> 
                     let postInd = None
@@ -108,6 +148,8 @@ module Memory
                     (preInd, postInd) |> Some
                 | _ -> None
             
+            /// Register Post Index and Pre Index
+            /// e.g. str r0, [r1, r2]!
             let regPreAndPost = function
                 | r when (regValid r) -> 
                     let postInd = Some (RegPost (regNames.[r]))
@@ -115,16 +157,22 @@ module Memory
                     (preInd, postInd) |> Some
                 | _ -> None
 
+            /// Immediate Post Index, No Pre Index
+            /// e.g. str r0, [r1], #4
             let immNoPrePost n =
                 let postInd = Some (ImmPost (uint32 n))
                 let preInd = None
                 (preInd, postInd) |> Some
             
+            /// Immediate Pre Index, No Post Index
+            /// e.g. str r0, [r1, #4]
             let immPreNoPost n = 
                 let postInd = None
                 let preInd = Some (ImmPre (uint32 n))
                 (preInd, postInd) |> Some
             
+            /// Immediate Pre and Post Index
+            /// e.g. str r0, [r1, #4]!
             let immPreAndPost n =
                 let postInd = Some (ImmPost (uint32 n))
                 let preInd = Some (ImmPre (uint32 n))
@@ -148,20 +196,22 @@ module Memory
             | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost
             | _ -> None
         
+        /// parse for LDM, STM
         let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
 
-            let (|ParseRegex2|_|) (regex: string) (str: string) =
-               let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
-               if m.Success
-               then Some (m.Groups.[1].Value, m.Groups.[2].Value)
-               else None
-
+            /// Regex match the numbers in a hyphen list {r1 - r7}
+            /// in order to construct full reg list.
+            /// return the two numbers as low, high
             let (|RegListExpand|_|) str =
                 match str with
                 | ParseRegex2 "[rR]([0-9]{1,2})-[rR]([0-9]{1,2})" (low, high) -> (low, high) |> Some
                 | _ -> None
 
+            /// Matches the registers
             let (|RegListMatch|_|) str =
+                /// nice function to make register names from the 
+                /// high and low values
+                /// {r2-r7} -> 2, 7 -> R2,R3,R4,R5,R6,R7
                 let optionNumToRegList n = 
                     match n with
                     | RegListExpand (low, high) -> 
@@ -178,6 +228,7 @@ module Memory
                 | ParseRegex "([rR][0-9]{1,2})" reg -> reg |> optionMakeList
                 | _ -> None
 
+            /// split the operands at a {
             let splitMult = splitAny ls.Operands '{'
             
             let checkMultSuffix = function
@@ -190,11 +241,11 @@ module Memory
                 | "FA" -> Some FA
                 | "EA" -> Some EA
                 | "" -> None
-                | _ -> failwithf "Should never happen, not a suffix"
+                | _ -> failwithf "Should never happen, not a suffix for LDM. Probably put a B"
 
             let ops = 
                 match splitMult with
-                | [rn; rlst] ->
+                | [rn; rlst] -> // LDM, STM
                     let regList = splitAny (rlst.Replace("}", "")) ','
                     let reg = rn.Replace(",", "")
 
@@ -226,6 +277,7 @@ module Memory
 
         let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,string> =         
 
+            /// split operands at ','
             let splitOps = splitAny ls.Operands ','
 
             let checkSingleSuffix = function
@@ -235,20 +287,20 @@ module Memory
             
             let ops =
                 match splitOps with
-                | [reg; addr] ->
+                | [reg; addr] -> // str r0, [r1] or str r0, [r1, #4]
                     match addr with
                     | MemMatch addr -> 
                         match [reg; addr] with
-                        | [reg; addr] when (checkValid2 [reg; addr]) ->
+                        | [reg; addr] when (regsValid [reg; addr]) ->
                             (Ok splitOps)
                             |> consMemSingle reg addr None None (checkSingleSuffix suffix)
                         | _ -> Error "Some registers are probably not valid"
                     | _ -> Error "MemMatch failed"
-                | [reg; addr; offset] ->
+                | [reg; addr; offset] -> // str r0, [r1], #4
                     match addr with
                     | MemMatch addr ->
                         match [reg; addr] with
-                        | [reg; addr] when (checkValid2 [reg; addr]) ->
+                        | [reg; addr] when (regsValid [reg; addr]) ->
                             match offset with
                             | OffsetMatch tuple  -> 
                                 (Ok splitOps)

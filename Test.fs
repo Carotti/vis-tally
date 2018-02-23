@@ -1,16 +1,10 @@
 ﻿module Test
-
     open Expecto
     open Helpers
     open VisualTest.VCommon
-    open VisualTest.VLog
     open VisualTest.Visual
     open VisualTest.VTest
-    open VisualTest.VData
-    open System.Threading
-    open System.IO
     open CommonData
-    // open TestShifts
 
     // from given files
     let memReadBase = 0x1000u
