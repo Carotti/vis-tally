@@ -126,38 +126,38 @@ module VTest =
     /// to test the testbench, create many tests with assembler
     /// this is enough for each test to need being run separately
     
-    let manyTests n = 
-        [0..n] 
-        |> List.map (fun n -> 
-            let n' = 1 + (n % 254)
-            vTest (sprintf "SUBS%d test" n') (sprintf "SUBS R0, R0, #%d" n') "1000" [R 0, -n'])
+        // let manyTests n = 
+        //     [0..n] 
+        //     |> List.map (fun n -> 
+        //         let n' = 1 + (n % 254)
+        //         vTest (sprintf "SUBS%d test" n') (sprintf "SUBS R0, R0, #%d" n') "1000" [R 0, -n'])
 
-    [<Tests>]
-    let many = testList "Many pointless tests" (manyTests 10)
+        // [<Tests>]
+        // let many = testList "Many pointless tests" (manyTests 10)
 
-    [<Tests>]
+        // [<Tests>]
     /// implements random property-based tests of the framework
     /// tests that read/write of registers and flags is consistent for random
     /// input values
-    let frametests =        
-        let fsConfig = {
-                FsCheckConfig.defaultConfig with
-                    replay = Some (0,0) // seed for RNG. Means that the same tests are done each run
-                                        // replace by None for a random time-based seed and therefore
-                                        // new tests each time that will not cache
-                    maxTest = 100       // number of random tests
-                }
-        testPropertyWithConfig fsConfig "Flags and registers are preserved" VisualFrameworkRun
+        // let frametests =        
+        //     let fsConfig = {
+        //             FsCheckConfig.defaultConfig with
+        //                 replay = Some (0,0) // seed for RNG. Means that the same tests are done each run
+        //                                     // replace by None for a random time-based seed and therefore
+        //                                     // new tests each time that will not cache
+        //                 maxTest = 100       // number of random tests
+        //             }
+        //     testPropertyWithConfig fsConfig "Flags and registers are preserved" VisualFrameworkRun
 
 
-    [<Tests>]
-    let tests = 
-        testList "Minimal Visual Unit Tests"
-            [
-            VisualFrameworkTest defaultParas
-            vTest "SUB test" "SUB R0, R0, #1" "0000" [R 0, -1]
-            vTest "SUBS test" "SUBS R0, R0, #0" "0110" [R 0, 0]
-            vTest "This ADDS test should fail" "ADDS R0, R0, #4" "0000" [R 0, 4; R 1, 0] 
-            // R1 should be 10 but is specified here as 0
-            ]
+    // [<Tests>]
+    // let tests = 
+    //     testList "Minimal Visual Unit Tests"
+    //         [
+    //         VisualFrameworkTest defaultParas
+    //         vTest "SUB test" "SUB R0, R0, #1" "0000" [R 0, -1]
+    //         vTest "SUBS test" "SUBS R0, R0, #0" "0110" [R 0, 0]
+    //         vTest "This ADDS test should fail" "ADDS R0, R0, #4" "0000" [R 0, 4; R 1, 0] 
+    //         // R1 should be 10 but is specified here as 0
+    //         ]
 

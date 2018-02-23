@@ -171,6 +171,7 @@ module DPExecution
             match suffix with
             | Some S ->
                 flagTests
+                |> List.collect id
                 |> List.fold (fun flags test -> test flags) (dp'.Fl, op1, op2, result)
                 |> fun (f, _op1, _op2, _res) -> f
                 |> fun f -> {dp' with Fl = f}
@@ -231,16 +232,16 @@ module DPExecution
                 | None -> dp
             
             match opcode with
-            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff (CVCheckAdd @ NZCheck)
-            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff (CVCheckAdd @ NZCheck)
-            | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff (CVCheckSub @ NZCheck)
-            | SBC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 (op2 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff (CVCheckSub @ NZCheck)
-            | RSB _ -> execute dp' (fun op1 op2 -> op2 - op1) dest op1 op2 operands.suff (CVCheckSub @ NZCheck)
-            | RSC _ -> execute dp' (fun op1 op2 -> op2 - op1) dest (op1 + (Cb |> not |> System.Convert.ToUInt32)) op2 operands.suff (CVCheckSub @ NZCheck)
-            | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff NZCheck
-            | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff NZCheck
-            | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff NZCheck
-            | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff NZCheck
+            | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+            | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [CVCheckAdd; NZCheck]
+            | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff [CVCheckSub; NZCheck]
+            | SBC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 (op2 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff [CVCheckSub; NZCheck]
+            | RSB _ -> execute dp' (fun op1 op2 -> op2 - op1) dest op1 op2 operands.suff [CVCheckSub; NZCheck]
+            | RSC _ -> execute dp' (fun op1 op2 -> op2 - op1) dest (op1 + (Cb |> not |> System.Convert.ToUInt32)) op2 operands.suff [CVCheckSub; NZCheck]
+            | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff [NZCheck]
+            | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff [NZCheck]
+            | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [NZCheck]
+            | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff [NZCheck]
 
         let executeDP2 dp opcode (operands:DP2Form) : (Result<DataPath<Instr>,ErrExe>) =
             let op1 = dp.Regs.[operands.rOp1]
@@ -249,10 +250,10 @@ module DPExecution
             // No suffix, but can effect CPSR
             let dp' = {dp with Fl = flags'}
             match opcode with
-            | CMN _ -> execute dp' (fun op1 op2 -> op1 - op2) None op1 op2 (Some S) (CVCheckSub @ NZCheck)
-            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) (CVCheckAdd @ NZCheck)
-            | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) NZCheck
-            | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) NZCheck
+            | CMN _ -> execute dp' (fun op1 op2 -> op1 - op2) None op1 op2 (Some S) [CVCheckSub; NZCheck]
+            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [CVCheckAdd; NZCheck]
+            | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [NZCheck]
+            | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [NZCheck]
         
         let dp' =
             match condExecute instr dp with
