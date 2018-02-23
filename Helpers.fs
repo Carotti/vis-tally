@@ -12,11 +12,19 @@ module Helpers
     let qpl lst = List.map (qp) lst
 
     /// Partial Active pattern for regexes. 
-    /// Returns the right element in the group
+    /// Returns the 1st () element in the group
     let (|ParseRegex|_|) (regex: string) (str: string) =
        let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
        if m.Success
        then Some (m.Groups.[1].Value)
+       else None
+
+    /// Partial Active pattern for regexes. 
+    /// Returns the 1st and 2nd () elements in the group
+    let (|ParseRegex2|_|) (regex: string) (str: string) =
+       let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
+       if m.Success
+       then Some (m.Groups.[1].Value, m.Groups.[2].Value)
        else None
 
     /// makes a reg
@@ -78,7 +86,8 @@ module Helpers
     let setMem contents (addr: uint32) cpuData =
         match addr with
         | x when (x < minAddress) ->
-            failwithf "setMem called with code section address: %x" addr
+            "Trying to access code memory location. < 0x100" |> qp |> ignore
+            cpuData
         | _ ->
             match addr % 4u with
             | 0u -> {cpuData with MM = Map.add (WA addr) contents cpuData.MM}

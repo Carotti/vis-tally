@@ -7,10 +7,12 @@ module MemExecution
 
     let executeMem (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
 
-        let regContents r = cpuData.Regs.[r] // add 0 - 255
+        let regContents r = cpuData.Regs.[r]
 
+        /// return an aligned word address
         let wordAligned addr = 4u * (addr / 4u)
 
+        /// check if word address is valid and multiple of 4
         let (|Valid|_|) (input: uint32) = 
             if input % 4u = 0u 
             then Valid |> Some
@@ -28,39 +30,47 @@ module MemExecution
             | Some (RegPost r) -> regContents r
             | None -> 0u
         
-        let wordAddress (a: uint32) = 
+        /// check if valid, if so return Word Address
+        let wordAddress a = 
             match a with
             | Valid -> WA a
             | _ -> failwithf "Nope"
         
-        
+        /// make an offset list for ldm and stm by recursively
+        /// adding an incr to the address for the length of the list
         let rec makeOffsetList inlst outlist incr start = 
             match inlst with
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
-
+ 
+        /// STRB to set the correct byte
         let setCorrectByte value addr = 
             let shift = 8u * (addr % 4u) |> int32
             (value &&& 0x000000FFu) <<< shift
 
+        /// LDRB to load the correct byte
         let getCorrectByte value addr = 
             let shift = 8u * (addr % 4u) |> int32
             ((0x000000FFu <<< shift) &&& value) >>> shift
 
+        /// Check if B suffix is presesnt on STR
         let setWordOrByte suffix value addr = 
             match suffix with
             | Some B -> setCorrectByte value addr
             | None -> value
 
+        /// Check if B suffix is presesnt on LDR
         let getWordOrByte suffix value addr = 
             match suffix with
             | Some B -> getCorrectByte value addr
             | None -> value
 
+        /// get memory stored a address check its not in code segment 
         let getMem addr cpuData = 
             match addr with
             | x when (x < minAddress) ->
-                failwithf "getMem called with code section address: %x" addr
+                "Trying to access code memory location. < 0x100" |> qp |> ignore
+                0u
             | _ -> 
                 let memValid m = Map.containsKey m cpuData.MM
                 let wordAddr = WA addr
@@ -72,6 +82,7 @@ module MemExecution
                     "Nothing stored at provided address" |> qp
                     0u
         
+        /// get multiple memory 
         let rec getMemMult addrList contentsLst cpuData = 
             match addrList with
             | head :: tail ->
