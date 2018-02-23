@@ -35,11 +35,10 @@ let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
                 |> List.map (fun (r,v) -> (consRegG r, v))
                 |> Map.ofList
             | _ ->
-                [0u..15u]
-                |> List.zip [0u..15u]
+                [0u..14u]
+                |> List.zip [0u..14u]
                 |> List.map (fun (r, _v) -> (consRegG r, 0u))
                 |> Map.ofList
-
         Map.add R15 0u regsNoPC
             
     {
