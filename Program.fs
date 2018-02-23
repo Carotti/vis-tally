@@ -1,7 +1,6 @@
 ﻿module Program
 
 open Expecto
-open FsCheck
 
 open CommonTop
 open CommonData
@@ -11,8 +10,6 @@ open DPExecution
 open DPTests
 open Tests
 
-open VisualTest.VCommon
-open VisualTest.VLog
 open VisualTest.Visual
 open VisualTest.VTest
 
@@ -92,27 +89,39 @@ let expectoConfig = { Expecto.Tests.defaultConfig with
 [<EntryPoint>]
 let main argv =
 
-    
+    let rec keyHandler() =
+        printfn "Enter..."
+        printfn "         'p' for a parsing REPL"
+        printfn "         'e' fot an execution REPL"
+        printfn "         'v' for a VisUAL comparison REPL"
+        printfn "      or 't' to run some cool tests"
+        let key = System.Console.ReadKey()
+        match key.KeyChar with
+        | 'p'   ->
+            "ready to REPL..." |> (printfn "%s")
+            parseREPL()
+            0
+        | 'e'   ->
+            "ready to REPL..." |> (printfn "%s")
+            let dp = initialiseDP false false false false [0u]
+            exeREPL dp
+            0 
+        | 'v'   ->
+            "ready to REPL..." |> (printfn "%s")
+            visCompareREPL()
+            0 
+        | 't'   ->
+            initCaches testParas
+            let rc = runTestsInAssembly expectoConfig [||]
+            finaliseCaches testParas
+            System.Console.ReadKey() |> ignore
+            0
+        |  _    -> keyHandler()
 
-    // "ready to REPL..." |> (printfn "%s")
-    // parseREPL |> ignore
 
-    // "ready to REPL..." |> (printfn "%s")
-    // visCompareREPL()
+    keyHandler()
 
-    // "ready to REPL..." |> qp
-    // let dp = initialiseDP false false false false [0u]
-    // exeREPL dp |> ignore
-
-    initCaches testParas
-    let rc = runTestsInAssembly expectoConfig [||]
-    finaliseCaches testParas
-    System.Console.ReadKey() |> ignore                
-    rc // return an integer exit code - 0 if all tests pass
-    
-    "ready to REPL..." |> qp
-    let dp = initialiseDP false false false false [0u]
-    exeREPL dp
+    1
   
 
 
