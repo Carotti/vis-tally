@@ -10,9 +10,7 @@ The program can being run using with `dotnet run` plus various arguments in orde
 
 `dotnet run xlist` will run execute all the instructions in a given list and display the registers, flags and memory.
 
-`dotnet run vtests` will run the visUAL based tests.
-
-`dotnet run tests` will run other non-visUAL tests.
+`dotnet run vtests` will run the visUAL based tests and other tests.
 
 `dotnet run` will parse the input list and display the output records.
 
