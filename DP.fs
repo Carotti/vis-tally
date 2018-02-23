@@ -566,7 +566,8 @@ module DP
                 "ADC", ADC;
                 "SUB", SUB;
                 "SBC", SBC;
-                "RSB", RSC;
+                "RSB", RSB;
+                "RSC", RSC;
                 "AND", AND;
                 "ORR", ORR;
                 "EOR", EOR;

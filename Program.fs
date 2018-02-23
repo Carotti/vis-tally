@@ -81,12 +81,6 @@ let exeREPL (dp:DataPath<Instr>) =
     repl' dp
 
 
-/// configuration for this testing framework      
-/// configuration for expecto. Note that by default tests will be run in parallel
-/// this is set by the fields oif testParas above
-
-
-
 [<Tests>]
 
 
@@ -97,6 +91,8 @@ let expectoConfig = { Expecto.Tests.defaultConfig with
 
 [<EntryPoint>]
 let main argv =
+
+    
 
     // "ready to REPL..." |> (printfn "%s")
     // parseREPL |> ignore
@@ -113,7 +109,10 @@ let main argv =
     finaliseCaches testParas
     System.Console.ReadKey() |> ignore                
     rc // return an integer exit code - 0 if all tests pass
-    0
+    
+    "ready to REPL..." |> qp
+    let dp = initialiseDP false false false false [0u]
+    exeREPL dp
   
 
 
