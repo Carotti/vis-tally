@@ -119,7 +119,8 @@ module DPExecution
             let C' = getBitBool (bitNum shiftBy) dp.Regs.[shift.rOp2]
             res, {dp.Fl with C = C'}
 
-        /// A function that determines whcih shifting operation is to be done, and does this.
+        /// A function that determines whcih shifting operation is to be done, and does this. It also parses a function
+        ///  to determine the new C flag. 
         let calcShift (shift:FS2Form) dp =
             match shift.sInstr with
             | LSL ->
@@ -269,14 +270,17 @@ module DPExecution
                 match operands.suff with
                 | Some S -> {dp with Fl = flags'}
                 | None -> dp
-            
+            // "op 1 and 2" |> qp
+            // op1 |> qp
+            // op2 |> qp
+            // opcode |> qp
             match opcode with
             | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [CVCheckAdd; NZCheck]
             | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff [CVCheckSub; NZCheck]
             | SBC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 (op2 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff [CVCheckSub; NZCheck]
-            | RSB _ -> execute dp' (fun op1 op2 -> op2 - op1) dest op1 op2 operands.suff [CVCheckSub; NZCheck]
-            | RSC _ -> execute dp' (fun op1 op2 -> op2 - op1) dest (op1 + (Cb |> not |> System.Convert.ToUInt32)) op2 operands.suff [CVCheckSub; NZCheck]
+            | RSB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op2 op1 operands.suff [CVCheckSub; NZCheck]
+            | RSC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op2 (op1 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff [CVCheckSub; NZCheck]
             | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff [NZCheck]
             | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff [NZCheck]
             | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [NZCheck]

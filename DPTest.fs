@@ -168,10 +168,16 @@ let visCompare src regs n c z v =
         |> executeDP dp
         |> function
         | Ok localDP ->
-            RunVisualWithFlagsOut param src
-            |> snd
-            |> visOutToDP
-            |> equalDP localDP
+            let visDP =
+                RunVisualWithFlagsOut param src
+                |> snd
+                |> visOutToDP
+            // Commented-out code below is used to debug differences between local and VisUAL executions
+            // printRegs visDP
+            // printFlags visDP
+            // printRegs localDP
+            // printFlags localDP
+            equalDP localDP visDP
         | Error e ->
             e |> qp
             false
