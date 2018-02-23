@@ -5,12 +5,11 @@ module DP
     open System.Text.RegularExpressions
     open FsCheck
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // maccth helper functions, TODO: delete 
+    /// Quick print helper function.
     let qp thing = thing |> printfn "%A"
+
+    /// Quick print helper function for lists with nicer formatting.
     let qpl lst = lst |> List.map (qp)
-    // maccth helper functions, TODO: delete 
-    ////////////////////////////////////////////////////////////////////////////////
 
     /// Rotation values for the `Literal` type in the flexible second operand.
     [<Struct>]
@@ -75,6 +74,10 @@ module DP
             ("ROR", ROR);     
         ]
     
+    // This is mainly used in property based testing to allow shift instructions
+    //  to be picked by Expecto.
+    /// Map for converting SInstr containing shift instructions (used in
+    ///  the flexible second operand) to their string representation.
     let sInstrsStr =
         Map.ofList [
             (LSL, "LSL");
@@ -83,10 +86,11 @@ module DP
             (ROR, "ROR");     
         ]
     
+    /// Type representation of the optional suffix `S`.
     type Suffix =
         | S
      
-    // Flexible shift instruction format within the flexible second operand.
+    /// Flexible shift instruction format within the flexible second operand.
     type FS2Form =
         {
             rOp2:RName;
@@ -94,6 +98,7 @@ module DP
             sOp:SOp
         }
 
+    /// Flexible second operand format.
     type FlexOp2 =
         | Lit       of Literal
         | Reg       of RName
@@ -108,6 +113,8 @@ module DP
             fOp2:FlexOp2
         }
 
+    /// Operand format including an optional suffix for three-operand data
+    ///  processing instructions. 
     type DP3SForm =
         {
             rDest:RName;
@@ -115,13 +122,16 @@ module DP
             fOp2:FlexOp2;
             suff:Option<Suffix>;
         }
-    
+
+    /// Operand format for two-operand data processing instructions. 
     type DP2Form =
         {
             rOp1:RName;
             fOp2:FlexOp2;
         }
 
+    /// Operand format including an optional suffix for two-operand data
+    ///  processing instructions. 
     type DP2SForm =
         {
             rOp1:RName;
@@ -137,6 +147,8 @@ module DP
             rOp1: RName
         }
     
+    /// All DP3S instructions, that is data processing instructions that have
+    ///  three operands (with a flexible second operand) and an optional suffix.
     type DP3SInstr =
         | ADD of DP3SForm
         | ADC of DP3SForm
@@ -149,17 +161,20 @@ module DP
         | EOR of DP3SForm
         | BIC of DP3SForm
 
+    /// All DP2 instructions, that is data processing instructions that have
+    ///  two operands (with a flexible second operand) and no optional suffix.
     type DP2Instr =
         | CMP of DP2Form   
         | CMN of DP2Form
         | TEQ of DP2Form    
         | TST of DP2Form
     
+    /// Top level instruction type for data processing instructions.
     type Instr =
         | DP3S of DP3SInstr
         | DP2 of DP2Instr
   
-    /// Error types
+    /// Error types for parsing.
     type ErrInstr =
         | ``Invalid literal``       of string
         | ``Invalid register``      of string
@@ -169,6 +184,7 @@ module DP
         | ``Invalid instruction``   of string
         | ``Syntax error``          of string
 
+    /// Constructs a `DP2S` from an optional suffix and a `DP2`
     let consDP2S suffix (dp2:DP2Form) =
         {
             rOp1 = dp2.rOp1
@@ -176,6 +192,7 @@ module DP
             suff = suffix
         }
     
+     /// Constructs a `DP3S` from an optional suffix and a `DP3`
     let consDP3S suffix (dp3:DP3Form) =
         {
             rDest = dp3.rDest
@@ -187,7 +204,12 @@ module DP
     let DPSpec =
         {
             InstrC = DP
-            Roots = ["ADD"; "ADC"; "SUB"; "SBC"; "RSB"; "RSC"; "AND"; "ORR"; "EOR"; "BIC"; "CMP"; "CMN"; "TST"; "TEQ"]
+            Roots = [   "ADD"; "ADC"; "SUB";
+                        "SBC"; "RSB"; "RSC";
+                        "AND"; "ORR"; "EOR";    
+                        "BIC"; "CMP"; "CMN";
+                        "TST"; "TEQ"
+                    ]
             Suffixes = [""; "S"]
         }
 
@@ -195,6 +217,7 @@ module DP
     let consReg reg =
         regNames.[reg]
 
+    /// A general version of `consReg` that constructs a register name of type `RName`.
     let consRegG reg =
         reg |> string |> (+) "R" |> consReg
 
@@ -214,12 +237,14 @@ module DP
             fOp2 = fOp2'
         }
 
+    /// Constructs an operand record of type `DP2Form` from registers specified as strings.
     let consDP2 rOp1' fOp2' =
         {
             rOp1 = regNames.[rOp1'];
             fOp2 = fOp2'
         }
-        
+
+    /// Constructs an operand record of type `DP2Form` from registers specified as type `RName`.    
     let consDP2R rOp1' fOp2' =
         {
             rOp1 = rOp1';
@@ -241,6 +266,7 @@ module DP
             fOp2 = fOp2'
         }
 
+    /// Constructs an operand record of type `FS2Form` from registers specified as strings.
     let consFS2 rOp2' sInstr' sOp'=
         {
             rOp2 = consReg(rOp2');
@@ -248,6 +274,7 @@ module DP
             sOp = sOp';
         }
   
+    /// Constructs an operand record of type `FS2Form` from registers specified as `RName`.
     let consFS2R rOp2' sInstr' sOp'=
         {
             rOp2 = rOp2';
@@ -276,16 +303,19 @@ module DP
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
+    /// A function to combine results or forward errors.
     let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =
         match res1, res2 with
         | Error e1, _ -> Error e1
         | _, Error e2 -> Error e2
         | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
 
+    /// A function that combines two results by applying a function on them as a pair, or forwards errors.
     let combineErrorMapResult (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,'E> =
         combineError res1 res2
         |> Result.map (fun (r1,r2) -> mapf r1 r2)
     
+    /// A function that applies a possibly erroneous function to a possibly erroneous argument, or forwards errors.
     let applyResultMapError (res:Result<'T1->'T2,'E>) (arg:Result<'T1,'E>) =
         match arg, res with
         | Ok arg', Ok res' -> res' arg' |> Ok
@@ -300,6 +330,7 @@ module DP
     /// otherwise it is Ok Parse or Error (parse error string)
     let parse (ld: LineData) : Result<Parse<Instr>,ErrInstr> option =
       
+        /// A function to check the validity of literals according to the ARM spec.
         let checkLiteral lit =
             let rotMask n = (0xFFu >>> n) ||| (0xFFu <<< 32 - n)
             [0..2..30] 
@@ -315,12 +346,15 @@ module DP
                 |> ``Invalid literal``
                 |> Error
 
+        /// A partially active pattern to parse regexes, and return the matched group.
         let (|ParseRegex|_|) regex txt =
             let m = Regex.Match(txt, "^[\\s]*" + regex + "[\\s]*" + "$")
             match m.Success with
             | true -> Some (m.Groups.[1].Value)
             | false -> None
 
+        /// A partially active pattern to match literals according to the ARM spec,
+        ///  and return a numerical representation of the literal if it is valid.
         let (|LitMatch|_|) txt =
             match txt with
             | ParseRegex "#&([0-9a-fA-F]+)" num -> 
@@ -331,7 +365,9 @@ module DP
                 num |> uint32 |> checkLiteral |> Some
             | _ ->
                 None
-        
+
+        /// A partially active pattern to check validity of a register passed as a string,
+        /// and return an `RName` if it is valid.
         let (|RegMatch|_|) txt =
             match Map.tryFind txt regNames with
             | Some reg ->
@@ -339,6 +375,7 @@ module DP
             | _ ->
                 None
 
+        /// A partially active pattern that returns an error if a register argument is not valid.
         let (|RegCheck|_|) txt =
             match Map.tryFind txt regNames with
             | Some reg ->
@@ -349,6 +386,8 @@ module DP
                 |> Error
                 |> Some
         
+        /// A partially active pattern to match RRXs and, if valid, to return the
+        ///  `RName` of the  register upon which the rotation will be done
         let (|RrxMatch|_|) reg txt =
             match txt with
             | ParseRegex "(^RRX)" _ ->
@@ -360,6 +399,8 @@ module DP
             | _ ->
                 None
 
+        /// A partially active pattern to match shift sub-instructions and, if valid,
+        ///  to return the instruction in `SInstr` form.
         let (|ShiftInstr|_|) txt =
             match txt with
             | ParseRegex "(LSL)" _ 
@@ -368,6 +409,8 @@ module DP
             | ParseRegex "(ROR)" _ -> txt |> consSInstr |> Some
             | _ -> None
 
+        /// A partially active pattern to match shift flexible second operands
+        ///  and return a flexible second operand if it is valid.
         let (|ShiftMatch|_|) (reg:string) (txt:string) =
             match String.length txt with
             | x when x < 5 ->
@@ -408,6 +451,8 @@ module DP
                 | _ ->
                     None  
 
+        /// A function to parse the flexible second operand if it has no extension.
+        ///  An extention is a fourth comma-seperated operand.
         let parseFOp2NoExtn op2 createOp =
             match op2 with
                 | LitMatch litVal ->
@@ -421,7 +466,9 @@ module DP
                     |> ``Invalid flexible second operand``
                     |> Error
                     |> applyResultMapError createOp
-        
+
+        /// A function to parse the flexible second operand if it has an extension.
+        ///  An extention is a fourth comma-seperated operand.
         let parseFOp2Extn rOp2 extn createOp =
             match extn with
             | RrxMatch rOp2 reg ->
@@ -436,46 +483,25 @@ module DP
                 |> Error
                 |> applyResultMapError createOp
 
+        /// A function to parse instructions with three comma-seperated operands.
         let parse3Ops rDest rOp1 op2 =
             match rDest, rOp1 with
             | RegCheck rDest', RegCheck rOp1' ->
                 let dp32 = combineErrorMapResult rDest' rOp1' consDP3R
                 parseFOp2NoExtn op2 dp32
-                // match op2 with
-                // | LitMatch litVal ->
-                //     let litVal' = Result.map (consLitOp) litVal
-                //     applyResultMapError dp32 litVal'
-                // | RegMatch reg ->
-                //     let reg' = Result.map (Reg) reg
-                //     applyResultMapError dp32 reg'
-                // | _ ->
-                //     op2 + " is an invalid flexible second operand"
-                //     |> ``Invalid flexible second operand``
-                //     |> Error
-                //     |> applyResultMapError dp32
             | _ ->
                 failwith "Should never happen! Match statement always matches."
 
+        /// A function to parse instructions with four comma-seperated operands.
         let parse4Ops rDest rOp1 rOp2 extn =
             match rDest, rOp1 with
             | RegCheck rDest', RegCheck rOp1' ->
                 let dp32 = combineErrorMapResult rDest' rOp1' consDP3R
                 parseFOp2Extn rOp2 extn dp32
-                // match extn with
-                // | RrxMatch rOp2 reg ->
-                //         let reg' = Result.map (RRX) reg
-                //         applyResultMapError dp32 reg'
-                // | ShiftMatch rOp2 shift ->
-                //     let shift' = Result.map (Shift) shift
-                //     applyResultMapError dp32 shift'
-                // | _ ->
-                //     rOp2 + ", " + extn + " is an invalid flexible second operand"
-                //     |> ``Invalid flexible second operand``
-                //     |> Error
-                //     |> applyResultMapError dp32
             | _ ->
                 failwith "Should never happen! Match statement always matches."
-            
+
+        /// Lazy data representing the operands for `DP2` instructions.    
         let operandsDP2 = 
             lazy (
                 ld.Operands.Split([|','|])
@@ -502,6 +528,7 @@ module DP
                     |> Error
             ) 
 
+        /// Lazy data representing the operands for `DP3` instructions.    
         let operandsDP3 = 
             lazy (
                 ld.Operands.Split([|','|])
@@ -520,6 +547,7 @@ module DP
             
         let (WA la) = ld.LoadAddr
 
+        /// A helper function for quick construction of a complete top-level instruction.
         let makeInstr cond instr =
             {
                 PInstr  = instr; 
@@ -549,6 +577,8 @@ module DP
                 "TEQ", TEQ;
             ]
         
+        /// A function to initiate parsing of an instruction, and return a result
+        ///  based on this parsing.
         let parse' (_instrC, (root, suffix, cond)) =
             let suff = match suffix with "S" -> Some S | _ -> None
             let instr =

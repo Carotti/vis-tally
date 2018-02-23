@@ -4,10 +4,13 @@ module DPExecution
     open CommonTop
     open DP
 
-
+    /// Bitwise shift operators defined to accept the shift value as first argument 
+    ///  and the value to-be-shifted as a second argument. This allows the value
+    ///  to-be-shifted to be piped in from previous processing.
     let inline (>>>>) shift num = (>>>) num shift    
     let inline (<<<<) shift num = (<<<) num shift
 
+    /// A function to downcast instructions from top-level instructions to DP instructions.
     let covertToDP (ins : Parse<CommonTop.Instr>) : Parse<DP.Instr> =
         match ins.PInstr with
         | CommonTop.IDP dpIns -> 
@@ -19,7 +22,8 @@ module DPExecution
             }
         | _ -> failwithf "Invalid downcast to DP"             
 
-    /// Return a new datapath with reg rX set to value
+
+    /// A function that returns a new datapath with the specified register updated.
     let updateReg rX value dp =
         let updater reg old =
             match reg with
@@ -27,12 +31,14 @@ module DPExecution
             | _ -> old
         {dp with Regs = Map.map updater dp.Regs}
 
+    /// A function to update the program counter based on the size of the instruction.
     let updatePC (instr:CommonLex.Parse<Instr>) (dp:DataPath<Instr>) : DataPath<Instr> =
         let pc = dp.Regs.[R15]
         let size = instr.PSize
         updateReg R15 (pc+size) dp
  
-    /// Return whether or not an instruction should be executed
+    /// A function that returns, based on the condition code and CPSR, whether
+    ///  an instruction should be executed.
     let condExecute (ins:CommonLex.Parse<Instr>) (data : DataPath<Instr>) =
         let (n, c, z, v) = (data.Fl.N, data.Fl.C, data.Fl.Z, data.Fl.V)
         match ins.PCond with
@@ -53,16 +59,21 @@ module DPExecution
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
 
+    /// Error types for execution stage.
     type ErrExe =
         | ``Run time error`` of string
 
+    /// Instruction to initiate execution of data processing instructions.
     let executeDP (dp:DataPath<Instr>) (instr:CommonLex.Parse<Instr>) : (Result<DataPath<Instr>,ErrExe>) =
 
-        let getBit n (value) =
+        /// A helper function to get the `n`th bit of `value`.
+        let getBit n value =
             value
             |> (<<<<) (31-n)
             |> (>>>>) (31)
         
+        /// A helper function to get `n`th bit of `value` as a bool. This is helpful
+        ///  in finding the new value of the CPSR flags.
         let getBitBool n (value:uint32) =
             getBit n value
             |> System.Convert.ToBoolean

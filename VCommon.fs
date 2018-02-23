@@ -40,7 +40,6 @@ module VCommon =
         /// temporary data used to construct assembler
         Prelude: string
         Postlude: string
-
     }
 
    

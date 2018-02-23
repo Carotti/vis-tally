@@ -9,6 +9,7 @@ open CommonLex
 open DP
 open DPExecution
 open DPTests
+open Tests
 
 open VisualTest.VCommon
 open VisualTest.VLog
@@ -18,7 +19,6 @@ open VisualTest.VTest
 open System
 open System.Threading
 open System.IO
-open DP
 
 // Comments
 let qp thing = thing |> printfn "%A"
@@ -113,9 +113,7 @@ let main argv =
     finaliseCaches testParas
     System.Console.ReadKey() |> ignore                
     rc // return an integer exit code - 0 if all tests pass
-
- 
-
+    0
   
 
 
