@@ -71,4 +71,4 @@
         cpuData.Regs
     
     let returnCpuDataFlags (cpuData: DataPath<CommonTop.Instr>) =
-        [cpuData.Fl.N;cpuData.Fl.C;cpuData.Fl.Z;cpuData.Fl.V;]
+        cpuData.Fl

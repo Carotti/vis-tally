@@ -1,12 +1,8 @@
 module Memory
     open CommonData
     open CommonLex
-    open Expecto
     open Helpers
-    // open Execution
     open System.Text.RegularExpressions
-    open FsCheck
-    open System
 
     type OffsetType =
         | ImmPre of uint32

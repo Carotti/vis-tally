@@ -4,7 +4,7 @@ module Execution
     open Helpers
     open CommonTop
     
-
+    /// Blank dataPath with all regs set to Zero and flags to false
     let initDataPath : DataPath<Instr> =
         let flags =
             {N = false; C = false; Z = false; V = false}
@@ -20,32 +20,14 @@ module Execution
             Regs = initRegs [0u..15u] 
             MM = Map.ofList []
         }
-    
-    
-    let testDataPath startRegs : DataPath<Instr> =
-        let flags =
-            {N = false; C = false; Z = false; V = false}
 
-        let createRegs = 
-            List.zip [0u..14u]
-            >> List.map (fun (r, v) -> (makeRegFromNum r, v))
-            >> Map.ofList
-
-        let initRegs vals =
-            let noPC = createRegs vals
-            Map.add R15 0u noPC
-
-        {
-            Fl = flags;    
-            Regs = initRegs startRegs
-            MM = Map.ofList []
-        }
-    
     let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
         let pc = cpuData.Regs.[R15]
         let size = instr.PSize
         setReg R15 (pc + size) cpuData
 
+
+    /// Tom's condExecute instruction as he made it first (don't reinvent the wheel)
     let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
         let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
         match instr.PCond with
