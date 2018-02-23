@@ -65,7 +65,7 @@ let instrLst = [
     ]
 
 let parseInstr input =
-    parseLine None (WA 0u) input
+    parseLine None (WA 0u) (uppercase input)
 
 let replParser () =
     let rec repl' () = 

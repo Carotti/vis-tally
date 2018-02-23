@@ -49,8 +49,7 @@
         | DataLoc dl -> dl
         | _ -> 0u
 
-    // pretty standard making cpuData
-    let visualToDataPath visual = 
+    let visualToDataPath visual =   
         let flags = {
                         N = visual.State.VFlags.FN; 
                         C = visual.State.VFlags.FC;
@@ -60,13 +59,10 @@
         let regs = visualToRegs visual.Regs
         let mem = visualToMem visual.State.VMemData
         {Fl = flags; Regs = regs; MM = mem}
-    
-    let returnVisualCpuData src = 
-        let vRes = RunVisualBaseWithLocksCached defaultParas src 
-                    |> Result.map visualToDataPath
-        match vRes with
-        | Ok res -> res
-        | Error x -> failwithf "Visual failed to run with errors %A" x
+    let returnVisualCpuData param src = 
+        let vRes = RunVisualWithFlagsOut param src 
+                   |> snd |> visualToDataPath
+        vRes
 
     let returnCpuDataMem (cpuData: DataPath<CommonTop.Instr>) = 
         Map.map returnData cpuData.MM
