@@ -1,23 +1,19 @@
 module DPTests
 
 open Expecto
-open FsCheck
 
 open CommonTop
 open CommonData
-open CommonLex
 open DP
 open DPExecution
 
 open VisualTest.VCommon
-open VisualTest.VLog
 open VisualTest.Visual
 open VisualTest.VTest
 
-open System
-open System.Threading
-open System.IO
 
+/// A map to convert between `RName` and a numerical register name. This is used
+///  to interface with the `Out` type.
 let regNums =
     Map.ofList [ 
         R0,0 ; R1,1 ; R2,2 ; R3,3 ; R4,4 ; R5,5
@@ -25,6 +21,7 @@ let regNums =
         R12,12 ; R13,13 ; R14,14 ; R15,15 ;
     ] 
 
+/// A function to initialise data paths based on register and CPSR values.
 let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
     let flags =
         {N = n; C = c; Z = z; V = v;}
@@ -51,6 +48,7 @@ let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
         MM = Map.empty<WAddr,MemLoc<DP.Instr>>
     }        
 
+/// A function to construct a register-value tuple from the VisUAL framework format.
 let consDPReg (r:Out,value:int) =
         match r with
         | R n ->
@@ -59,12 +57,16 @@ let consDPReg (r:Out,value:int) =
             |> (+) "R"
             |> consReg, value|>uint32
 
+/// A function to print the hexadecimal values of registers in a datapath.
 let printRegs (dp:DataPath<Instr>) =
     dp.Regs |> Map.toList |> List.map (fun (r, v) -> printfn "%A : %x" r v) |> ignore
     
+/// A function to print the flags in a datapath.
 let printFlags (dp:DataPath<Instr>) =
      dp.Fl |> qp |> ignore
          
+/// A function to convert between the `VisOuput` and `DataPath` formats.
+///  This only looks at registers and flags.
 let visOutToDP visOut = 
     let flags =
         {
@@ -81,6 +83,8 @@ let visOutToDP visOut =
     let mem = Map.empty<WAddr,MemLoc<DP.Instr>>
     {Fl = flags; Regs = regs; MM = mem}
 
+/// A function to convert between the `VisOutput` and `Params` formats.
+///  This only looks at registers and flags.
 let visOutToVisParams inParams visOut =
     let flags =
         {
@@ -98,6 +102,8 @@ let visOutToVisParams inParams visOut =
     
     {inParams with InitFlags = flags; InitRegs = regs} 
 
+/// A function to convert between the `Params` and `VisOut` formats.
+///  This only looks at registers and flags.
 let visParamsToVisOut (visParams:Params) =
     let flags =
         {
@@ -116,6 +122,8 @@ let visParamsToVisOut (visParams:Params) =
         State = {VFlags = flags; VMemData = []}
     }
 
+/// A function to convert between the `DataPath` and `VisOut` formats.
+///  This only looks at registers and flags.
 let DPToVisOut (visDP:DataPath<Instr>) =
     let flags =
         {
@@ -134,12 +142,16 @@ let DPToVisOut (visDP:DataPath<Instr>) =
         RegsAfterPostlude = []
         State = {VFlags = flags; VMemData = []}
     }
-      
+    
+/// A function to determine if two data paths are equal. This does not take into
+///  account the value of the program counter.  
 let equalDP (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) =
     let regs1 = Map.remove R15 dp1.Regs
     let regs2 = Map.remove R15 dp2.Regs
     {dp1 with Regs = regs1} = {dp2 with Regs = regs2}
 
+/// A function that, given a line of assembly, register and CPSR values, parses
+///  executes and compares to VisUAL in an error safe way.
 let visCompare src regs n c z v =
     let flags = {FN=n; FC=c;FZ=z; FV=v}
     let regs' =
@@ -167,6 +179,8 @@ let visCompare src regs n c z v =
         e |> qp
         false
 
+/// A function that executes an instruction locally and on VisUAL and then outputs
+///  the local data path and the VisUAL output.
 let processDP src (visDP:VisOutput) (localDP:DataPath<Instr>) =
     src
     |> parseLine None (WA 0u)
@@ -185,6 +199,8 @@ let processDP src (visDP:VisOutput) (localDP:DataPath<Instr>) =
         e |> qp
         (visDP, localDP)
 
+/// A function that executes a sequence of assembly instructions locally and on
+/// VisUAL and comapre the two data paths.
 let visCompareSequence srcLst regs n c z v =
     let srcLst' = List.map (fun (i:string) -> i.ToUpper()) srcLst
     let flags = {FN=n; FC=c;FZ=z; FV=v}
@@ -201,6 +217,7 @@ let visCompareSequence srcLst regs n c z v =
     |> fun (vOut, lOut) -> ((visOutToDP) vOut, lOut)
     ||> equalDP
 
+/// A more expressive version of `visCompareSequence` used to debug tests.
 let visCompareSequenceShow srcLst regs n c z v =
     let srcLst' = List.map (fun (i:string) -> i.ToUpper()) srcLst
     let flags = {FN=n; FC=c;FZ=z; FV=v}
@@ -223,6 +240,7 @@ let visCompareSequenceShow srcLst regs n c z v =
         printRegs lDP
         printFlags lDP
 
+/// A function for running an Expecto unit test and comparing to VisUAL.
 let visUnitTest name src regs1 n c z v =
     let restOfRegsNumber = 15 - List.length regs1 |> uint32
     let regs2 = [1u..restOfRegsNumber]
@@ -231,6 +249,8 @@ let visUnitTest name src regs1 n c z v =
         Expecto.Expect.equal (visCompare src regs' n c z v) true <|
             "Implementation doesn't agree with VisUAL"
 
+/// A function for running an Expecto unit test on a sequence of instructions
+///  and comparing to VisUAL.
 let visSequenceTest name srcLst regs1 n c z v =
     let restOfRegsNumber = 16 - List.length regs1 |> uint32
     let regs2 = [1u..restOfRegsNumber]
@@ -239,32 +259,12 @@ let visSequenceTest name srcLst regs1 n c z v =
         Expecto.Expect.equal (visCompareSequence srcLst regs' n c z v) true <|
             "Implementation doesn't agree with VisUAL"
 
+/// A function to allow for property based testing of three-register-operand instructions.
 let visTest3Params src (r0,r1,r2) n c z v =
     let regs = r0 :: r1 :: r2 :: [0u..11u]
     visCompare src regs n c z v
 
+/// A function to allow for property based testing of four-register-operand instructions.
 let visTest4Params src (r0,r1,r2,r3) n c z v =
     let regs = r0 :: r1 :: r2 :: r3 :: [0u..10u]
     visCompare src regs n c z v
-
-let ADDSpropTest1 =
-    let compare src (r0,r1,r2) c z v =
-        (visTest3Params src (r0, r1, r2) false c z v)
-    testProperty "ADDS, reg, N clear"  <| (compare "ADDS r0, r1, r2") 
-
-let ADDSpropTest2 =
-    let compare src (r0,r1,r2) n c v =
-        (visTest3Params src (r0, r1, r2) n c false v)
-    testProperty "ADDS, reg, Z clear"  <| (compare "ADDS r0, r1, r2")
-
-let ADDSpropTest3 =
-    let compare src n (shift:SInstr) (r0,r1,r2,r3) c z v =
-        let src' = src + sInstrsStr.[shift] + " r3"
-        (visTest4Params src' (r0, r1, r2, r3) n c z v)
-    testProperty "ADDS, reg, shift, reg, N clear"  <| (compare "ADDS r0, r1, r2, " false) 
-
-let ADDSpropTest4 =
-    let compare src z (shift:SInstr) (r0,r1,r2,r3) n c v =
-        let src' = src + sInstrsStr.[shift] + " r3"
-        (visTest4Params src' (r0, r1, r2, r3) n c z v)
-    testProperty "ADDS, reg, shift, reg, Z clear"  <| (compare "ADDS r0, r1, r2, " false)
