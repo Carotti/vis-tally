@@ -12,14 +12,34 @@ module Execution
         let initRegs vals =
             vals
             |> List.zip [0u..15u]
-            |> List.map (fun (r, v) -> (makeRegFromNum r, v))
+            |> List.map (fun (r, _v) -> (makeRegFromNum r, 0u))
             |> Map.ofList
                 
         {
             Fl = flags;    
-            Regs = initRegs [0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0u;0xFF000000u;0u;4u;] 
+            Regs = initRegs [0u..15u] 
             MM = Map.ofList []
-        }                
+        }
+    
+    
+    let testDataPath startRegs : DataPath<Instr> =
+        let flags =
+            {N = false; C = false; Z = false; V = false}
+
+        let createRegs = 
+            List.zip [0u..14u]
+            >> List.map (fun (r, v) -> (makeRegFromNum r, v))
+            >> Map.ofList
+
+        let initRegs vals =
+            let noPC = createRegs vals
+            Map.add R15 0u noPC
+
+        {
+            Fl = flags;    
+            Regs = initRegs startRegs
+            MM = Map.ofList []
+        }
     
     let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
         let pc = cpuData.Regs.[R15]
