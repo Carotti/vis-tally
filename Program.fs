@@ -127,10 +127,6 @@ let listExecute cpuData lst =
 [<EntryPoint>]
 let main argv =
     match argv with
-        | [|"tests"|] -> 
-            "Running other tests" |> qp
-            runTestsInAssembly defaultConfig [||]
-
         | [|"vtests"|] -> 
             "Running visUAL based tests..." |> qp
             runVisualTests ()
