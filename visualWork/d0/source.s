@@ -18,7 +18,7 @@ MOV R13, #0x82
 MOV R14, #0x8c
 
 
-ROR r3, r2, #14
+rors r7, r2, r0
 MOV R13, #0x1000
 LDMIA R13, {R0-R12}
 MOV R0, #0

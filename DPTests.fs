@@ -144,7 +144,7 @@ module DPTests
     let rec fateFlagsList param lst =
         match lst with
         | head :: tail ->
-            let flags = head |> (hopeFlags param)
+            let flags = head |> (fateFlags param)
             let rightFlags = 
                 {
                     VisualTest.VCommon.Flags.FN = flags.N;  
@@ -232,7 +232,7 @@ module DPTests
                 "lsrs r3, r1, r2";
                 "rrxs r0, r0";
                 "asrs r3, r4, #1";
-                "rors r7, r2, r1";
+                "rors r7, r2, r0";
             ]
 
         testList "DP Tests compared to visual, let us pray..." [
@@ -308,6 +308,6 @@ module DPTests
                 visualTestList "Shift Test 2" "2" shiftTest2 zeroParam zeroParam
                 visualTestList "Shift Test 3" "3" shiftTest3 zeroParam zeroParam
                 visualTestList "Shift Test 4" "4" shiftTest4 zeroParam zeroParam
-                visualTestList "Shift Test 5" "5" shiftTest4 zeroParam zeroParam
+                visualTestList "Shift Test 5" "5" shiftTest5 zeroParam zeroParam
             ]
         ]

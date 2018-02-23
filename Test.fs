@@ -1,6 +1,7 @@
 ﻿module Test
     open Expecto
     open Helpers
+    open VisualTest.VData
     open VisualTest.VCommon
     open VisualTest.Visual
     open VisualTest.VTest
@@ -54,9 +55,26 @@
         let mem = visualToMem visual.State.VMemData
         {Fl = flags; Regs = regs; MM = mem}
     let returnVisualCpuData param src = 
-        let vRes = RunVisualWithFlagsOut param src 
-                   |> snd |> visualToDataPath
-        vRes
+        RunVisualWithFlagsOut param src 
+        |> snd |> visualToDataPath
+
+    let valList = 0u :: [2u..13u];
+    let addrList = [4096u..4u..4144u];
+
+    let storer = 
+        List.zip valList addrList
+        |> List.map (fun (a, b) -> STORELOC a b)
+        |> List.fold (+) "\n"
+    
+    let resetR2R0 = "MOV R2, #0x1000\nMOV R0, #0x1000\n"
+    let returnMemVisualCpuData paras src =
+        let main, post = VisualTest.VData.GETWRAPPER paras.InitRegs paras.InitFlags paras.MemReadBase
+        let res = RunVisual {paras with Prelude=main + storer + resetR2R0; Postlude=post} src
+        let output = 
+            match res with
+            | Error e -> failwithf "Error reading Visual Log %A" e
+            | Ok ({ Regs=_; State={VFlags=fl}} as vso) -> fl, vso
+        snd output |> visualToDataPath
 
     let returnCpuDataMem (cpuData: DataPath<CommonTop.Instr>) = 
         Map.map returnData cpuData.MM
