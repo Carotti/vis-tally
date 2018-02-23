@@ -12,6 +12,22 @@
 =======
 # Specification
 
+## How to use?
+
+The program can being run using with `dotnet run` plus various arguments in order to test different aspects.
+
+`dotnet run xrepl` will run a REPL executing ARM instructions and displaying registers, flags and memory.
+
+`dotnet run prepl` will run a REPL parsing ARM instructions and displaying the output records.
+
+`dotnet run xlist` will run execute all the instructions in a given list and display the registers, flags and memory.
+
+`dotnet run vtests` will run the visUAL based tests.
+
+`dotnet run tests` will run other non-visUAL tests.
+
+`dotnet run` will parse the input list and display the output records.
+
 There were three main stages to this project: parsing, execution and testing. I had a mix of memory and data processing instructions, which I shall discuss below.
 
 ## Data Processing Instructions
@@ -47,4 +63,47 @@ Singular instructions can be run against visUAL with the initialState of each be
 
 A test list can also be created. A recursive function then individually runs each of the instructions in the test list and passes on the created DataPath to the next instruction thus the visUAL output of a larger program can be easily compared against my implementation. This I believe will be most useful for testing in the later phase of the project when large programs with all instructions can be run.
 
+<<<<<<< HEAD
 >>>>>>> Half way through readme
+=======
+## Memory Instructions
+
+### Parsing (Memory.fs)
+
+The parsing of my memory instructions is found in the file `Memory.fs`. I have two records for handling the two types of memory instruction, these are `InstrMemSingle` and `InstrMemMult`, which deal with LDR, STR and LDM, STM respectively. The former also accepts the suffix `B` for the storage/loading of Bytes. The latter handles all the {addr_modes} `IA`, `IB`, `DA`, `DB`, `FD`, `ED`, `FA`, `EA` as suffixes and parses them into the record.
+
+`LDM` and `STM` are of the following form `op{addr_mode}{cond} Rn{!}, reglist`
+
+There are two parsing functions for each type of instrucion (single, multiple). I shall discuss single first. These instructions can take a few different forms e.g. `ldr r0, [r1]`, `ldr r0, [r1], #4`, `ldr r0, [r1], r2`, `ldr r0, [r1, #4]`, `ldr r0, [r1, r2]`, `ldr r0, [r1, #4]!`, `ldr r0, [r1, r2]!` and the same for `STR` and with the suffix `B`. All of these forms parse correctly. Unprivileged loads/stores `op{type}T{cond} Rt, [Rn {, #offset}]` are not being parsed at this current time as well as register offset such as `op{type}{cond} Rt, [Rn, Rm {, LSL #n}]` as Chris has been working on FlexOp2 as previous mentioned. Additionally, two word storing is not being parsed e.g. `opD{cond} Rt, Rt2, [Rn {, #offset}]`
+
+Multiple load and store instructions as mentioned use a different parsing function. Thse instructions can also take different forms e.g. `ldm r0, {r1, r2, r3}`,  `ldm r0, {r1 - r3}`, `ldm r0!, {r1, r2, r3}`,  `ldm r0!, {r1 - r3}`. These also parse without error. However, changes will need to occur as although the `!` parses the resulting record has no indication that a bang was present thus in execution the address cannot be updated.
+
+### Execution (MemExecution.fs)
+
+The execution of my memory instructions is found in the file `MemExecution.fs`. This is very similar in structure to the `DPExecution.fs` file. From my testing I believe all implementation of parsed single memory instructions is functional. Words can be loaded and stored as well as Bytes. Pre and post indexing works as well as the `!` for both. 
+
+`LDM` and `STM` both are mostly functional with them storing/loading multiple words at a time. As highlighted currently there is no implementation of updating the address when a writeback suffix (`!`) is present. All the suffixes produce a correct offset list so that memory is stored/loaded in the correct order.
+
+### Testing (MemTests.fs)
+
+A framework has been written very similar to the `DP` testing, however as of yet no tests.
+Feel free to use the REPL or Lists though to see that the execution is correct and functional.
+
+## Other
+The other files that are used in the project, but are not DP or Mem specific. 
+
+### All round (Helpers.fs)
+Find functions for setting memory and registers as well as matching regexes and splitting strings and many more! A few trivial property based tests were written to test some core functions.
+
+### Execution (ExecutionTop.fs and Execution.fs)
+These contain code for calling the correct execute function depending on whether the instruction is a Memory or DP type. They also have basic DataPaths and conditional execution dependant upon flags.
+
+### Testing (Test.fs)
+Here there is code for converting between visUAL output and a DataPath in order to compare the two for visUAL based testing.
+
+
+
+
+
+
+>>>>>>> Maybe finished the readme?
