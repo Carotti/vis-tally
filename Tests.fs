@@ -31,17 +31,16 @@ let ADDSpropTest4 =
         (visTest4Params src' (r0, r1, r2, r3) n c z v)
     testProperty "ADDS, reg, shift, reg, Z clear"  <| (compare "ADDS r0, r1, r2, " false)
 
-// [<Tests>]
+[<Tests>]
 
-// let propTests =
-//     testList "Property Based Testing"
-//     [
-//         ADDSpropTest1
-//         ADDSpropTest2
-//         ADDSpropTest3
-//         ADDSpropTest4
-//     ]
-
+let propTests =
+    testList "Property Based Testing"
+    [
+        ADDSpropTest1
+        ADDSpropTest2
+        ADDSpropTest3
+        ADDSpropTest4
+    ]
 
 [<Tests>]
 let ADDUnitTests =
