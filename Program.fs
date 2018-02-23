@@ -40,7 +40,7 @@ let visCompareREPL() =
         let srcIn =
             System.Console.ReadLine().ToUpper()
         srcIn
-        |> zeroTest
+        |> fun s -> visCompare s [] false false false false
         |> function
         | true ->
             "\n**************************"  |> (printfn "%s")
@@ -84,6 +84,12 @@ let exeREPL (dp:DataPath<Instr>) =
 /// configuration for this testing framework      
 /// configuration for expecto. Note that by default tests will be run in parallel
 /// this is set by the fields oif testParas above
+
+
+
+[<Tests>]
+
+
 let expectoConfig = { Expecto.Tests.defaultConfig with 
                         parallel = testParas.Parallel
                         parallelWorkers = 6 // try increasing this if CPU use is less than 100%
@@ -91,50 +97,25 @@ let expectoConfig = { Expecto.Tests.defaultConfig with
 
 [<EntryPoint>]
 let main argv =
-    // initCaches testParas
-    // let rc = runTestsInAssembly expectoConfig [||]
-    // finaliseCaches testParas
-    // System.Console.ReadKey() |> ignore                
-    // rc // return an integer exit code - 0 if all tests pass
-
-    
-    // let myFlags = {FN=false;FZ=false; FC=false;FV=false}
-    // let myRegs = [0u..14u]
-    // let myParams = {defaultParas with InitFlags = myFlags; InitRegs = myRegs}
-    // let instruction = "ADDS r1, r2, #0x10"
-    // initCaches testParas
-    // let _, out =
-    //     RunVisualWithFlagsOut myParams instruction
-    // finaliseCaches testParas
-    // let visDP = out |> visToDP
-    // let dp = initialiseDP false false false false myRegs
-    // let myDP =
-    //     instruction
-    //     |> parseLine None (WA 0u)
-    //     |> function
-    //     | Ok instr ->
-    //         covertToDP instr
-    //         |> executeDP dp
-    //         |> function
-    //         | Ok dp' -> dp'
-
-    // printRegs myDP
-    // printRegs visDP
-    // printFlags myDP
-    // printFlags visDP
-    // equalDP myDP visDP |> qp
-
 
     // "ready to REPL..." |> (printfn "%s")
     // parseREPL |> ignore
 
-    "ready to REPL..." |> (printfn "%s")
-    visCompareREPL()
+    // "ready to REPL..." |> (printfn "%s")
+    // visCompareREPL()
 
     // "ready to REPL..." |> qp
     // let dp = initialiseDP false false false false [0u]
     // exeREPL dp |> ignore
 
-    0
+    initCaches testParas
+    let rc = runTestsInAssembly expectoConfig [||]
+    finaliseCaches testParas
+    System.Console.ReadKey() |> ignore                
+    rc // return an integer exit code - 0 if all tests pass
+
+ 
+
+  
 
 

@@ -75,6 +75,14 @@ module DP
             ("ROR", ROR);     
         ]
     
+    let sInstrsStr =
+        Map.ofList [
+            (LSL, "LSL");
+            (LSR, "LSR");
+            (ASR, "ASR");
+            (ROR, "ROR");     
+        ]
+    
     type Suffix =
         | S
      
