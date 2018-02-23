@@ -16,6 +16,7 @@
     <Compile Include="CommonTop.fs" />
     <Compile Include="DPExecution.fs" />
     <Compile Include="DPTest.fs" />
+    <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

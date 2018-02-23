@@ -116,9 +116,8 @@ module VTest =
         | {FN=true;FZ=true} -> true // prevent test with imposisble input
         | _ -> performTest()
             
-    let testParas = defaultParas
+    let testParas = {defaultParas with MaxConcurrentVisualDirs = 1}
  
-
     let vTest = VisualUnitTest testParas
 
 
