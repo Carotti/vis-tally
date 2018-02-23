@@ -6,6 +6,7 @@ open Helpers
 open Execution
 open ExecutionTop
 open Test
+open DPTests
 
 /// A List of instructions to parse and then execute.
 let instrLst = [
@@ -72,6 +73,16 @@ let prettyPrint cpuData =
     cpuData.Fl |> qp |> ignore
     cpuData.MM |> Map.toList |> qpl |> ignore
 
+
+let replParse() =
+    let rec repl'() =
+        printf  "=> "
+        System.Console.ReadLine().ToUpper()
+        |> parseInstr
+        |> qp
+        repl'()
+    repl'()
+
 /// a REPL for parsing and executing instructions
 /// have fun :)
 let replExecute cpuData =
@@ -124,14 +135,18 @@ let main argv =
             "Running visUAL based tests..." |> qp
             runVisualTests ()
 
-        | [|"repl"|] ->
+        | [|"xrepl"|] ->
             "Doug's Remarkable REPL..." |> qp
             replExecute initDataPath
 
-        | [|"list"|] ->
+        | [|"prepl"|] ->
+            "Doug's Remarkable REPL..." |> qp
+            replParse()
+
+        | [|"xlist"|] ->
             "Executing list..." |> qp
             listExecute initDataPath instrLst
-
+            
         | _ -> 
             "Parsing input list of instructions..." |> qp
             List.map parseInstr instrLst
