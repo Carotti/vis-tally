@@ -7,6 +7,9 @@ module ExecutionTop
     open DPExecution
     open MemExecution
 
+    /// The Top level execute instruction taking any Parse<Instr>
+    /// and downcasting it to the revelvant memory or data processing
+    /// instructions, then calling their executes.
     let execute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
         match condExecute instr cpuData with
             | true -> 
