@@ -59,7 +59,6 @@ match opcode with
 ```
 
 
-
 # Contribution to Group
 ## Flexible Second Operand
 I parse into a data domain type model all forms of the flexible second operand. For example for `ADDS r1, r2, r3, LSL #0xf0000002`
@@ -86,8 +85,9 @@ type ErrInstr =
     | ``Invalid suffix``                    of string
     | ``Invalid instruction``               of string
     | ``Syntax error``                      of string
-    ```
+```
 which allows for the nice error detection mentioned above:
+
 ```
 ~> add r20, r21, r22, rpr #10
 Error (ERRIDP (Invalid register "R20 is not a valid register."))
@@ -104,9 +104,11 @@ Error
 ~> add r0, r1, r2, ror #hello
 Error (ERRIDP (Invalid shift "#HELLO is not a valid literal or register."))
 ```        
+
 ## Interfaces
 All data processing instructions fit under a top level DU which fans out to two other DUs `DP3S` and `DP2`. `DP3S` for data processing instructions with three operands and an optional `S` suffix, for example `ADD`. `DP2` is for data processing instructions with two operands and no suffix, for example `CMP`. These are, however, made up of the same constituent types:
-```Fsharp
+
+```fsharp
 type DP3SForm =
     {
         rDest:RName;
@@ -126,7 +128,6 @@ and the functions that transform data work on these constituent types, such as `
 ## Naming Conventions
 Modelling things with a data domain types means a lot of _helper_ functions are needed to get things _out of_ or _in to_ a certain format. In order to make my code easy to read and use I have generally stuck to a few naming conventions `cons` followed by something means a constructor function of that _thing_. For example:
 ```Fsharp
-/// Constructs a register name of type `RName` from a register specified as a `string`.
 let consReg reg =
     regNames.[reg]
 ```
@@ -174,7 +175,7 @@ The instructions I was to implement were:
 - The instruction format `op{cond} {Rd,} Rn, #imm12` is currently not accepted.
 
 # Things learnt
-- Data domain modelling using types means one will probably spend longer writing the parsing code than  writing the execution code (a good thing!). This is because unpacking is done quickly through `match` statements. This also provides a strong guarantee that if the instructions reaches execution there will not be a runtime error. This is also interesting since data domain modelling using types allows for some semantic (over the usual syntactic) analysis while parsing: `r30` is caught in the parsing stage!
+- Data domain modelling using types means one will probably spend longer writing the parsing code than  writing the execution code (a good thing!). This is because unpacking is done quickly through `match` statements. This also provides a strong guarantee that if the instructions reaches execution there will not be a runtime error. Furthermore, this is interesting since data domain modelling using types allows for some semantic (over the usual syntactic) analysis while parsing: `r30` is caught in the parsing stage!
 
 - Data domain modelling also allows for easier property based testing since. Since invariances about the data are more obvious.
 
