@@ -69,16 +69,27 @@ module Expressions
             | RegexPrefix "\(" (_, Expr (exp, RegexPrefix "\)" (_, rst)) ) -> (exp, rst) |> Some
             | _ -> None
 
+        /// Higher order active patterns to match lists of the form
+        /// x op x op x ... to capture left associativity correctly.
+        let rec (|LBinExprList|_|) (|NextExpr|_|) reg op lVal txt =
+            match txt with
+            | RegexPrefix reg (_, NextExpr (rVal, rst)) ->
+                match rst with
+                | LBinExprList (|NextExpr|_|) reg op (BinOp (op, lVal, rVal)) (exp, rst')
+                    -> Some (exp, rst')
+                | _ -> Some (BinOp (op, lVal, rVal), rst)
+            | _ -> None
+
         /// Higher order active pattern for defining binary operators
         /// NextExpr is the active pattern of the operator with the next
         /// highest precedence. reg is the regex which matches this operator
         /// op is the operation it performs
-        let rec (|BinExpr|_|) (|NextExpr|_|) reg op txt =
+        let (|LBinExpr|_|) (|NextExpr|_|) reg op txt =
             match txt with
             | NextExpr (lVal, rhs) ->
                 match rhs with
-                | RegexPrefix reg (_, BinExpr (|NextExpr|_|) reg op (rVal, rst'))
-                    -> (BinOp (op, lVal, rVal), rst') |> Some
+                | LBinExprList (|NextExpr|_|) reg op lVal x
+                    -> Some x
                 // Can't nest this AP because its the
                 // "pass-through" to the next operator
                 | _ -> (lVal, rhs) |> Some
@@ -86,9 +97,9 @@ module Expressions
 
         // Define active patterns for the binary operators
         // Order of precedence: Add, Sub, Mul
-        let (|MulExpr|_|) = (|BinExpr|_|) (|PrimExpr|_|) "\*" (*)
-        let (|SubExpr|_|) = (|BinExpr|_|) (|MulExpr|_|) "\-" (-)
-        let (|AddExpr|_|) = (|BinExpr|_|) (|SubExpr|_|) "\+" (+)
+        let (|MulExpr|_|) = (|LBinExpr|_|) (|PrimExpr|_|) "\*" (*)
+        let (|SubExpr|_|) = (|LBinExpr|_|) (|MulExpr|_|) "\-" (-)
+        let (|AddExpr|_|) = (|LBinExpr|_|) (|SubExpr|_|) "\+" (+)
 
         match expTxt with
         | AddExpr x -> Some x
