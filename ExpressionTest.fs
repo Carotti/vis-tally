@@ -96,6 +96,8 @@ module ExpressionTest
                 unitTest "11" Map.empty 19u "19 "
                 unitTest "12" Map.empty 21u "\t21\t"
                 unitTest "13" Map.empty 5u " &5"
+                unitTest "14" Map.empty 0u "6 - 2 - 4"
+                unitTest "15" Map.empty 0u "28 - 1 - 2 - 3 - 4 - 5 - 6 - 7"
             ]
             testList "Unit Symbols" [
                 unitTest "1" ts 192u "aa"

@@ -17,6 +17,7 @@ module Program
     open Execution
 
     open TestFormats
+    open System.Text.RegularExpressions
 
     [<EntryPoint>]
     let rec main argv =
@@ -29,4 +30,8 @@ module Program
             main argv |> ignore
             0 // return an integer exit code
         | _ ->
-            0            
+            runTests Expecto.Tests.defaultConfig ExpressionTest.exprTests
+            // match argv.[0] with
+            // | Expressions.Expr x -> printfn "%A" x
+            // | _ -> printfn "nope"
+            // 0
