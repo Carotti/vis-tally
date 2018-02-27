@@ -21,6 +21,12 @@ let regNums =
         R12,12 ; R13,13 ; R14,14 ; R15,15 ;
     ] 
 
+
+let consRegLst (intLst:int list) =
+    intLst
+    |> List.map (string >> ((+) "R"))
+    |> List.map (consReg)
+
 /// A function to initialise data paths based on register and CPSR values.
 let initialiseDP n c z v (regVals:uint32 list) : DataPath<Instr> =
     let flags =
@@ -149,15 +155,44 @@ let equalDP (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) =
     let regs2 = Map.remove R15 dp2.Regs
     {dp1 with Regs = regs1} = {dp2 with Regs = regs2}
 
+
+let equalityLst (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) regLst =
+    let regsToCheck =
+        regLst
+        |> consRegLst
+        |> Set.ofList
+    let allRegs =
+        [0..15]
+        |> consRegLst
+        |> Set.ofList
+    let removeRegs (dp:DataPath<Instr>) : DataPath<Instr>  =
+        regsToCheck
+        |> Set.difference allRegs 
+        |> Set.toList
+        |> List.fold (fun d r -> {d with Regs = Map.remove r d.Regs}) dp
+    removeRegs dp1 = removeRegs dp2
+        
 /// A function that, given a line of assembly, register and CPSR values, parses
 ///  executes and compares to VisUAL in an error safe way.
-let visCompare src regs n c z v =
+let visCompare src regs equalityRegs n c z v  =
     let flags = {FN=n; FC=c;FZ=z; FV=v}
-    let regs' =
-        match List.length regs with
-        | 15 -> regs
-        | _ -> List.map (fun _i -> 0u) [0..14]
-    let param = {testParas with InitFlags = flags; InitRegs = regs'}
+    let regs', modRegs' =
+        match (List.length regs) with
+        | 15 ->
+            let modRegs =
+                regs.[4..]
+                |> List.append [((List.item 3 regs) % 32u)]
+                |> List.append regs.[0..2]
+            regs, modRegs
+        | _ ->
+            let regs' =
+                List.map (fun _i -> 0u) [0..14]
+            regs', regs'
+    // let regs' =
+    //     match (List.length regs) with
+    //     | 15 -> regs
+    //     | _ -> List.map (fun _i -> 0u) [0..14]
+    let param = {testParas with InitFlags = flags; InitRegs = modRegs'}
     let dp = initialiseDP n c z v regs'
     src
     |> parseLine None (WA 0u)
@@ -176,7 +211,7 @@ let visCompare src regs n c z v =
             // printFlags visDP
             // printRegs localDP
             // printFlags localDP
-            equalDP localDP visDP
+            equalityLst localDP visDP equalityRegs
         | Error e ->
             e |> qp
             false
@@ -246,12 +281,12 @@ let visCompareSequenceShow srcLst regs n c z v =
         printFlags lDP
 
 /// A function for running an Expecto unit test and comparing to VisUAL.
-let visUnitTest name src regs1 n c z v =
+let visUnitTest name src regs1 equalityRegs n c z v =
     let restOfRegsNumber = 15 - List.length regs1 |> uint32
     let regs2 = [1u..restOfRegsNumber]
     let regs' = List.append regs1 regs2
     testCase name <| fun() ->
-        Expecto.Expect.equal (visCompare src regs' n c z v) true <|
+        Expecto.Expect.equal (visCompare src regs' equalityRegs n c z v) true <|
             "Implementation doesn't agree with VisUAL"
 
 /// A function for running an Expecto unit test on a sequence of instructions
@@ -265,11 +300,11 @@ let visSequenceTest name srcLst regs1 n c z v =
             "Implementation doesn't agree with VisUAL"
 
 /// A function to allow for property based testing of three-register-operand instructions.
-let visTest3Params src (r0,r1,r2) n c z v =
+let visTest3Params src (r0,r1,r2) equalityRegs n c z v =
     let regs = r0 :: r1 :: r2 :: [0u..11u]
-    visCompare src regs n c z v
+    visCompare src regs equalityRegs n c z v
 
 /// A function to allow for property based testing of four-register-operand instructions.
-let visTest4Params src (r0,r1,r2,r3) n c z v =
+let visTest4Params src (r0,r1,r2,r3) equalityRegs n c z v =
     let regs = r0 :: r1 :: r2 :: r3 :: [0u..10u]
-    visCompare src regs n c z v
+    visCompare src regs equalityRegs n c z v

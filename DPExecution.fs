@@ -100,6 +100,8 @@ module DPExecution
         ///  that are shifts.
         let calcShiftOperand sOp dp =
             match sOp with
+            // This version is not
+            | ConstShift litVal -> calcLiteral litVal
             | ConstShift litVal -> calcLiteral litVal
             | RegShift reg -> dp.Regs.[reg]
         
@@ -108,7 +110,6 @@ module DPExecution
             let shiftBy = calcShiftOperand shift.sOp dp |> int32
             let res =
                 shiftBy
-                |> int32
                 |> shifter dp.Regs.[shift.rOp2]
             (res, shiftBy)
 
