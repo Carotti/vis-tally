@@ -168,24 +168,13 @@ module DPExecution
             match op1, op2 with
             | x, y when ((getBit 31 x = 0u) && (getBit 31 y = 0u)) ->
                 match getBit 31 value with                
-                | 1u ->
-                    " V IS TRUE!" |> qp
-                    {flags with V = true}, op1, op2, value
-                | _  ->
-                    " V IS FALSE!" |> qp
-                    {flags with V = false}, op1, op2, value
+                | 1u -> {flags with V = true}, op1, op2, value
+                | _  -> {flags with V = false}, op1, op2, value
             | x, y when ((getBit 31 x = 1u) && (getBit 31 y = 1u)) ->
                 match getBit 31 value with                
-                | 0u ->
-                    " V IS TRUE!" |> qp
-                    {flags with V = true}, op1, op2, value
-                | _  ->
-                    " V IS FALSE!" |> qp
-                    {flags with V = false}, op1, op2, value
-            | _ ->
-                " V IS THE SAME AS BEFORE!" |> qp
-                // flags, op1, op2, value
-                {flags with V = false}, op1, op2, value
+                | 0u -> {flags with V = true}, op1, op2, value
+                | _  -> {flags with V = false}, op1, op2, value
+            | _ -> {flags with V = false}, op1, op2, value
         
         /// A function to determine the new value of the V flag if a subtractive
         ///  instruction was executed.  
@@ -199,9 +188,7 @@ module DPExecution
                 match getBit 31 value with                
                 | 1u -> {flags with V = true}, op1, op2, value
                 | _  -> {flags with V = false}, op1, op2, value
-            | _ ->
-                // flags, op1, op2, value
-                {flags with V = false}, op1, op2, value
+            | _ -> {flags with V = false}, op1, op2, value
         
         /// A higher-order function for executing DP instructions.
         let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Instr>,ErrExe>) =

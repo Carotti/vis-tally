@@ -147,16 +147,10 @@ let DPToVisOut (visDP:DataPath<Instr>) =
         RegsAfterPostlude = []
         State = {VFlags = flags; VMemData = []}
     }
-    
-/// A function to determine if two data paths are equal. This does not take into
-///  account the value of the program counter.  
-let equalDP (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) =
-    let regs1 = Map.remove R15 dp1.Regs
-    let regs2 = Map.remove R15 dp2.Regs
-    {dp1 with Regs = regs1} = {dp2 with Regs = regs2}
-
-
-let equalityLst (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) regLst =
+   
+/// A function to determine if two data paths are equal. This function only
+///  looks at the flags and the registers specified as `int`s in `regList`
+let equalityLst regLst (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) =
     let regsToCheck =
         regLst
         |> consRegLst
@@ -171,27 +165,43 @@ let equalityLst (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) regLst =
         |> Set.toList
         |> List.fold (fun d r -> {d with Regs = Map.remove r d.Regs}) dp
     removeRegs dp1 = removeRegs dp2
+
+
+/// A function to determine if two data paths are equal. This does not take into
+///  account the value of the program counter.  
+let equalDP (dp1:DataPath<Instr>) (dp2:DataPath<Instr>) =
+    let regs1 = Map.remove R15 dp1.Regs
+    let regs2 = Map.remove R15 dp2.Regs
+    {dp1 with Regs = regs1} = {dp2 with Regs = regs2}
+
+
+
         
-/// A function that, given a line of assembly, register and CPSR values, parses
-///  executes and compares to VisUAL in an error safe way.
-let visCompare src regs equalityRegs n c z v  =
+/// A function that, given a line of assembly, register and CPSR values, parses,
+///  executes, and compares to VisUAL in an error safe way. `equalityRegs` is the
+///  list of registers that are required to be equal between VisUAL and the local
+///  implementation. If `modR3` is `true` then R3 in the VisUAL data path is
+///  modulo-ed by 32. This has been done to allow flexible second operand shifts to
+///  be compared with VisUAL. For example `ADD r0, r1, r2, lsl, r3`. VisUAL does not
+///  implement shift mod 32 but the local implementation does. Setting `modR3` and
+///  excluding `3` from `equalityRegs` allows the result of the overall instruction
+///  to be compared against VisUAL.
+let visCompare src regs equalityRegs modR3 n c z v  =
     let flags = {FN=n; FC=c;FZ=z; FV=v}
     let regs', modRegs' =
-        match (List.length regs) with
-        | 15 ->
+        match (List.length regs), modR3 with
+        | 15, true ->
             let modRegs =
                 regs.[4..]
                 |> List.append [((List.item 3 regs) % 32u)]
                 |> List.append regs.[0..2]
             regs, modRegs
+        | 15, false ->
+            regs, regs
         | _ ->
             let regs' =
                 List.map (fun _i -> 0u) [0..14]
             regs', regs'
-    // let regs' =
-    //     match (List.length regs) with
-    //     | 15 -> regs
-    //     | _ -> List.map (fun _i -> 0u) [0..14]
     let param = {testParas with InitFlags = flags; InitRegs = modRegs'}
     let dp = initialiseDP n c z v regs'
     src
@@ -207,11 +217,11 @@ let visCompare src regs equalityRegs n c z v  =
                 |> snd
                 |> visOutToDP
             // Commented-out code below is used to debug differences between local and VisUAL executions
-            printRegs visDP
-            printFlags visDP
-            printRegs localDP
-            printFlags localDP
-            equalityLst localDP visDP equalityRegs
+            // printRegs visDP
+            // printFlags visDP
+            // printRegs localDP
+            // printFlags localDP
+            equalityLst equalityRegs localDP visDP 
         | Error e ->
             e |> qp
             false
@@ -281,12 +291,12 @@ let visCompareSequenceShow srcLst regs n c z v =
         printFlags lDP
 
 /// A function for running an Expecto unit test and comparing to VisUAL.
-let visUnitTest name src regs1 equalityRegs n c z v =
-    let restOfRegsNumber = 15 - List.length regs1 |> uint32
+let visUnitTest name src regs equalityRegs modR3 n c z v =
+    let restOfRegsNumber = 15 - List.length regs |> uint32
     let regs2 = [1u..restOfRegsNumber]
-    let regs' = List.append regs1 regs2
+    let regs' = List.append regs regs2
     testCase name <| fun() ->
-        Expecto.Expect.equal (visCompare src regs' equalityRegs n c z v) true <|
+        Expecto.Expect.equal (visCompare src regs' equalityRegs modR3 n c z v) true <|
             "Implementation doesn't agree with VisUAL"
 
 /// A function for running an Expecto unit test on a sequence of instructions
@@ -300,11 +310,11 @@ let visSequenceTest name srcLst regs1 n c z v =
             "Implementation doesn't agree with VisUAL"
 
 /// A function to allow for property based testing of three-register-operand instructions.
-let visTest3Params src (r0,r1,r2) equalityRegs n c z v =
+let visTest3Params src (r0,r1,r2) equalityRegs modR3 n c z v =
     let regs = r0 :: r1 :: r2 :: [0u..11u]
-    visCompare src regs equalityRegs n c z v
+    visCompare src regs equalityRegs modR3 n c z v
 
 /// A function to allow for property based testing of four-register-operand instructions.
-let visTest4Params src (r0,r1,r2,r3) equalityRegs n c z v =
+let visTest4Params src (r0,r1,r2,r3) equalityRegs modR3 n c z v =
     let regs = r0 :: r1 :: r2 :: r3 :: [0u..10u]
-    visCompare src regs equalityRegs n c z v
+    visCompare src regs equalityRegs modR3 n c z v
