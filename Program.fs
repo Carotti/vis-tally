@@ -31,27 +31,6 @@ let parseREPL() =
         repl'()
     repl'()
 
-// let visCompareREPL() =
-//     let rec repl'() =
-//         printf  "~> "
-//         let srcIn =
-//             System.Console.ReadLine().ToUpper()
-//         srcIn
-//         |> fun s -> visCompare s [] false false false false
-//         |> function
-//         | true ->
-//             "\n**************************"  |> (printfn "%s")
-//             srcIn                           |> qp
-//             "AGREES with VisUAL"            |> (printfn "%s")
-//             "**************************\n"  |> (printfn "%s")
-//         | false ->
-//             "\n**************************"  |> (printfn "%s")
-//             srcIn                           |> qp
-//             "DOES NOT AGREE with VisUAL"    |> (printfn "%s")
-//             "**************************"    |> (printfn "%s")
-//         repl'()
-//     repl'()
-
 let exeREPL (dp:DataPath<Instr>) =
     printRegs dp
     printFlags dp
@@ -93,7 +72,6 @@ let main argv =
         printfn "Enter..."
         printfn "         'p' for a parsing REPL"
         printfn "         'e' for an execution REPL"
-        printfn "         'v' for a VisUAL comparison REPL"
         printfn "      or 't' to run some cool tests"
         let key = System.Console.ReadKey()
         match key.KeyChar with
@@ -106,10 +84,6 @@ let main argv =
             let dp = initialiseDP false false false false [0u]
             exeREPL dp
             0 
-        // | 'v'   ->
-        //     "ready to REPL..." |> (printfn "%s")
-        //     visCompareREPL()
-        //     0 
         | 't'   ->
             initCaches testParas
             let rc = runTestsInAssembly expectoConfig [||]
@@ -121,7 +95,7 @@ let main argv =
 
     keyHandler()
 
-    1
+    
   
 
 
