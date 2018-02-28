@@ -8,11 +8,6 @@ module Misc
     open Expressions
     open Execution
 
-    type SymbolExp =
-        | ExpUnresolved of Expression
-        | ExpResolved of uint32
-        | ExpResolvedByte of byte // For DCB
-
     // Don't support valueSize yet, always set to 1
     type FILLInstr = {numBytes : SymbolExp ; value : SymbolExp ; valueSize : int}
 
@@ -39,12 +34,6 @@ module Misc
     /// Any evaluation can fail with an undefined symbol, Error return is
     /// the first symbol which causes this
     let resolve (syms : SymbolTable) ins = 
-        let evalSymExp exp =
-            match exp with
-            | ExpUnresolved x -> 
-                Result.map ExpResolved (eval syms x)
-                |> Result.mapError SymbolErrors
-            | _ -> exp |> Ok
         /// Take a list of results and transform it to a Result of either the
         /// first error in the list or the Ok list if every element is Ok
         let lstResUnfold lst =
@@ -60,24 +49,27 @@ module Misc
             | _ -> failwithf "Calling validByte on unresolved SymbolExp"
         match ins with
         | DCD lst -> 
-            List.map evalSymExp lst
+            List.map (evalSymExp syms) lst
             |> lstResUnfold
             |> Result.map DCD
+            |> Result.mapError SymbolErrors 
         | DCB lst -> 
-            List.map (evalSymExp >> (Result.bind validByte)) lst 
+            List.map ((evalSymExp syms) >> (Result.mapError SymbolErrors) >> (Result.bind validByte)) lst 
             |> lstResUnfold
             |> Result.map DCB
         | FILL fins ->
             let valBind x = 
-                evalSymExp fins.value
+                (evalSymExp syms) fins.value
                 |> Result.map (fun v -> {x with value = v})
-            evalSymExp fins.numBytes
+            (evalSymExp syms) fins.numBytes
             |> Result.map (fun n -> {fins with numBytes = n})
             |> Result.bind valBind
             |> Result.map FILL
+            |> Result.mapError SymbolErrors 
         | EQU exp -> 
-            evalSymExp exp
+            (evalSymExp syms) exp
             |> Result.map EQU
+            |> Result.mapError SymbolErrors 
 
     /// Execute a MISC instruction against the datapath
     /// mem is where to start placing in memory

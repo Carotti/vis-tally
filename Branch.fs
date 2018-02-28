@@ -7,16 +7,11 @@ module Branch
     open CommonLex
     open Expressions
     open Execution
-
-    // Symbols become uint32 when they are resolved
-    type Symbol =
-        | SymUnresolved of string
-        | SymResolved of uint32
         
     // Type returned after parsing
     type Instr =
-        | B of Symbol
-        | BL of Symbol
+        | B of SymbolExp
+        | BL of SymbolExp
         | END
 
     type ErrRunTime =
@@ -24,17 +19,13 @@ module Branch
         | EXIT // Used to exit execution of the simulation
 
     type ErrInstr = 
-        | NoLabel
+        | InvalidExp of string
 
     /// Resolve the symbols for an instruction which requires it
     let resolvePInstr (syms : SymbolTable) ins =
-        let lookup which sym =
-            match syms.ContainsKey sym with
-            | true -> which (SymResolved syms.[sym]) |> Ok
-            | false -> sprintf "Symbol '%s' doesn't exist" sym |> Error
         match ins with
-        | B (SymUnresolved sym) -> lookup B sym
-        | BL (SymUnresolved sym) -> lookup BL sym
+        | B exp -> evalSymExp syms exp |> Result.map B
+        | BL exp -> evalSymExp syms exp |> Result.map BL
         | _ -> Ok ins // Symbol is already resolved
 
     let resolve (syms : SymbolTable) ins =
@@ -58,14 +49,17 @@ module Branch
             |> Ok
         | true ->
             match ins.PInstr with
-            | B (SymUnresolved _)
-            | BL (SymUnresolved _) -> 
+            | B (ExpUnresolved _)
+            | BL (ExpUnresolved _) ->
                 failwithf "Trying to execute an unresolved label"
-            | B (SymResolved addr) -> 
+            | B (ExpResolvedByte _) 
+            | BL (ExpResolvedByte _) -> 
+                failwithf "Trying to execute branch to byte"
+            | B (ExpResolved addr) -> 
                 dp 
                 |> updateReg addr R15
                 |> Ok
-            | BL (SymResolved addr) ->
+            | BL (ExpResolved addr) ->
                 dp
                 |> updateReg addr R15
                 |> updateReg nxt R14
@@ -80,9 +74,9 @@ module Branch
 
         let bindB t =
             match ls.Operands with
-            | LabelExpr (l, "") -> Ok l
-            | _ -> NoLabel |> Error
-            |> Result.map (SymUnresolved >> t)
+            | Expr (exp, "") -> Ok exp
+            | _ -> InvalidExp ls.Operands |> Error
+            |> Result.map (ExpUnresolved >> t)
 
         let parse' (_instrC, ((root : string),_suffix,pCond)) =
             let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
