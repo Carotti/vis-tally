@@ -8,6 +8,7 @@ module MiscTest
     open Misc
 
     open Execution
+    open Expressions
 
     open Expecto
 

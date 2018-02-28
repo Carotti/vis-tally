@@ -22,10 +22,17 @@ module Expressions
             (removeWs var, rst) |> Some
         | _ -> None
 
+    [<CustomEquality; NoComparison>]
     type Expression =
         | BinOp of (uint32->uint32->uint32) * Expression * Expression
         | Label of string
         | Literal of uint32
+        override _x.Equals (_y) = false
+
+    type SymbolExp =
+        | ExpUnresolved of Expression
+        | ExpResolved of uint32
+        | ExpResolvedByte of byte // For DCB
 
     type EvalErr =
         | SymbolUndeclared of string
@@ -46,6 +53,12 @@ module Expressions
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
                 | false -> [SymbolUndeclared x] |> Error
+
+    let evalSymExp syms exp =
+        match exp with
+        | ExpUnresolved x -> 
+            Result.map ExpResolved (eval syms x)
+        | _ -> exp |> Ok
 
     /// Active pattern for matching expressions
     /// Returns an Expression AST
