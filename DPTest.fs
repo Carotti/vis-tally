@@ -217,10 +217,10 @@ let visCompare src regs equalityRegs modR3 n c z v  =
                 |> snd
                 |> visOutToDP
             // Commented-out code below is used to debug differences between local and VisUAL executions
-            // printRegs visDP
-            // printFlags visDP
-            // printRegs localDP
-            // printFlags localDP
+            printRegs visDP
+            printFlags visDP
+            printRegs localDP
+            printFlags localDP
             equalityLst equalityRegs localDP visDP 
         | Error e ->
             e |> qp
