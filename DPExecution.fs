@@ -67,7 +67,7 @@ module DPExecution
     let executeDP (dp:DataPath<Instr>) (instr:CommonLex.Parse<Instr>) : (Result<DataPath<Instr>,ErrExe>) =
 
         /// A helper function to get the `n`th bit of `value`.
-        let getBit n value =
+        let getBit n (value:uint32) =
             value
             |> (<<<<) (31-n)
             |> (>>>>) (31)
@@ -136,7 +136,7 @@ module DPExecution
         let negCheck (flags,op1,op2,value) =
             match value >>> 31 with
             | 1u    ->  {flags with N = true}, op1, op2, value
-            | _     ->  {flags with N = false},op2, op2, value
+            | _     ->  {flags with N = false}, op2, op2, value
 
         /// A function to determine the new value of the Z flag.
         let zeroCheck (flags,op1,op2,value) =
@@ -157,10 +157,19 @@ module DPExecution
         ///  instruction was executed.
         let subtractiveCarryCheck (flags, op1, op2, value) =
             let value' = (op1 |> uint64) - (op2 |> uint64)
+            value' |> printfn "Hello from the subtractiveCarryCheck: %x"
+            value' |> uint32 |> printfn "Hello from the subtractiveCarryCheck: %x"
+            value' |> uint32 |> getBit 31 |> printfn "Hello from the subtractiveCarryCheck: %x"
             match value' with
-            | 0UL                                       -> {flags with C = true}, op1, op2, value
-            | v when ( v |> uint32 |> getBit 31 = 0u)   -> {flags with C = true}, op1, op2, value
-            | _                                         -> {flags with C = false}, op1, op2, value
+            | 0UL                                       ->
+                "C IS HIGH" |> qp
+                {flags with C = true}, op1, op2, value
+            | v when ( v |> uint32 |> getBit 31 = 0u)   ->
+                "C IS HIGH" |> qp
+                {flags with C = true}, op1, op2, value
+            | _                                         ->
+                "C IS LOW" |> qp
+                {flags with C = false}, op1, op2, value
 
         /// A function to determine the new value of the V flag if an additive
         ///  instruction was executed.
@@ -193,6 +202,7 @@ module DPExecution
         /// A higher-order function for executing DP instructions.
         let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Instr>,ErrExe>) =
             let result = func op1 op2
+            result |> printfn "Hello: %x"
             let dp' =
                 match dest with
                 | Some destReg -> updateReg destReg result dp
@@ -293,8 +303,8 @@ module DPExecution
             // No suffix, but can effect CPSR
             let dp' = {dp with Fl = flags'}
             match opcode with
-            | CMN _ -> execute dp' (fun op1 op2 -> op1 - op2) None op1 op2 (Some S) [CVCheckSub; NZCheck]
-            | CMP _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [CVCheckAdd; NZCheck]
+            | CMP _ -> execute dp' (fun op1 op2 -> op1 - op2) None op1 op2 (Some S) [CVCheckSub; NZCheck]
+            | CMN _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [CVCheckAdd; NZCheck]
             | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [NZCheck]
             | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [NZCheck]
         
