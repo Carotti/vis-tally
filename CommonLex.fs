@@ -28,7 +28,7 @@ module CommonLex
         | Cal // the "always executed condition "AL". Used by default on no condition
 
     /// classes of instructions (example, add/change this is needed)
-    type InstrClass = | DP | MEM
+    type InstrClass = | DP | MEM | MISC | BRANCH | PSEUDO
 
     /// specification of set of instructions
     type OpSpec = {
@@ -46,7 +46,7 @@ module CommonLex
     type Parse<'INS> = {
             /// value representing instruction. NB type varies with instruction class
             PInstr: 'INS 
-            /// name and value of label defined on this line, if one is.
+            /// name and value of `label defined on this line, if one is.
             PLabel: (string * uint32) option 
             /// number of bytes in memory taken up by this instruction
             PSize: uint32 
