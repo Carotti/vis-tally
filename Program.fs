@@ -4,10 +4,8 @@ open CommonData
 open Helpers
 open Execution
 open ExecutionTop
-open System.Xml
 
 /// A List of instructions to parse and then execute.
-
 let parseInstr input =
     parseLine None (WA 0u) (uppercase input)
 
