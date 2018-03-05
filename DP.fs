@@ -1,5 +1,4 @@
 module DP
-
     open CommonData
     open CommonLex
     open Helpers
@@ -63,71 +62,8 @@ module DP
             "MOV", MOV;
             "MVN", MVN;
         ]
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-    let execute (cpuData: DataPath<'INS>) (instr: Parse<Instr>) =
-        let rotate reg amt = 
-            let binaryMask = uint32 (2.0 ** (float amt) - 1.0)
-            let lsbs = reg &&& binaryMask
-            let msbs = lsbs <<< (32 - amt)
-            let shiftedNum = reg >>> amt
-            msbs ||| shiftedNum
-
-        let PC = cpuData.Regs.[R15]
-        let nextPC = PC + 4u
-        let regContents r = cpuData.Regs.[r] // add 0 - 255
-        let lessThan32 v = (fun x -> x % 32) v
-        let lessThan31 v = (fun x -> x % 31) v
-
-        let getRegOrNum sh = 
-            match sh with
-            | Some (Rs reg) -> regContents reg |> int32
-            | Some (N num) -> num |> int32
-            | None -> 0
-
-        let afterInstr = 
-            match instr.PInstr with
-            | LSL operands -> 
-                let value = (getRegOrNum (Some operands.Op1) |> uint32) <<< (getRegOrNum operands.shifter)
-                setReg operands.Rd value cpuData
-            | ASR operands -> 
-                let value = (getRegOrNum (Some operands.Op1)) >>> (getRegOrNum operands.shifter) |> uint32
-                setReg operands.Rd value cpuData
-            | LSR operands -> 
-                let value = (getRegOrNum (Some operands.Op1) |> uint32) >>> (getRegOrNum operands.shifter)
-                setReg operands.Rd value cpuData
-            | ROR operands -> 
-                let value = rotate (getRegOrNum (Some operands.Op1) |> uint32) (getRegOrNum operands.shifter)
-                setReg operands.Rd value cpuData
-            | RRX operands when cpuData.Fl.C -> 
-                // LSB needs to be put into C
-                let value = (getRegOrNum (Some operands.Op1) |> uint32) >>> 1 |> (|||) (uint32 0x80000000)
-                setReg operands.Rd value cpuData
-            | RRX operands -> 
-                // LSB needs to be put into C
-                let value = (getRegOrNum (Some operands.Op1) |> uint32) >>> 1
-                setReg operands.Rd value cpuData
-            | MOV operands ->
-                let value = (getRegOrNum (Some operands.Op1) |> uint32)
-                setReg operands.Rd value cpuData
-            | MVN operands ->
-                let value = 0xFFFFFFFFu ^^^ (getRegOrNum (Some operands.Op1) |> uint32)
-                setReg operands.Rd value cpuData
-            | _ -> failwithf "Ain't an instruction bro"
-
-        setReg R15 nextPC afterInstr
-        
-
-
-   
-=======
-  
->>>>>>> Refactored DP execution code
-=======
 
           
->>>>>>> LMAO mov tests without flex op2 cos
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand dPSpec
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
@@ -198,4 +134,3 @@ module DP
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|) = parse
-

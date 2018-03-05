@@ -6,17 +6,19 @@ module Misc
     open CommonData
     open CommonLex
     open Expressions
-    open Execution
 
     // Don't support valueSize yet, always set to 1
     type FILLInstr = {numBytes : SymbolExp ; value : SymbolExp ; valueSize : int}
 
-    type Instr =
+    type MiscInstr =
         | DCD of SymbolExp list
         | DCB of SymbolExp list
         | FILL of FILLInstr
         | EQU of SymbolExp
 
+    type Instr =
+        | Misc of MiscInstr
+        
     /// Errors which can occur during parsing
     type ErrInstr =
         | InvalidExp of string
@@ -70,47 +72,6 @@ module Misc
             (evalSymExp syms) exp
             |> Result.map EQU
             |> Result.mapError SymbolErrors 
-
-    /// Execute a MISC instruction against the datapath
-    /// mem is where to start placing in memory
-    /// Return new mem which is where the next instruction
-    /// would begin placing in memory
-    let execute (dp, mem) ins =
-        let expectResolved exp =
-            match exp with
-            | ExpResolved data -> data
-            | _ -> failwithf "Trying to execute unresolved data"
-
-        let executeDCD lst =
-            let foldDCD (dp', mem') exp =
-                match exp with
-                | ExpResolved data -> (updateMemData data (alignAddress mem') dp', mem' + 4u)
-                | _ -> failwithf "Trying to execute unresolved DCD instruction"
-            List.fold foldDCD (dp, mem) lst
-
-        let executeDCB lst = 
-            let foldDCB (dp', mem') exp =
-                match exp with
-                | ExpResolvedByte data -> (updateMemByte data mem' dp', mem' + 1u)
-                | _ -> failwithf "Trying to execute unresolved byte DCB instructon"
-            List.fold foldDCB (dp, mem) lst
-
-        let executeFILL fIns =
-            let numBytes = expectResolved fIns.numBytes
-            let fillVal = expectResolved fIns.value
-            // Currently assume that valueSize is always 1
-            let rec doFillByte mem' dp' =
-                match mem' = mem + numBytes with
-                | false -> doFillByte (mem' + 1u) (updateMemByte (byte fillVal) mem' dp')
-                | true -> (dp', mem')
-            doFillByte mem dp
-
-        match ins with
-        | DCD lst -> executeDCD lst
-        | DCB lst -> executeDCB lst
-        | FILL fIns -> executeFILL fIns
-        | EQU _ -> failwithf "Can't execute EQU"
-
     let parseExpr txt =
         match txt with
         | Expr (exp, "") -> exp |> ExpUnresolved |> Ok
@@ -138,7 +99,7 @@ module Misc
             let parseDCD' lab =
                 Result.bind (fun lst ->
                     Ok {
-                        PInstr = DCD lst;
+                        PInstr = DCD lst |> Misc;
                         PLabel = Some (lab, la);
                         PSize = 4 * (List.length lst) |> uint32;
                         PCond = Cal;
@@ -150,7 +111,7 @@ module Misc
             let parseDCB' lab =
                 Result.bind (fun lst ->
                     Ok {
-                        PInstr = DCB lst;
+                        PInstr = DCB lst |> Misc;
                         PLabel = Some (lab, la);
                         PSize = (List.length lst) |> uint32;
                         PCond = Cal;
@@ -162,12 +123,12 @@ module Misc
             let parseEQU' lab =
                 Result.bind (fun exp ->
                     Ok {
-                        PInstr = EQU exp;
+                        PInstr = EQU exp |> Misc;
                         PLabel = Some (lab, la);
                         PSize = 0u;
                         PCond = Cal;
                     }
-                ) (parseExpr ls.Operands)
+                ) (parseExpr ls.Operands) 
             labelBinder parseEQU'
 
         let fillMap parseFunc = 
@@ -196,13 +157,13 @@ module Misc
                     Ok (num, Literal 0u, 1)
                 | [Expr (_, "") ; inv ; _ ]
                 | [Expr (_, "") ; inv] -> 
-                    InvalidFillValue inv |> Error
+                    InvalidFill inv |> Error
                 | [inv ; _ ; _ ]
                 | [inv ; _ ]
                 | [inv] -> 
                     InvalidExp inv |> Error
                 | _ -> InvalidFill ls.Operands |> Error
-                |> Result.map fillPack
+                |> Result.map fillPack |> Result.map Misc
             fillMap parseFILL'
 
         let parseSPACE () =
@@ -213,7 +174,7 @@ module Misc
                         numBytes = num
                         value = ExpUnresolved (Literal 0u)
                         valueSize = 1
-                    })
+                    }) |> Result.map Misc
             fillMap parseSPACE'
 
         match ls.OpCode.ToUpper() with

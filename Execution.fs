@@ -48,3 +48,47 @@ module Execution
         | Cgt -> (not z && (n = v))
         | Cle -> (z || (n <> v))
     
+    /// Return a new datapath with reg rX set to value
+    let updateReg value rX dp =
+        {dp with Regs = Map.add rX value dp.Regs}
+
+    // Update the whole word at addr with value in dp
+    let updateMem value (addr : uint32) dp =
+        match addr % 4u with
+        | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
+        | _ -> failwithf "Trying to update memory at unaligned address"
+
+    let updateMemData value = updateMem (DataLoc value)
+
+    /// Return the next aligned address after addr
+    let alignAddress addr = (addr / 4u) * 4u
+        
+    /// Update a single byte in memory (Little Endian)
+    let updateMemByte (value : byte) (addr : uint32) dp =
+        let baseAddr = alignAddress (addr)
+        let shft = (int ((addr % 4u)* 8u))
+        let mask = 0xFFu <<< shft |> (~~~)
+        let oldVal = 
+            match Map.containsKey (WA baseAddr) dp.MM with
+            | true -> dp.MM.[WA baseAddr]
+            | false -> DataLoc 0u // Uninitialised memory is zeroed
+        let newVal = 
+            match oldVal with
+            | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
+            | _ -> failwithf "Updating byte at instruction address"
+        updateMem (DataLoc newVal) baseAddr dp
+    let fillRegs (vals : uint32 list) =
+        List.zip [0..15] vals
+        |> List.map (fun (r, v) -> (register r, v))
+        |> Map.ofList
+
+    let emptyRegs = 
+        [0..15]
+        |> List.map (fun _ -> 0u)
+        |> fillRegs
+        
+    let initialDp () = {
+            Fl = {N = false ; C = false ; Z = false ; V = false};
+            Regs = emptyRegs;
+            MM = Map.ofList []
+        }

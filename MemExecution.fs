@@ -5,7 +5,7 @@ module MemExecution
     open CommonTop
     open Execution
 
-    let executeMem (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+    let executeMem instr (cpuData: DataPath<Instr>) =
 
         let regContents r = cpuData.Regs.[r]
 
@@ -202,14 +202,6 @@ module MemExecution
             | STM operands ->
                 executeSTM operands.suff operands.Rn operands.rList cpuData
 
-        match condExecute instr cpuData with
-        | true -> 
-            match instr.PInstr with
-            | CommonTop.IMEM (Mem instr') ->
-                let cpuData' = executeInstr instr' cpuData
-                updatePC instr cpuData'        
-            | _ -> failwithf "Not a valid instruction"
-        | false -> 
-            updatePC instr cpuData
-            
+        executeInstr instr cpuData |> Ok
+
 

@@ -6,7 +6,7 @@ module DPExecution
     open Execution
 
     /// Data Processing Execution function
-    let executeDP (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+    let executeDP instr (cpuData: DataPath<Instr>) =
         /// Rotate for ROR 
         /// reg is value in register
         /// amt the amount you want to rotate by
@@ -135,15 +135,4 @@ module DPExecution
             | MVN operands ->
                 executeMVN operands.suff operands.Rd operands.Op1 cpuData
 
-        /// Check flags and conditionals, using Tom's condExecute (as he dealt with them first)
-        /// Match the instruction, execute then update program counter by 4
-        match condExecute instr cpuData with
-        | true -> 
-            match instr.PInstr with
-            | CommonTop.IDP (Shift instr') ->
-                let cpuData' = executeShiftInstr instr' cpuData   
-                updatePC instr cpuData'
-            | _ -> failwithf "Not a valid instruction"
-        | false -> 
-            updatePC instr cpuData
-            
+        executeShiftInstr instr cpuData |> Ok

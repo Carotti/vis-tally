@@ -6,13 +6,15 @@ module Branch
     open CommonData
     open CommonLex
     open Expressions
-    open Execution
-        
-    // Type returned after parsing
-    type Instr =
+    
+    type BranchInstr =
         | B of SymbolExp
         | BL of SymbolExp
         | END
+
+        // Type returned after parsing
+    type Instr =
+        | Branch of BranchInstr
 
     type ErrRunTime =
         | NotInstrMem of uint32 // Address where there is no instruction
@@ -39,34 +41,6 @@ module Branch
         Suffixes = [""]
     }
 
-    /// Execute a Branch instruction
-    let execute dp ins =
-        let nxt = dp.Regs.[R15] + 4u // Address of the next instruction
-        match condExecute ins dp with
-        | false -> 
-            dp
-            |> updateReg nxt R15
-            |> Ok
-        | true ->
-            match ins.PInstr with
-            | B (ExpUnresolved _)
-            | BL (ExpUnresolved _) ->
-                failwithf "Trying to execute an unresolved label"
-            | B (ExpResolvedByte _) 
-            | BL (ExpResolvedByte _) -> 
-                failwithf "Trying to execute branch to byte"
-            | B (ExpResolved addr) -> 
-                dp 
-                |> updateReg addr R15
-                |> Ok
-            | BL (ExpResolved addr) ->
-                dp
-                |> updateReg addr R15
-                |> updateReg nxt R14
-                |> Ok
-            | END ->
-                EXIT |> Error
-                
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand branchSpec
 
@@ -87,7 +61,7 @@ module Branch
             | _ -> failwithf "Unexpected root in Misc.parse"
             |> Result.map (fun ins ->
                 { 
-                    PInstr = ins
+                    PInstr = ins |> Branch
                     PLabel = ls.Label |> Option.map (fun lab -> lab, la) ; 
                     PSize = 4u; 
                     PCond = pCond 
