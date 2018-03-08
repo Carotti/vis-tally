@@ -18,6 +18,7 @@ open Node.Exports
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
 
+let mutable monacoTheme = "vs-light"
 let createMainWindow () =
     let options = createEmpty<BrowserWindowOptions>
     // Complete list of window options

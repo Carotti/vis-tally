@@ -17,10 +17,12 @@ open Ref
 let fontSize (size: int) =
     let options = createObj ["fontSize" ==> size]
     window?code?updateOptions options
+    
 let register (id: int) (value: int) =
     let el = Ref.register id
     el.setAttribute("style", "background: #fbbc05")
     el.innerHTML <- sprintf "0x%X" value
+
 let flag (id: string) (value: bool) =
     let el = Ref.flag id
     match value with
@@ -32,3 +34,6 @@ let flag (id: string) (value: bool) =
             el.innerHTML <- sprintf "%i" 1
 let code (text: string) =
     window?code?setValue(text)
+
+let setTheme theme = 
+    window?monaco?editor?setTheme(theme)

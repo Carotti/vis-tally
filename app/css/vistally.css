@@ -5,3 +5,18 @@
 .toolbar-header {
     padding: 5px;
 }
+
+.reg, .regv {
+    height: 30px;
+}
+
+.reg, .reg:active {
+    width: 20%;
+    font-size: 13px;
+}
+
+/* Register values */
+.regv, .regv:active {
+    width: 80%;
+    font-size: 15px;
+}

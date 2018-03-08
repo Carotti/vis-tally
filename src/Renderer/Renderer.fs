@@ -28,7 +28,6 @@ open Emulator
 /// Access to `Emulator` project
 let dummyVariable = Emulator.Common.A
 
-
 /// Initialization after `index.html` is loaded
 let init () =
     Ref.fontSize.addEventListener_change(fun _ ->
