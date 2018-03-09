@@ -20,6 +20,8 @@ let mutable currentView = Registers
 
 let mutable byteView = false
 
+let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
+
 // Returns a formatter for the given representation
 let formatter rep = 
 // TODO: Use binformatter from testformats.fs
@@ -123,15 +125,29 @@ let contiguousMemory (mem : Map<uint32, uint32>) =
     |> List.map List.rev // Reverse each list to go back to increasing
     |> List.rev // Reverse the overall list
 
+// Converts a list of (uint32 * uint32) to a byte addressed
+// memory list of (uint32 * uint32) which is 4 times longer
+// LITTLE ENDIAN
+let lstToBytes (lst : (uint32 * uint32) list) =
+    lst
+    |> List.collect (fun (addr, value) -> 
+        [
+            addr, value |> byte |> uint32
+            addr + 1u, (value >>> 8) |> byte |> uint32
+            addr + 2u, (value >>> 16) |> byte |> uint32;
+            addr + 3u, (value >>> 24) |> byte |> uint32;
+        ]
+    )
+
 // Creates the html to format the memory table in contiguous blocks
-let updateMemory mem =
+let updateMemory () =
     let makeRow (addr : uint32, value : uint32) =
         let mutable tr = document.createElement("tr")
         tr.classList.add("tr-head-mem")
 
         let mutable tdAddr = document.createElement("td")
         tdAddr.classList.add("td-mem")
-        tdAddr.innerHTML <- sprintf "%X" addr
+        tdAddr.innerHTML <- sprintf "0x%X" addr
 
         let mutable tdValue = document.createElement("td")
         tdValue.classList.add("td-mem")
@@ -164,8 +180,14 @@ let updateMemory mem =
 
         table.appendChild(tr) |> ignore
 
+        let byteSwitcher = 
+            match byteView with
+            | true -> lstToBytes
+            | false -> id
+
         // Add each row to the table from lst
         lst
+        |> byteSwitcher
         |> List.map (makeRow >> (fun html -> table.appendChild(html)))
         |> ignore
 
@@ -176,6 +198,6 @@ let updateMemory mem =
     memList.innerHTML <- ""
 
     // Add the new memory list
-    mem
+    memoryMap
     |> contiguousMemory
     |> List.map (makeContig >> (fun html -> memList.appendChild(html)))

@@ -73,6 +73,7 @@ let init () =
     mapClickAttacher repToId Ref.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
         setRepresentation rep
+        updateMemory ()
     )
 
     mapClickAttacher viewToIdTab Ref.viewTab (fun view ->
@@ -83,8 +84,11 @@ let init () =
     (Ref.byteViewBtn).addEventListener_click(fun _ ->
         Browser.console.log "Toggling byte view" |> ignore
         toggleByteView ()
+        updateMemory ()
     )
 
-    updateMemory testMemory
+    // Just for testing memory visualisation
+    memoryMap <- testMemory
+    updateMemory ()
 
 init()
