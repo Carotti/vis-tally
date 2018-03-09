@@ -25,6 +25,15 @@ open Ref
 open Update
 open Emulator
 
+// TODO: Delete this piece of shit
+let testMemory = Map.ofList [
+                        0x0u, 0xAABBCCDDu;
+                        0x4u, 0x11223344u;
+                        0x8u, 0x11111111u;
+                        0x100u, 0x22222222u;
+                        0x104u, 0xAABBCCDDu;
+                    ]
+
 /// Access to `Emulator` project
 let dummyVariable = Emulator.Common.A
 
@@ -75,5 +84,7 @@ let init () =
         Browser.console.log "Toggling byte view" |> ignore
         toggleByteView ()
     )
+
+    updateMemory testMemory
 
 init()

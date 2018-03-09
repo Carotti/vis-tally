@@ -70,3 +70,6 @@ let viewTab view =
 
 let byteViewBtn = 
     Browser.document.getElementById("byte-view")
+
+let memList =
+    Browser.document.getElementById("mem-list")

@@ -106,3 +106,76 @@ let toggleByteView () =
     | false -> 
         byteViewBtn.classList.remove("btn-byte-active")
         byteViewBtn.innerHTML <- "Enable Byte View"
+
+// Converts a memory map to a list of lists which are contiguous blocks of memory
+let contiguousMemory (mem : Map<uint32, uint32>) =
+    Map.toList mem
+    |> List.fold (fun state (addr, value) -> 
+        match state with
+        | [] -> [[(addr, value)]]
+        | hd :: tl ->
+            match hd with
+            | [] -> failwithf "Shouldn't happen"
+            | hd' :: _ when fst hd' = addr - 4u -> 
+                ((addr, value) :: hd) :: tl // Add to current contiguous block
+            | _ :: _ -> [(addr, value)] :: state // Non-contiguous, add to new block
+    ) [] 
+    |> List.map List.rev // Reverse each list to go back to increasing
+    |> List.rev // Reverse the overall list
+
+// Creates the html to format the memory table in contiguous blocks
+let updateMemory mem =
+    let makeRow (addr : uint32, value : uint32) =
+        let mutable tr = document.createElement("tr")
+        tr.classList.add("tr-head-mem")
+
+        let mutable tdAddr = document.createElement("td")
+        tdAddr.classList.add("td-mem")
+        tdAddr.innerHTML <- sprintf "%X" addr
+
+        let mutable tdValue = document.createElement("td")
+        tdValue.classList.add("td-mem")
+        tdValue.innerHTML <- formatter currentRep value
+
+        tr.appendChild(tdAddr) |> ignore
+        tr.appendChild(tdValue) |> ignore
+        tr
+
+    let makeContig (lst : (uint32 * uint32) list) = 
+        let mutable li = document.createElement("li")
+        li.classList.add("list-group-item")
+        li.style.padding <- "0px"
+
+        let mutable table = document.createElement("table")
+        table.classList.add("table-striped")
+
+        let mutable tr = document.createElement("tr")
+
+        let mutable thAddr = document.createElement("th")
+        thAddr.classList.add("th-mem")
+        thAddr.innerHTML <- "Address"
+
+        let mutable thValue = document.createElement("th")
+        thValue.classList.add("th-mem")
+        thValue.innerHTML <- "Value"
+
+        tr.appendChild(thAddr) |> ignore
+        tr.appendChild(thValue) |> ignore
+
+        table.appendChild(tr) |> ignore
+
+        // Add each row to the table from lst
+        lst
+        |> List.map (makeRow >> (fun html -> table.appendChild(html)))
+        |> ignore
+
+        li.appendChild(table) |> ignore
+        li
+    
+    // Clear the old memory list
+    memList.innerHTML <- ""
+
+    // Add the new memory list
+    mem
+    |> contiguousMemory
+    |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
