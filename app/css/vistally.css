@@ -6,17 +6,66 @@
     padding: 5px;
 }
 
-.reg, .regv {
+.btn-reg, .btn-reg-con {
     height: 30px;
 }
 
-.reg, .reg:active {
-    width: 20%;
+.btn-reg, .btn-reg:active {
+    width: 15%;
     font-size: 13px;
 }
 
 /* Register values */
-.regv, .regv:active {
-    width: 80%;
+.btn-reg-con, .btn-reg-con:active {
+    width: 85%;
+    font-size: 14px;
+}
+
+.btn-flag, .btn-flag-con {
     font-size: 15px;
+}
+
+.btn-rep {
+    background-color: white;
+    font-size: 15px;
+}
+
+.btn-rep-enabled {
+    background-color: darkgray;
+}
+
+.btn-view {
+    width: 33.3%;
+}
+
+#editor, #dashboard {
+    overflow: hidden;
+}
+
+#viewer {
+    overflow: scroll;
+    height: 100%;
+    padding-bottom: 50px; /* Allow scrolling slightly beyond the end */
+}
+
+.invisible {
+    display: none;
+}
+
+.btn-byte-active {
+    background-color: darkgray;
+}
+
+.td-mem {
+    -webkit-user-select: text !important; /* Overwrite webkit no select so you can copy and paste */
+}
+
+.th-mem {
+    background-color: darkgray;
+    color: white;
+}
+
+#dashboard {
+    min-width: 400px;
+    max-width: 400px;
 }
