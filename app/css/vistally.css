@@ -56,10 +56,6 @@
     background-color: darkgray;
 }
 
-.td-mem {
-    -webkit-user-select: text !important; /* Overwrite webkit no select so you can copy and paste */
-}
-
 .th-mem {
     background-color: darkgray;
     color: white;

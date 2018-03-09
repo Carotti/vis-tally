@@ -129,6 +129,7 @@
    cursor: default;
    -webkit-user-drag: text;
    -webkit-user-select: none;
+   user-select: none;
    -webkit-box-sizing: border-box;
    box-sizing: border-box;
  }
@@ -216,6 +217,7 @@
  .selectable-text {
    cursor: text;
    -webkit-user-select: text;
+   user-select: text;
  }
  
  .text-center {

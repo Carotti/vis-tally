@@ -72,7 +72,7 @@ let init () =
 
     mapClickAttacher repToId Ref.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
-        setRepresentation rep
+        setRepresentation rep |> ignore
         updateMemory ()
     )
 
@@ -91,4 +91,4 @@ let init () =
     memoryMap <- testMemory
     updateMemory ()
 
-init()
+init() |> ignore

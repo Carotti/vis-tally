@@ -117,7 +117,7 @@ let contiguousMemory (mem : Map<uint32, uint32>) =
         | [] -> [[(addr, value)]]
         | hd :: tl ->
             match hd with
-            | [] -> failwithf "Shouldn't happen"
+            | [] -> failwithf "Contiguous memory never starts a new list with no elements"
             | hd' :: _ when fst hd' = addr - 4u -> 
                 ((addr, value) :: hd) :: tl // Add to current contiguous block
             | _ :: _ -> [(addr, value)] :: state // Non-contiguous, add to new block
@@ -146,11 +146,11 @@ let updateMemory () =
         tr.classList.add("tr-head-mem")
 
         let mutable tdAddr = document.createElement("td")
-        tdAddr.classList.add("td-mem")
+        tdAddr.classList.add("selectable-text")
         tdAddr.innerHTML <- sprintf "0x%X" addr
 
         let mutable tdValue = document.createElement("td")
-        tdValue.classList.add("td-mem")
+        tdValue.classList.add("selectable-text")
         tdValue.innerHTML <- formatter currentRep value
 
         tr.appendChild(tdAddr) |> ignore
