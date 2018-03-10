@@ -299,6 +299,10 @@ let setTabUnsaved id =
 
         tab.appendChild(unsaved) |> ignore
 
+let setTabSaved id =
+    let tab = fileTab id
+    tab.lastElementChild.classList.remove("unsaved")
+ 
 let createNamedFileTab name =
     let mutable tab = document.createElement("div")
     tab.classList.add("tab-item")
@@ -365,16 +369,22 @@ let createFileTab () =
 
 let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     let editor = editors.[tId]
-    editor?setValue(sprintf "%A" fileData) |> ignore
+    editor?setValue(fileData.toString("utf8")) |> ignore
+    setTabSaved tId
 
 let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
     
     (List.map ((fun x -> (x, createNamedFileTab x)) >> (fun (path, tId) ->
-        fs.readFile(path, (fun err data -> // TODO: find out wha this error does
+        fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data
-        )))) ((electron.remote.dialog.showOpenDialog(options)).ToArray()
+        ))
+        |> ignore
+        tId // Return the tab id list again to open the last one
+        )) ((electron.remote.dialog.showOpenDialog(options)).ToArray()
     |> Array.toList))
+    |> List.last
+    |> selectFileTab
     |> ignore
     ()
