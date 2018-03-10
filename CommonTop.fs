@@ -21,6 +21,7 @@ module CommonTop
         | ERRMISC of Misc.ErrInstr
         | ERRBRANCH of Branch.ErrInstr
         | ERRTOPLEVEL of string
+    
 
     /// Note that Instr in Mem and DP modules is NOT same as Instr in this module
     /// Instr here is all possible isntruction values combines with a D.U.

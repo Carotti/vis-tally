@@ -6,7 +6,7 @@ module DP
     open CommonData
     open CommonLex
     open System.Text.RegularExpressions
-    open Helpers
+    open Errors
 
     /// Rotation values for the `Literal` type in the flexible second operand.
     [<Struct>]
@@ -173,17 +173,17 @@ module DP
     /// Top level instruction type for data processing instructions.
     type Instr =
         | DPTop of DPInstr
-        
+    
     /// Error types for parsing.
     type ErrInstr =
-        | ``Invalid literal``       of string
-        | ``Invalid register``      of string
-        | ``Invalid shift``         of string
-        | ``Invalid flexible second operand``  of string
-        | ``Invalid suffix``        of string
-        | ``Invalid instruction``   of string
-        | ``Syntax error``          of string
-
+        | ``Invalid literal`` of ErrorBase
+        | ``Invalid register`` of ErrorBase
+        | ``Invalid shift`` of ErrorBase
+        | ``Invalid flexible second operand`` of ErrorBase
+        | ``Invalid suffix`` of ErrorBase
+        | ``Invalid instruction`` of ErrorBase
+        | ``Syntax error`` of ErrorBase
+            
     /// Constructs a `DP2S` from an optional suffix and a `DP2`
     let consDP2S suffix (dp2:DP2Form) =
         {
@@ -303,26 +303,6 @@ module DP
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
-    /// A function to combine results or forward errors.
-    let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =
-        match res1, res2 with
-        | Error e1, _ -> Error e1
-        | _, Error e2 -> Error e2
-        | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
-
-    /// A function that combines two results by applying a function on them as a pair, or forwards errors.
-    let combineErrorMapResult (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,'E> =
-        combineError res1 res2
-        |> Result.map (fun (r1,r2) -> mapf r1 r2)
-    
-    /// A function that applies a possibly erroneous function to a possibly erroneous argument, or forwards errors.
-    let applyResultMapError (res:Result<'T1->'T2,'E>) (arg:Result<'T1,'E>) =
-        match arg, res with
-        | Ok arg', Ok res' -> res' arg' |> Ok
-        | _, Error e -> e |> Error
-        | Error e, _ -> e |> Error
-   
-
     /// main function to parse a line of assembler
     /// ls contains the line input
     /// and other state needed to generate output
@@ -342,7 +322,9 @@ module DP
                 let B = (rotB <<< snd hd) ||| (rotB >>> 32 - snd hd) |> byte
                 Ok (B, snd hd)
             | [] ->
-                (lit |> string) + " is not a valid literal."
+                let txt = lit |> string
+                (txt, " is not a valid literal.")
+                ||> makeError
                 |> ``Invalid literal``
                 |> Error
 
@@ -381,7 +363,8 @@ module DP
             | Some reg ->
                 reg |> Ok |> Some
             | _ ->
-                txt + " is not a valid register."
+                (txt, " is not a valid register.")
+                ||> makeError
                 |> ``Invalid register``
                 |> Error
                 |> Some
@@ -438,7 +421,8 @@ module DP
                                 |> Result.map(partialFS2)
                                 |> Some
                             | _ ->
-                                oprnds + " is not a valid literal or register."
+                                (oprnds, " is not a valid literal or register.")
+                                ||> makeError
                                 |> ``Invalid shift``
                                 |> Error
                                 |> Some
@@ -462,7 +446,8 @@ module DP
                     let reg' = Result.map (Reg) reg
                     applyResultMapError createOp reg'
                 | _ ->
-                    op2 + " is an invalid flexible second operand"
+                    (op2, " is an invalid flexible second operand")
+                    ||> makeError
                     |> ``Invalid flexible second operand``
                     |> Error
                     |> applyResultMapError createOp
@@ -478,7 +463,8 @@ module DP
                 let shift' = Result.map (Shift) shift
                 applyResultMapError createOp shift'
             | _ ->
-                rOp2 + ", " + extn + " is an invalid flexible second operand"
+                ((rOp2 + ", " + extn), " is an invalid flexible second operand")
+                ||> makeError
                 |> ``Invalid flexible second operand``
                 |> Error
                 |> applyResultMapError createOp
@@ -523,7 +509,8 @@ module DP
                     | _ ->
                         failwith "Should never happen! Match statement always matches."  
                 | _ ->
-                    "Syntax error. Instruction format is incorrect."
+                    (ld.Operands, "Syntax error. Instruction format is incorrect.")
+                    ||> makeError
                     |> ``Invalid instruction``
                     |> Error
             ) 
@@ -540,7 +527,8 @@ module DP
                 | [rDest; rOp1; rOp2; extn] ->
                     parse4Ops rDest rOp1 rOp2 extn
                 | _ ->
-                    "Syntax error. Instruction format is incorrect."
+                    (ld.Operands, "Syntax error. Instruction format is incorrect.")
+                    ||> makeError
                     |> ``Invalid instruction``
                     |> Error
             )  
@@ -593,7 +581,8 @@ module DP
                     |> Result.map (opcode) 
                     |> Result.map (DP2)
                 | true, Some _suff' ->
-                    "This instruction cannot have a suffix."
+                    (suffix, "This instruction cannot have a suffix.")
+                    ||> makeError
                     |> ``Invalid suffix``
                     |> Error
                 | false, _ ->

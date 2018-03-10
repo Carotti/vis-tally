@@ -4,6 +4,7 @@ module DPExecution
     open CommonTop
     open DP
     open Helpers
+    open Errors
 
     /// Bitwise shift operators defined to accept the shift value as first argument 
     ///  and the value to-be-shifted as a second argument. This allows the value

@@ -7,6 +7,8 @@ module Misc
     open CommonLex
     open Expressions
 
+    open Errors
+
     // Don't support valueSize yet, always set to 1
     type FILLInstr = {numBytes : SymbolExp ; value : SymbolExp ; valueSize : int}
 

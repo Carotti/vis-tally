@@ -1,14 +1,33 @@
-module Errors    
-    open Helpers
-    open CommonData
-    open CommonLex
+module Errors   
+
+
+    type ErrorBase =
+        {
+            errorTxt : string;
+            errorMessage : string;
+        }
+
+    let makeError txt message =
+        {
+            errorTxt = txt;
+            errorMessage = message;
+        }     
+
+    /// A function to combine results or forward errors.
+    let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =
+        match res1, res2 with
+        | Error e1, _ -> Error e1
+        | _, Error e2 -> Error e2
+        | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
+
+    /// A function that combines two results by applying a function on them as a pair, or forwards errors.
+    let combineErrorMapResult (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,'E> =
+        combineError res1 res2
+        |> Result.map (fun (r1,r2) -> mapf r1 r2)
     
-    /// Error types for parsing.
-    type ErrInstr =
-        | ``Invalid literal``       of string
-        | ``Invalid register``      of string
-        | ``Invalid shift``         of string
-        | ``Invalid flexible second operand``  of string
-        | ``Invalid suffix``        of string
-        | ``Invalid instruction``   of string
-        | ``Syntax error``          of string
+    /// A function that applies a possibly erroneous function to a possibly erroneous argument, or forwards errors.
+    let applyResultMapError (res:Result<'T1->'T2,'E>) (arg:Result<'T1,'E>) =
+        match arg, res with
+        | Ok arg', Ok res' -> res' arg' |> Ok
+        | _, Error e -> e |> Error
+        | Error e, _ -> e |> Error

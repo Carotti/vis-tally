@@ -3,6 +3,8 @@ module Memory
     open CommonLex
     open Helpers
 
+    open Errors
+
     // *********** //
     // LDR AND STR //
     // *********** //
