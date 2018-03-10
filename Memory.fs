@@ -361,20 +361,19 @@ module Memory
                         match addr with
                         | MemMatch addr' ->
                             match postOff with
-                            | OffsetMatch 
-                    | _ -> 
-                        failwith "Should never happen! Match statement always matches."
-                //     | MemMatch addr ->
-                //         match [reg; addr] with
-                //         | [reg; addr] when (regsValid [reg; addr]) ->
-                //             match offset with
-                //             | OffsetMatch tuple  -> 
-                //                 (Ok splitOps)
-                //                 |> consMemSingle reg addr (fst tuple) (snd tuple) (checkSingleSuffix suffix)
-                //             | _ -> Error "OffsetMatch failed"
-                //         | _ -> Error "Some registers are probably not valid"
-                //     | _ -> Error "MemMatch failed"
-                | _ -> Error "splitOps did not match with \'op1, op2\' or \'op1, op2, op3\'"
+                            | OffsetMatch tuple ->
+                                let partialConsMem = combineErrorMapResult rOp1' addr' consMemSingle
+                                partialConsMem
+                                |> mapErrorApplyResult (Result.map (fst) tuple)
+                                |> mapErrorApplyResult (Result.map (snd) tuple)
+                                |> mapErrorApplyResult ((checkSingleSuffix suffix) |> Ok)
+                            | _ -> failwith "Should never happen! Match statement always matches."
+                    | _ -> failwith "Should never happen! Match statement always matches."
+                | _ -> 
+                    (ls.Operands, "Syntax error. Instruction format is incorrect.")
+                    ||> makeError
+                    |> ``Invalid instruction``
+                    |> Error
 
             let make ops =
                 Ok { 
@@ -383,7 +382,7 @@ module Memory
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            Result.bind make ops
+            Result.map make ops
 
         let parse' (_instrC, (root,suffix,pCond)) =
             match root with
