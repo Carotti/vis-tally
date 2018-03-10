@@ -44,7 +44,7 @@
 }
 
 .editor {
-    height: calc(100% - 40px);
+    height: calc(100% - 26px);
     width: 100%;
 }
 
@@ -87,4 +87,8 @@
 .tab-file-name {
     width: 20px;
     text-overflow: ellipsis;
+}
+
+#file-view--1 {
+    background-color: darkgray;
 }

@@ -10,7 +10,7 @@
     <!--<link rel="stylesheet" href="css/material-icons.css">-->
 </head>
 
-<body>
+<body id="vis-body" class="invisible">
     <div class="window">
         <!-- .toolbar-header sits at the top of your app -->
         <header class="toolbar toolbar-header">
@@ -234,10 +234,9 @@
         // Keep a reference to node's require so we can restore it after executing the amd loader file.
         var nodeRequire = global.require;
     </script>
+    <script src="js/renderer.js"></script>
     <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
     <script src="js/editor.js"></script>
-    <script src="js/renderer.js"></script>
-
 </body>
 
 </html>

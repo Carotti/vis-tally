@@ -13,8 +13,6 @@ open Fable.Core.JsInterop
 open Fable.Import.Browser
 
 open Ref
-open Ref
-open Ref
 
 // The current number representation being used
 let mutable currentRep = Hex
@@ -77,8 +75,6 @@ let flag (id: string) (value: bool) =
         | true ->
             el.setAttribute("style", "background: #4285f4")
             el.innerHTML <- sprintf "%i" 1
-let code (text: string) =
-    window?code?setValue(text)
 
 let setTheme theme = 
     window?monaco?editor?setTheme(theme)
@@ -216,6 +212,7 @@ let updateMemory () =
     memoryMap
     |> contiguousMemory
     |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
+    |> ignore
 
 let uniqueTabId () =
     // Look in fileTabList and find the next unique id
@@ -249,17 +246,49 @@ let selectFileTab id =
         currentFileTabId <- id
     | false -> ()
 
+let getTabName id = 
+    (fileTabName id).innerHTML
+
+// Determines if a tab of a given id is unsaved
+let isTabUnsaved id = 
+    (fileTab id).lastElementChild.classList.contains("unsaved")
+
 let deleteFileTab id =
-    fileTabList <- List.filter (fun x -> x <> id) fileTabList
-    match currentFileTabId with
-    | x when x = id ->
-        selectFileTab
-            <| match List.isEmpty fileTabList with
-                | true -> -1
-                | false -> List.last fileTabList
-    | _ -> ()
-    fileTabMenu.removeChild(fileTab id) |> ignore
+    let confirmDelete = 
+        match isTabUnsaved id with
+        | false -> true
+        | true -> Fable.Import.Browser.window.confirm(
+                    sprintf "Are you sure you want to close '%s'?" (getTabName id)
+                    )
+
+    match confirmDelete with
+    | false -> ()
+    | true ->
+        fileTabList <- List.filter (fun x -> x <> id) fileTabList
+        match currentFileTabId with
+        | x when x = id ->
+            selectFileTab
+                <| match List.isEmpty fileTabList with
+                    | true -> -1
+                    | false -> List.last fileTabList
+        | _ -> ()
+        fileTabMenu.removeChild(fileTab id) |> ignore
+        fileViewPane.removeChild(fileView id) |> ignore
     
+let setTabUnsaved id = 
+    let tab = fileTab id
+
+    match tab.lastElementChild.classList.contains("icon-record") with
+    | true -> ()
+    | false ->
+        let mutable unsaved = document.createElement("span")
+        unsaved.classList.add("icon")
+        unsaved.classList.add("unsaved")
+        unsaved.classList.add("icon-record")
+        unsaved.style.opacity <- "0.5"
+
+        tab.appendChild(unsaved) |> ignore
+
 let createFileTab () =
     let mutable tab = document.createElement("div")
     tab.classList.add("tab-item")
@@ -267,24 +296,29 @@ let createFileTab () =
 
     let defaultFileName = document.createElement("span")
     defaultFileName.classList.add("tab-file-name")
-    defaultFileName.innerHTML <- "Untitled.S"
-
-    let mutable unsaved = document.createElement("span")
-    unsaved.classList.add("icon")
-    unsaved.classList.add("icon-record")
-    unsaved.style.opacity <- "0.5"
 
     let mutable cancel = document.createElement("span")
     cancel.classList.add("icon")
     cancel.classList.add("icon-cancel")
     cancel.classList.add("icon-close-tab")
 
-    tab.appendChild(cancel) |> ignore
-    tab.appendChild(defaultFileName) |> ignore
-    tab.appendChild(unsaved) |> ignore
+    let mutable spacer = document.createElement("span")
+    spacer.innerHTML <- " "
 
     let id = uniqueTabId ()
     tab.id <- fileTabIdFormatter id
+
+    // Add the necessary elements to create the new tab
+    tab.appendChild(cancel) |> ignore
+    tab.appendChild(defaultFileName) |> ignore
+    tab.appendChild(spacer) |> ignore
+
+    defaultFileName.innerHTML <- 
+        match id with
+        | 0 -> "Untitled.S"
+        | _ -> sprintf "Untitled(%d).S" id
+
+    defaultFileName.id <- tabNameIdFormatter id
 
     cancel.addEventListener_click(fun _ -> 
         Fable.Import.Browser.console.log(sprintf "Deleting tab #%d" id)
@@ -307,8 +341,12 @@ let createFileTab () =
 
     fileViewPane.appendChild(fv) |> ignore
 
-    // Create a new editor in this tab
-    window?monaco?editor?create(fv, editorOptions) |> ignore
+    let mutable editor = window?monaco?editor?create(fv, editorOptions)
+    
+    // Whenever the content of this editor changes
+    editor?onDidChangeModelContent(fun _ ->
+        setTabUnsaved id // Set the unsaved icon in the tab
+    ) |> ignore
 
     // Switch to the newly created tab
     selectFileTab id

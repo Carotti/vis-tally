@@ -59,8 +59,6 @@ let run: HTMLButtonElement =
     Browser.document.getElementById("run") :?> HTMLButtonElement
 let flag (id: string): HTMLElement =
     Browser.document.getElementById(sprintf "flag_%s" id)
-let code: unit -> string = fun _ ->
-    window?code?getValue() :?> string
 
 let representation rep =
     Browser.document.getElementById(repToId.[rep])
@@ -95,3 +93,8 @@ let fileView id =
 
 let fileViewPane =
     Browser.document.getElementById("file-view-pane")
+
+let tabNameIdFormatter = sprintf "file-view-name-%d"
+
+let fileTabName id =
+    Browser.document.getElementById(tabNameIdFormatter id)

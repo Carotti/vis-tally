@@ -135,4 +135,9 @@ amdRequire(['vs/editor/editor.main'], function () {
   //   scrollBeyondLastLine: false,
   //   automaticLayout: true
   // });
+
+  var mevent = new CustomEvent("monaco-ready", { "detail": "ready now!" });
+
+  // Dispatch/Trigger/Fire the event
+  document.dispatchEvent(mevent);
 });

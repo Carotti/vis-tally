@@ -48,13 +48,15 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
 
 /// Initialization after `index.html` is loaded
 let init () =
+    // Show the body once we are ready to go!
+    document.getElementById("vis-body").classList.remove("invisible")
+
     // TODO: Implement actions for the buttons
     Ref.explore.addEventListener_click(fun _ ->
         Browser.console.log "Code updated"
-        Update.code("mov r7, #5")
     )
     Ref.save.addEventListener_click(fun _ ->
-        Browser.window.alert (sprintf "%A" (Ref.code ()))
+        Browser.window.alert (sprintf "woopeee")
     )
     Ref.run.addEventListener_click(fun _ ->
         setTheme "vs-dark" |> ignore
@@ -91,7 +93,15 @@ let init () =
         Browser.console.log "Creating a new file tab" |> ignore
         createFileTab ()
     )
+
     memoryMap <- testMemory
     updateMemory ()
 
-init() |> ignore
+    // Create an empty tab to start with
+    createFileTab ()
+
+let handleMonacoReady (event: Event) = init ()
+
+let listener: U2<EventListener, EventListenerObject> = !^handleMonacoReady
+
+document.addEventListener("monaco-ready", listener)
