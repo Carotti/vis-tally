@@ -10,7 +10,13 @@ module Update
 
 open Fable.Core
 open Fable.Core.JsInterop
+open Fable.Import
+open Fable.Import.Electron
+open Node.Exports
+open Fable.PowerPack
+
 open Fable.Import.Browser
+
 
 open Ref
 
@@ -24,6 +30,9 @@ let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
 
 let mutable currentFileTabId = -1 // By default no tab is open
 let mutable fileTabList = []
+
+// Map tabIds to the editors which are contained in them
+let mutable editors : Map<int, obj> = Map.ofList []
 
 let mutable editorOptions = createObj [
                                 "value" ==> "";
@@ -223,7 +232,7 @@ let selectFileTab id =
     // Hacky match, but otherwise deleting also attempts to select the deleted tab
     match List.contains id fileTabList || id < 0 with
     | true ->
-        Fable.Import.Browser.console.log(sprintf "Switching to tab #%d" id)
+        Browser.console.log(sprintf "Switching to tab #%d" id)
 
         // Only remove active from the previously selected tab if it existed
         match currentFileTabId < 0 with
@@ -257,7 +266,7 @@ let deleteFileTab id =
     let confirmDelete = 
         match isTabUnsaved id with
         | false -> true
-        | true -> Fable.Import.Browser.window.confirm(
+        | true -> Browser.window.confirm(
                     sprintf "Are you sure you want to close '%s'?" (getTabName id)
                     )
 
@@ -274,6 +283,7 @@ let deleteFileTab id =
         | _ -> ()
         fileTabMenu.removeChild(fileTab id) |> ignore
         fileViewPane.removeChild(fileView id) |> ignore
+        editors <- Map.remove id editors
     
 let setTabUnsaved id = 
     let tab = fileTab id
@@ -289,7 +299,7 @@ let setTabUnsaved id =
 
         tab.appendChild(unsaved) |> ignore
 
-let createFileTab () =
+let createNamedFileTab name =
     let mutable tab = document.createElement("div")
     tab.classList.add("tab-item")
     tab.classList.add("tab-file")
@@ -313,15 +323,12 @@ let createFileTab () =
     tab.appendChild(defaultFileName) |> ignore
     tab.appendChild(spacer) |> ignore
 
-    defaultFileName.innerHTML <- 
-        match id with
-        | 0 -> "Untitled.S"
-        | _ -> sprintf "Untitled(%d).S" id
+    defaultFileName.innerHTML <- name
 
     defaultFileName.id <- tabNameIdFormatter id
 
     cancel.addEventListener_click(fun _ -> 
-        Fable.Import.Browser.console.log(sprintf "Deleting tab #%d" id)
+        Browser.console.log(sprintf "Deleting tab #%d" id)
         deleteFileTab id
     )
 
@@ -348,5 +355,26 @@ let createFileTab () =
         setTabUnsaved id // Set the unsaved icon in the tab
     ) |> ignore
 
-    // Switch to the newly created tab
-    selectFileTab id
+    editors <- Map.add id editor editors
+    // Return the id of the tab we just created
+    id
+
+let createFileTab () = 
+    createNamedFileTab "Untitled.S" 
+    |> selectFileTab // Switch to the tab we just created
+
+let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
+    let editor = editors.[tId]
+    editor?setValue(sprintf "%A" fileData) |> ignore
+
+let openFile () =
+    let options = createEmpty<OpenDialogOptions>
+    options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
+    
+    (List.map ((fun x -> (x, createNamedFileTab x)) >> (fun (path, tId) ->
+        fs.readFile(path, (fun err data -> // TODO: find out wha this error does
+            loadFileIntoTab tId data
+        )))) ((electron.remote.dialog.showOpenDialog(options)).ToArray()
+    |> Array.toList))
+    |> ignore
+    ()

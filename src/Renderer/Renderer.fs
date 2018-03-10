@@ -11,7 +11,7 @@ module Renderer
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Electron
+open Fable.Import.Electron
 open Node.Exports
 open Fable.PowerPack
 
@@ -24,6 +24,7 @@ Browser.console.log "Hi from the renderer.js" |> ignore
 open Ref
 open Update
 open Emulator
+open Mono.Cecil
 
 // TODO: Delete this piece of shit
 let testMemory = Map.ofList [
@@ -53,7 +54,7 @@ let init () =
 
     // TODO: Implement actions for the buttons
     Ref.explore.addEventListener_click(fun _ ->
-        Browser.console.log "Code updated"
+        openFile ()
     )
     Ref.save.addEventListener_click(fun _ ->
         Browser.window.alert (sprintf "woopeee")
@@ -100,7 +101,7 @@ let init () =
     // Create an empty tab to start with
     createFileTab ()
 
-let handleMonacoReady (event: Event) = init ()
+let handleMonacoReady (_: Event) = init ()
 
 let listener: U2<EventListener, EventListenerObject> = !^handleMonacoReady
 
