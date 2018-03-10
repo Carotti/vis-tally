@@ -13,6 +13,8 @@ open Fable.Core.JsInterop
 open Fable.Import.Browser
 
 open Ref
+open Ref
+open Ref
 
 // The current number representation being used
 let mutable currentRep = Hex
@@ -21,6 +23,19 @@ let mutable currentView = Registers
 let mutable byteView = false
 
 let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
+
+let mutable currentFileTabId = -1 // By default no tab is open
+let mutable fileTabList = []
+
+let mutable editorOptions = createObj [
+                                "value" ==> "";
+                                "language" ==> "arm";
+                                "theme" ==> "vs-light";
+                                "renderWhitespace" ==> "all";
+                                "roundedSelection" ==> false;
+                                "scrollBeyondLastLine" ==> false;
+                                "automaticLayout" ==> true;
+                            ]
 
 // Returns a formatter for the given representation
 let formatter rep = 
@@ -201,3 +216,99 @@ let updateMemory () =
     memoryMap
     |> contiguousMemory
     |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
+
+let uniqueTabId () =
+    // Look in fileTabList and find the next unique id
+    match List.isEmpty fileTabList with
+    | true -> 0
+    | false -> (List.last fileTabList) + 1
+let selectFileTab id =
+    // Hacky match, but otherwise deleting also attempts to select the deleted tab
+    match List.contains id fileTabList || id < 0 with
+    | true ->
+        Fable.Import.Browser.console.log(sprintf "Switching to tab #%d" id)
+
+        // Only remove active from the previously selected tab if it existed
+        match currentFileTabId < 0 with
+        | false ->
+            let oldTab = fileTab currentFileTabId
+            oldTab.classList.remove("active")
+            let oldView = fileView currentFileTabId
+            oldView.classList.add("invisible")
+        | true -> ()
+
+        // If the new id is -1, no tab is selected
+        match id < 0 with
+        | true -> ()
+        | false ->
+            let newTab = fileTab id
+            newTab.classList.add("active")
+            let newView = fileView id
+            newView.classList.remove("invisible")
+
+        currentFileTabId <- id
+    | false -> ()
+
+let deleteFileTab id =
+    fileTabList <- List.filter (fun x -> x <> id) fileTabList
+    match currentFileTabId with
+    | x when x = id ->
+        selectFileTab
+            <| match List.isEmpty fileTabList with
+                | true -> -1
+                | false -> List.last fileTabList
+    | _ -> ()
+    fileTabMenu.removeChild(fileTab id) |> ignore
+    
+let createFileTab () =
+    let mutable tab = document.createElement("div")
+    tab.classList.add("tab-item")
+    tab.classList.add("tab-file")
+
+    let defaultFileName = document.createElement("span")
+    defaultFileName.classList.add("tab-file-name")
+    defaultFileName.innerHTML <- "Untitled.S"
+
+    let mutable unsaved = document.createElement("span")
+    unsaved.classList.add("icon")
+    unsaved.classList.add("icon-record")
+    unsaved.style.opacity <- "0.5"
+
+    let mutable cancel = document.createElement("span")
+    cancel.classList.add("icon")
+    cancel.classList.add("icon-cancel")
+    cancel.classList.add("icon-close-tab")
+
+    tab.appendChild(cancel) |> ignore
+    tab.appendChild(defaultFileName) |> ignore
+    tab.appendChild(unsaved) |> ignore
+
+    let id = uniqueTabId ()
+    tab.id <- fileTabIdFormatter id
+
+    cancel.addEventListener_click(fun _ -> 
+        Fable.Import.Browser.console.log(sprintf "Deleting tab #%d" id)
+        deleteFileTab id
+    )
+
+    tab.addEventListener_click(fun _ ->
+        selectFileTab id
+    )
+
+    fileTabList <- fileTabList @ [id]
+
+    fileTabMenu.insertBefore(tab, newFileTab) |> ignore
+
+    // Create the new view div
+    let mutable fv = document.createElement("div")
+    fv.classList.add("editor")
+    fv.classList.add("invisible")    
+    fv.id <- fileViewIdFormatter id
+
+    fileViewPane.appendChild(fv) |> ignore
+
+    // Create a new editor in this tab
+    window?monaco?editor?create(fv, editorOptions) |> ignore
+
+    // Switch to the newly created tab
+    selectFileTab id

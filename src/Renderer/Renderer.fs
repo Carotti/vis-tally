@@ -87,11 +87,10 @@ let init () =
         updateMemory ()
     )
 
-    // settings?set("name", "Nippy") |> ignore
-
-    // Browser.console.log (sprintf "%A" (settings?get ("name")))
-
-    // Just for testing memory visualisation
+    (Ref.newFileTab).addEventListener_click(fun _ ->
+        Browser.console.log "Creating a new file tab" |> ignore
+        createFileTab ()
+    )
     memoryMap <- testMemory
     updateMemory ()
 

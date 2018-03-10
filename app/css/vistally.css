@@ -39,12 +39,12 @@
     width: 33.3%;
 }
 
-#editor, #dashboard {
+.editor, #dashboard {
     overflow: hidden;
 }
 
-#editor {
-    height: 100%;
+.editor {
+    height: calc(100% - 40px);
     width: 100%;
 }
 
@@ -70,4 +70,21 @@
 #dashboard {
     min-width: 400px;
     max-width: 400px;
+}
+
+#tabs-files {
+    background-color: lightgray;
+    width: 100%;
+    height: 27px;
+    overflow: hidden;
+}
+
+.tab-file {
+    max-width: 200px;
+    overflow: hidden;
+}
+
+.tab-file-name {
+    width: 20px;
+    text-overflow: ellipsis;
 }

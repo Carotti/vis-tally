@@ -47,8 +47,12 @@
 
         <div class="window-content">
             <div class="pane-group">
-                <div class="pane">
-                    <div id="editor"></div>
+                <div class="pane" id="file-view-pane">
+                        <div id="tabs-files" class="tab-group">
+                            <div id="new-file-tab" class="tab-item tab-item-fixed">
+                                <span class="icon icon-plus"></span>
+                            </div>
+                        </div>
                 </div>
                 <!-- editor -->
                 <div id="dashboard" class="pane">
@@ -92,7 +96,7 @@
                             <li class="list-group-item">
                                 <div class="btn-group full-width">
                                     <button class="btn btn-reg">R4</button>
-                                    <span id="R4" class="btn btn-reg-con selectable-text">0b00001111000011110000111100001111</span>
+                                    <span id="R4" class="btn btn-reg-con selectable-text">0x0</span>
                                 </div>
                             </li>
                             <li class="list-group-item">

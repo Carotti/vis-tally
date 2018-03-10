@@ -76,3 +76,22 @@ let byteViewBtn =
 
 let memList =
     Browser.document.getElementById("mem-list")
+
+let fileTabMenu = 
+    Browser.document.getElementById("tabs-files")
+let newFileTab =
+    Browser.document.getElementById("new-file-tab")
+
+
+let fileTabIdFormatter = sprintf "file-tab-%d"
+
+let fileTab id = 
+    Browser.document.getElementById(fileTabIdFormatter id)
+
+let fileViewIdFormatter = sprintf "file-view-%d"
+
+let fileView id =
+    Browser.document.getElementById(fileViewIdFormatter id)
+
+let fileViewPane =
+    Browser.document.getElementById("file-view-pane")
