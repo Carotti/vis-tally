@@ -2,7 +2,6 @@ module Memory
     open CommonData
     open CommonLex
     open Helpers
-
     open Errors
 
     // *********** //
@@ -18,7 +17,11 @@ module Memory
     /// and an pre index offset of OffsetType
     /// being either a register or number
     [<Struct>]
-    type Address = {addrReg: RName; offset: Option<OffsetType>}
+    type Address = 
+        {
+            addrReg: RName; 
+            offset: Option<OffsetType>;
+        }
     
     /// post index
     /// either register or number
@@ -36,7 +39,13 @@ module Memory
     /// op{type}{cond} Rt, [Rn, #offset]!          ; pre-indexed
     /// op{type}{cond} Rt, [Rn], #offset           ; post-indexed
     [<Struct>]
-    type InstrMemSingle = {Rn: RName; addr: Address; postOffset: Option<PostIndex>; suff: Option<SingleSuffix>}
+    type InstrMemSingle = 
+        {
+            Rn: RName;
+            addr: Address;
+            postOffset: Option<PostIndex>;
+            suff: Option<SingleSuffix>
+        }
     
     // *********** //
     // LDM AND STM //
@@ -66,7 +75,16 @@ module Memory
     type Instr = 
         | Mem of MemInstr
 
-    type ErrInstr = string
+     /// Error types for parsing.
+    type ErrInstr =
+        | ``Invalid memory address`` of ErrorBase
+        | ``Invalid offset`` of ErrorBase
+        | ``Invalid register`` of ErrorBase
+        | ``Invalid shift`` of ErrorBase
+        | ``Invalid flexible second operand`` of ErrorBase
+        | ``Invalid suffix`` of ErrorBase
+        | ``Invalid instruction`` of ErrorBase
+        | ``Syntax error`` of ErrorBase
 
     let memSpec = {
         InstrC = MEM
@@ -90,22 +108,32 @@ module Memory
 
     /// Contructs an Instruction of InstrMemSingle for LDR, STR
     let consMemSingle reg mem preoffset postoffset suffix = 
-        Result.map (fun _ -> 
             {
-                Rn = regNames.[reg]; 
-                addr = {addrReg = regNames.[mem]; offset = preoffset};
+                Rn = reg; 
+                addr = {addrReg = mem; offset = preoffset};
                 postOffset = postoffset;
                 suff = suffix;
-            })
+            }
     
     /// Contructs an Instruction of InstrMemMult for LDM, STM
     let consMemMult reg rLst suffix =
-        Result.map (fun _ ->
             {
                 Rn = regNames.[reg];
                 rList = RegList (List.map (fun a -> regNames.[a]) rLst);
                 suff = suffix;
-            })
+            }
+    
+    /// A partially active pattern that returns an error if a register argument is not valid.
+    let (|RegCheck|_|) txt =
+        match Map.tryFind txt regNames with
+        | Some reg ->
+            reg |> Ok |> Some
+        | _ ->
+            (txt, " is not a valid register.")
+            ||> makeError
+            |> ``Invalid register``
+            |> Error
+            |> Some
 
     /// Where everything happens
     let parse (ls: LineData) : Result<Parse<Instr>,string> option =
@@ -115,9 +143,14 @@ module Memory
         /// For matching the address location 
         let (|MemMatch|_|) str =
             match str with 
-            | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> Some
-            | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
-            | _ -> None
+            | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> makeReg |> Ok |> Some
+            | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> makeReg |> Ok |> Some
+            | _ -> 
+                ("["+str+"]", " is not a valid register.")
+                ||> makeError
+                |> ``Invalid register``
+                |> Error
+                |> Some
 
         /// For matching the list of regs
         let (|RegListMatch|_|) str =
@@ -135,29 +168,42 @@ module Memory
             /// Register Post Index, No Pre Index
             /// e.g. str r0, [r1], r2
             let regNoPrePost = function
-                | r when (regValid r) -> 
-                    let postInd = Some (RegPost (regNames.[r]))
-                    let preInd = None
-                    (preInd, postInd) |> Some
-                | _ -> None
+                | RegCheck r ->
+                    match r with
+                    | Ok r' -> 
+                        let postInd = RegPost r' |> Some
+                        let preInd = None
+                        (preInd, postInd) |> Ok
+                    | Error e -> Error e
+                | _ -> 
+                    failwith "Should never happen! Match statement always matches."
 
             /// Register Pre Index, No Post Index
             /// e.g. str r0, [r1, r2]
             let regPreNoPost = function
-                | r when (regValid r) -> 
-                    let postInd = None
-                    let preInd = Some (RegPre (regNames.[r]))
-                    (preInd, postInd) |> Some
-                | _ -> None
+                | RegCheck r ->
+                    match r with
+                    | Ok r' -> 
+                        let postInd = None
+                        let preInd = RegPre r' |> Some
+                        (preInd, postInd) |> Ok
+                    | Error e -> Error e
+                | _ -> 
+                    failwith "Should never happen! Match statement always matches."
+
             
             /// Register Post Index and Pre Index
             /// e.g. str r0, [r1, r2]!
             let regPreAndPost = function
-                | r when (regValid r) -> 
-                    let postInd = Some (RegPost (regNames.[r]))
-                    let preInd = Some (RegPre (regNames.[r]))
-                    (preInd, postInd) |> Some
-                | _ -> None
+                | RegCheck r -> 
+                    match r with
+                    | Ok r' ->
+                        let postInd = RegPost r' |> Some
+                        let preInd = RegPre r' |> Some
+                        (preInd, postInd) |> Ok
+                    | Error e -> Error e
+                | _ ->
+                    failwith "Should never happen! Match statement always matches."
 
             /// Immediate Post Index, No Pre Index
             /// e.g. str r0, [r1], #4
@@ -180,24 +226,30 @@ module Memory
                 let preInd = Some (ImmPre (uint32 n))
                 (preInd, postInd) |> Some
 
+
             match str with 
-            | ParseRegex "([rR][0-9]{1,2})" preOffReg -> preOffReg |> regNoPrePost
-            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> regPreNoPost
-            | ParseRegex "([rR][0-9]{1,2})\]!" preOffReg -> preOffReg |> regPreAndPost
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost
-            | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost
-            | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost
-            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost
-            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost
-            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost
-            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost    
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost
-            | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost
-            | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost
-            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost
-            | _ -> None
-        
+            | ParseRegex "([rR][0-9]{1,2})" preOffReg -> preOffReg |> regNoPrePost |> Some
+            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> regPreNoPost |> Some
+            | ParseRegex "([rR][0-9]{1,2})\]!" preOffReg -> preOffReg |> regPreAndPost |> Some
+            // | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost
+            // | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost
+            // | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost
+            // | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost
+            // | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost
+            // | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost
+            // | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost
+            // | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost    
+            // | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost
+            // | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost
+            // | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost
+            // | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost
+            | _ -> 
+                (str, " is not a valid offset.")
+                ||> makeError
+                |> ``Invalid offset``
+                |> Error
+                |> Some
+
         /// parse for LDM, STM
         let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
 
@@ -289,27 +341,39 @@ module Memory
             
             let ops =
                 match splitOps with
-                | [reg; addr] -> // str r0, [r1] or str r0, [r1, #4]
-                    match addr with
-                    | MemMatch addr -> 
-                        match [reg; addr] with
-                        | [reg; addr] when (regsValid [reg; addr]) ->
-                            (Ok splitOps)
-                            |> consMemSingle reg addr None None (checkSingleSuffix suffix)
-                        | _ -> Error "Some registers are probably not valid"
-                    | _ -> Error "MemMatch failed"
-                | [reg; addr; offset] -> // str r0, [r1], #4
-                    match addr with
-                    | MemMatch addr ->
-                        match [reg; addr] with
-                        | [reg; addr] when (regsValid [reg; addr]) ->
-                            match offset with
-                            | OffsetMatch tuple  -> 
-                                (Ok splitOps)
-                                |> consMemSingle reg addr (fst tuple) (snd tuple) (checkSingleSuffix suffix)
-                            | _ -> Error "OffsetMatch failed"
-                        | _ -> Error "Some registers are probably not valid"
-                    | _ -> Error "MemMatch failed"
+                | [rOp1; addr] -> // str r0, [r1] or str r0, [r1, #4]
+                    match rOp1 with
+                    | RegCheck rOp1' ->  
+                        match addr with
+                        | MemMatch addr' ->
+                            let partialConsMem = combineErrorMapResult rOp1' addr' consMemSingle
+                            partialConsMem
+                            |> mapErrorApplyResult (None |> Ok)
+                            |> mapErrorApplyResult (None |> Ok)
+                            |> mapErrorApplyResult ((checkSingleSuffix suffix) |> Ok)
+                        | _ -> 
+                            failwith "Should never happen! Match statement always matches."
+                    | _ -> 
+                        failwith "Should never happen! Match statement always matches."
+                | [rOp1; addr; postOff] -> // str r0, [r1], #4
+                    match rOp1 with
+                    | RegCheck rOp1' ->
+                        match addr with
+                        | MemMatch addr' ->
+                            match postOff with
+                            | OffsetMatch 
+                    | _ -> 
+                        failwith "Should never happen! Match statement always matches."
+                //     | MemMatch addr ->
+                //         match [reg; addr] with
+                //         | [reg; addr] when (regsValid [reg; addr]) ->
+                //             match offset with
+                //             | OffsetMatch tuple  -> 
+                //                 (Ok splitOps)
+                //                 |> consMemSingle reg addr (fst tuple) (snd tuple) (checkSingleSuffix suffix)
+                //             | _ -> Error "OffsetMatch failed"
+                //         | _ -> Error "Some registers are probably not valid"
+                //     | _ -> Error "MemMatch failed"
                 | _ -> Error "splitOps did not match with \'op1, op2\' or \'op1, op2, op3\'"
 
             let make ops =

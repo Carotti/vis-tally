@@ -31,3 +31,9 @@ module Errors
         | Ok arg', Ok res' -> res' arg' |> Ok
         | _, Error e -> e |> Error
         | Error e, _ -> e |> Error
+
+    let mapErrorApplyResult (arg:Result<'T1,'E>) (res:Result<'T1->'T2,'E>) =
+        match arg, res with
+        | Ok arg', Ok res' -> res' arg' |> Ok
+        | _, Error e -> e |> Error
+        | Error e, _ -> e |> Error
