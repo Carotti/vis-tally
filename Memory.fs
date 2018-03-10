@@ -208,41 +208,41 @@ module Memory
             /// Immediate Post Index, No Pre Index
             /// e.g. str r0, [r1], #4
             let immNoPrePost n =
-                let postInd = Some (ImmPost (uint32 n))
+                let postInd = ImmPost (uint32 n) |> Some
                 let preInd = None
-                (preInd, postInd) |> Some
+                (preInd, postInd) |> Ok
             
             /// Immediate Pre Index, No Post Index
             /// e.g. str r0, [r1, #4]
             let immPreNoPost n = 
                 let postInd = None
-                let preInd = Some (ImmPre (uint32 n))
-                (preInd, postInd) |> Some
+                let preInd = ImmPre (uint32 n) |> Some
+                (preInd, postInd) |> Ok
             
             /// Immediate Pre and Post Index
             /// e.g. str r0, [r1, #4]!
             let immPreAndPost n =
-                let postInd = Some (ImmPost (uint32 n))
-                let preInd = Some (ImmPre (uint32 n))
-                (preInd, postInd) |> Some
+                let postInd = ImmPost (uint32 n) |> Some
+                let preInd = ImmPre (uint32 n) |> Some
+                (preInd, postInd) |> Ok
 
 
             match str with 
             | ParseRegex "([rR][0-9]{1,2})" preOffReg -> preOffReg |> regNoPrePost |> Some
             | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> regPreNoPost |> Some
             | ParseRegex "([rR][0-9]{1,2})\]!" preOffReg -> preOffReg |> regPreAndPost |> Some
-            // | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost
-            // | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost
-            // | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost
-            // | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost
-            // | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost
-            // | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost
-            // | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost
-            // | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost    
-            // | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost
-            // | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost
-            // | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost
-            // | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost |> Some
+            | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost |> Some
+            | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost |> Some
+            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost |> Some
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost |> Some
+            | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost |> Some
+            | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost |> Some
+            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost |> Some
+            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost |> Some
+            | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost |> Some
+            | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost |> Some
+            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost |> Some
             | _ -> 
                 (str, " is not a valid offset.")
                 ||> makeError
