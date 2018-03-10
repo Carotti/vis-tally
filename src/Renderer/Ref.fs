@@ -44,6 +44,9 @@ let viewToIdTab = Map.ofList [
                         Symbols, "tab-sym"
                     ]
 
+// A reference to the settings for the app
+let settings : obj = importDefault "electron-settings"
+
 let fontSize: HTMLSelectElement =
     Browser.document.getElementById("font-size") :?> HTMLSelectElement
 let register (id: int): HTMLElement =

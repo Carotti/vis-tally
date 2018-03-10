@@ -18,7 +18,6 @@ open Node.Exports
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
 
-let mutable monacoTheme = "vs-light"
 let createMainWindow () =
     let options = createEmpty<BrowserWindowOptions>
     // Complete list of window options
@@ -43,10 +42,8 @@ let createMainWindow () =
 
     // Emitted when the window is closed.
     window.on("closed", unbox(fun () ->
-        // Dereference the window object, usually you would store windows
-        // in an array if your app supports multi windows, this is the time
-        // when you should delete the corresponding element.
-        mainWindow <- Option.None
+        // On closing of the main window, close the whole application
+        electron.app.quit()
     )) |> ignore
 
     // Maximize the window

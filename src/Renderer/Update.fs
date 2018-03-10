@@ -35,7 +35,7 @@ let formatter rep =
     match rep with
     | Hex -> (sprintf "0x%X")
     | Bin -> (binFormatter "0b%s")
-    | Dec -> (sprintf "%d")
+    | Dec -> (int32 >> sprintf "%d")
     | UDec -> (sprintf "u%u")
 
 let fontSize (size: int) =

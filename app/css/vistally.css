@@ -8,6 +8,7 @@
 
 .btn-reg, .btn-reg-con {
     height: 30px;
+    line-height: 25px;
 }
 
 .btn-reg, .btn-reg:active {
@@ -40,6 +41,11 @@
 
 #editor, #dashboard {
     overflow: hidden;
+}
+
+#editor {
+    height: 100%;
+    width: 100%;
 }
 
 #viewer {

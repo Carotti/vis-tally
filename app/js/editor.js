@@ -132,7 +132,7 @@ amdRequire(['vs/editor/editor.main'], function () {
     theme: 'vs-light',
     renderWhitespace: 'all',
     roundedSelection: false,
-    scrollBeyondLastLine: false
+    scrollBeyondLastLine: false,
+    automaticLayout: true
   });
-
 });

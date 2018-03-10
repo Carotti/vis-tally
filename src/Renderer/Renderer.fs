@@ -87,6 +87,10 @@ let init () =
         updateMemory ()
     )
 
+    // settings?set("name", "Nippy") |> ignore
+
+    // Browser.console.log (sprintf "%A" (settings?get ("name")))
+
     // Just for testing memory visualisation
     memoryMap <- testMemory
     updateMemory ()
