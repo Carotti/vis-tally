@@ -24,7 +24,6 @@ Browser.console.log "Hi from the renderer.js" |> ignore
 open Ref
 open Update
 open Emulator
-open Mono.Cecil
 
 // TODO: Delete this piece of shit
 let testMemory = Map.ofList [
@@ -47,8 +46,45 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
     |> List.map (fst >> attachRep)
     |> ignore
 
+let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
+
+let getFileMenu =
+    let mutable save = createEmpty<MenuItemOptions>
+    save.label <- Some "Save"
+    save.accelerator <- Some "CmdOrCtrl+S"
+    save.click <- handlerCaster (fun _ _ -> saveFile())
+
+    let mutable saveAs = createEmpty<MenuItemOptions>
+    saveAs.label <- Some "Save As"
+    saveAs.accelerator <- Some "CmdOrCtrl+Shift+S"
+    saveAs.click <- handlerCaster (fun _ _ -> saveFileAs())
+
+    let mutable openf = createEmpty<MenuItemOptions>
+    openf.label <- Some "Open"
+    openf.accelerator <- Some "CmdOrCtrl+O"
+    openf.click <- handlerCaster (fun _ _ -> openFile())
+
+    let items = ResizeArray<MenuItemOptions> [
+                    save
+                    saveAs
+                    openf
+                ]
+
+    let mutable fileMenu = createEmpty<MenuItemOptions>
+    fileMenu.label <- Some "File"
+    fileMenu.submenu <- items |> U2.Case2 |> Some
+
+    fileMenu
+
+let setMainMenu () =
+    let template = ResizeArray<MenuItemOptions> [
+                        getFileMenu
+                    ]
+    electron.remote.Menu.setApplicationMenu(electron.remote.Menu.buildFromTemplate(template))
+
 /// Initialization after `index.html` is loaded
 let init () =
+
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
 
@@ -101,8 +137,11 @@ let init () =
     // Create an empty tab to start with
     createFileTab ()
 
+setMainMenu ()
+
 let handleMonacoReady (_: Event) = init ()
 
 let listener: U2<EventListener, EventListenerObject> = !^handleMonacoReady
 
 document.addEventListener("monaco-ready", listener)
+
