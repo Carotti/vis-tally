@@ -103,10 +103,7 @@ module MemExecution
             let update = setMemData value alignedAddr cpuData
             setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) update
 
-        let executeLDM suffix rn regList cpuData =
-            let rl =
-                match regList with
-                | RegList rl -> rl
+        let executeLDM suffix rn rl cpuData =
             let offsetList start = 
                 let lst =
                     match suffix with
@@ -147,10 +144,7 @@ module MemExecution
             let contents = getMemMult (offsetList baseAddrInt) [] cpuData
             setMultRegs rl contents cpuData
 
-        let executeSTM suffix rn regList cpuData = 
-            let rl =
-                match regList with
-                | RegList rl -> rl  
+        let executeSTM suffix rn rl cpuData = 
             let offsetList start = 
                 let lst =
                     match suffix with

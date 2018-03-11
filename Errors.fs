@@ -1,6 +1,5 @@
 module Errors   
 
-
     type ErrorBase =
         {
             errorTxt : string;

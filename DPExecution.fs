@@ -5,6 +5,7 @@ module DPExecution
     open DP
     open Helpers
     open Errors
+    open System.ComponentModel
 
     /// Bitwise shift operators defined to accept the shift value as first argument 
     ///  and the value to-be-shifted as a second argument. This allows the value
@@ -163,7 +164,6 @@ module DPExecution
         /// A higher-order function for executing DP instructions.
         let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
             let result = func op1 op2
-            result |> printfn "Hello: %x"
             let dp' =
                 match dest with
                 | Some destReg -> updateReg destReg result dp
@@ -207,6 +207,17 @@ module DPExecution
                 | (TEQ ops) -> Some (instr', ops)
                 | (TST ops) -> Some (instr', ops)
             | _ -> None
+        
+        /// An active pattern to match and unpack `DP2S` instructions.   
+        let (|DP2SMatch|_|) instr =
+            match instr with
+            | (DP2S instr') ->
+                match instr' with      
+                | (MOV ops) -> Some (instr', ops) 
+                | (MVN ops) -> Some (instr', ops)
+            | _ -> None
+        
+
 
         /// A function to completely evaluate the value of the flexible second operand.
         let calcOp2 fOp2 dp =
@@ -268,11 +279,27 @@ module DPExecution
             | CMN _ -> execute dp' (fun op1 op2 -> op1 + op2) None op1 op2 (Some S) [CVCheckAdd; NZCheck]
             | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [NZCheck]
             | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [NZCheck]
+        
+        let executeDP2S dp opcode (operands:DP2SForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+            let dest = Some operands.rOp1
+            let op1 = 0u
+            let Cb = dp.Fl.C
+            let C = dp.Fl.C |> System.Convert.ToUInt32
+            let op2, flags' = calcOp2 operands.fOp2 dp
+            let dp' =
+                match operands.suff with
+                | Some S -> {dp with Fl = flags'}
+                | None -> dp
+            match opcode with
+            | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 (Some S) [CVCheckSub; NZCheck]
+            | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 (Some S) [CVCheckAdd; NZCheck]
+    
     
         let dp' : Result<DataPath<CommonTop.Instr>,ErrExe> =
             match instr with            
             | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops 
             | DP2Match (instr', ops) -> executeDP2 dp instr' ops
+            | DP2SMatch (instr', ops) -> executeDP2S dp instr' ops
             | _ ->
                 "Instruction has not been implemented"
                 |> ``Run time error``

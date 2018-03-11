@@ -3,6 +3,7 @@ module Memory
     open CommonLex
     open Helpers
     open Errors
+    open ErrorMessages
 
     // *********** //
     // LDR AND STR //
@@ -138,8 +139,8 @@ module Memory
         /// For matching the address location 
         let (|MemMatch|_|) str =
             match str with 
-            | ParseRegex "\[([rR][0-9]{1,2})\]" address -> address |> makeReg |> Ok |> Some
-            | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> makeReg |> Ok |> Some
+            | ParseRegex "\[([rR][0-9]+)\]" address -> address |> makeReg |> Ok |> Some
+            | ParseRegex "\[([rR][0-9]+)" address -> address |> makeReg |> Ok |> Some
             | _ -> 
                 ("["+str+"]", " is not a valid register.")
                 ||> makeError
@@ -150,8 +151,8 @@ module Memory
         /// For matching the list of regs
         let (|RegListMatch|_|) str =
             match str with 
-            | ParseRegex "([rR][0-9]{1,2})}" address -> address |> Some
-            | ParseRegex "\[([rR][0-9]{1,2})" address -> address |> Some
+            | ParseRegex "([rR][0-9]+)}" address -> address |> Some
+            | ParseRegex "\[([rR][0-9]+)" address -> address |> Some
             | _ -> None
         
         /// Partial active pattern for matching both pre and post indexes
@@ -223,9 +224,9 @@ module Memory
 
 
             match str with 
-            | ParseRegex "([rR][0-9]{1,2})" preOffReg -> preOffReg |> regNoPrePost |> Some
-            | ParseRegex "([rR][0-9]{1,2})\]" preOffReg -> preOffReg |> regPreNoPost |> Some
-            | ParseRegex "([rR][0-9]{1,2})\]!" preOffReg -> preOffReg |> regPreAndPost |> Some
+            | ParseRegex "([rR][0-9]+)" preOffReg -> preOffReg |> regNoPrePost |> Some
+            | ParseRegex "([rR][0-9]+)\]" preOffReg -> preOffReg |> regPreNoPost |> Some
+            | ParseRegex "([rR][0-9]+)\]!" preOffReg -> preOffReg |> regPreAndPost |> Some
             | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost |> Some
             | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost |> Some
@@ -253,7 +254,7 @@ module Memory
             /// return the two numbers as low, high
             let (|RegListExpand|_|) str =
                 match str with
-                | ParseRegex2 "[rR]([0-9]{1,2})-[rR]([0-9]{1,2})" (low, high) -> (low, high) |> Some
+                | ParseRegex2 "[rR]([0-9]+)-[rR]([0-9]+)" (low, high) -> (low, high) |> Some
                 | _ -> None
 
             /// Matches the registers
@@ -272,9 +273,9 @@ module Memory
                     [n] |> Some
 
                 match str with
-                | ParseRegex "(([rR][0-9]{1,2})-([rR][0-9]{1,2}))" listReg -> optionNumToRegList listReg
-                | ParseRegex "([rR][0-9]{1,2})!" bangReg -> bangReg |> optionMakeList
-                | ParseRegex "([rR][0-9]{1,2})" reg -> reg |> optionMakeList
+                | ParseRegex "(([rR][0-9]+)-([rR][0-9]+))" listReg -> optionNumToRegList listReg
+                | ParseRegex "([rR][0-9]+)!" bangReg -> bangReg |> optionMakeList
+                | ParseRegex "([rR][0-9]+)" reg -> reg |> optionMakeList
                 | _ -> None
 
             /// split the operands at a {
@@ -315,12 +316,10 @@ module Memory
                         allRegs
                         |> (applyToAll checker) 
                         |> condenseResultList (id)
-                    
                     match reg with
                     | RegCheck r' -> 
                         combineErrorMapResult r' checkedRegs consMemMult
                         |> mapErrorApplyResult ((checkMultSuffix suffix) |> Ok)
-
                     | _ -> failwithf "Should never happen! Match statement always matches."     
                 | _ ->
                     (ls.Operands, "Syntax error. Instruction format is incorrect.")
