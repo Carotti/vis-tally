@@ -51,11 +51,6 @@ module Memory
     // LDM AND STM //
     // *********** //
 
-    /// {....} list for LDM and STM
-    /// either LDM r0, {r1, r2, r3}
-    /// or     LDM r0, {r1 - r3}
-    type RegisterList = | RegList of List<RName>
-
     /// Suffixes for LDM and STM
     type MultSuffix = 
         | IA | IB | DA | DB
@@ -64,7 +59,7 @@ module Memory
     /// Multiple Store/Load memory instruction. LDM, STM
     /// op{addr_mode}{cond} Rn{!}, reglist
     [<Struct>]
-    type InstrMemMult = {Rn: RName; rList: RegisterList; suff: Option<MultSuffix>}
+    type InstrMemMult = {Rn: RName; rList: List<RName>; suff: Option<MultSuffix>}
 
     type MemInstr = 
         | LDR of InstrMemSingle
@@ -118,8 +113,8 @@ module Memory
     /// Contructs an Instruction of InstrMemMult for LDM, STM
     let consMemMult reg rLst suffix =
             {
-                Rn = regNames.[reg];
-                rList = RegList (List.map (fun a -> regNames.[a]) rLst);
+                Rn = reg;
+                rList = rLst;
                 suff = suffix;
             }
     
@@ -136,7 +131,7 @@ module Memory
             |> Some
 
     /// Where everything happens
-    let parse (ls: LineData) : Result<Parse<Instr>,string> option =
+    let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
 
         /// Partial Active pattern for matching regexes
         /// Looking for something like [r1] or [r13
@@ -251,7 +246,7 @@ module Memory
                 |> Some
 
         /// parse for LDM, STM
-        let parseMult (root: string) suffix pCond : Result<Parse<Instr>,string> =
+        let parseMult (root: string) suffix pCond : Result<Parse<Instr>,ErrInstr> =
 
             /// Regex match the numbers in a hyphen list {r1 - r7}
             /// in order to construct full reg list.
@@ -294,42 +289,56 @@ module Memory
                 | "ED" -> Some ED
                 | "FA" -> Some FA
                 | "EA" -> Some EA
-                | "" -> None
-                | _ -> failwithf "Should never happen, not a suffix for LDM. Probably put a B"
+                | _ -> None
 
             let ops = 
                 match splitMult with
-                | [rn; rlst] -> // LDM, STM
+                | [rOp1; rlst] -> // LDM, STM
                     let regList = splitAny (rlst.Replace("}", "")) ','
-                    let reg = rn.Replace(",", "")
+                    let reg = rOp1.Replace(",", "")
 
                     let matcher = function
                         | RegListMatch x -> x 
                         | _ -> []
+                    
+                    let checker = function
+                        | RegCheck x -> x
+                        | _ -> failwithf "Should never happen! Match statement always matches."
 
                     let rec applyToAll f list =
                         match list with
                         | [] -> []
                         | head :: tail -> f head :: applyToAll f tail
 
-                    let matchedRegs = reg :: regList |> applyToAll matcher |> List.concat
-                    match matchedRegs with
-                    | head :: tail when (regsValid (head :: tail)) ->
-                        (Ok splitMult)
-                        |> consMemMult head tail (checkMultSuffix suffix)
-                    | _ -> Error "Registers probably not valid"
-                | _ -> Error "Input not in correct form"
+                    let allRegs = regList |> applyToAll matcher |> List.concat
+                    let checkedRegs = 
+                        allRegs
+                        |> (applyToAll checker) 
+                        |> condenseResultList (id)
+                    
+                    match reg with
+                    | RegCheck r' -> 
+                        combineErrorMapResult r' checkedRegs consMemMult
+                        |> mapErrorApplyResult ((checkMultSuffix suffix) |> Ok)
+
+                    | _ -> failwithf "Should never happen! Match statement always matches."     
+                | _ ->
+                    (ls.Operands, "Syntax error. Instruction format is incorrect.")
+                    ||> makeError
+                    |> ``Invalid instruction``
+                    |> Error
+
 
             let make ops =
-                Ok { 
+                { 
                     PInstr= memTypeMultMap.[root] ops |> Mem;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            Result.bind make ops
+            Result.map (make) ops
 
-        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,string> =         
+        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,ErrInstr> =         
 
             /// split operands at ','
             let splitOps = splitAny ls.Operands ','
@@ -351,10 +360,8 @@ module Memory
                             |> mapErrorApplyResult (None |> Ok)
                             |> mapErrorApplyResult (None |> Ok)
                             |> mapErrorApplyResult ((checkSingleSuffix suffix) |> Ok)
-                        | _ -> 
-                            failwith "Should never happen! Match statement always matches."
-                    | _ -> 
-                        failwith "Should never happen! Match statement always matches."
+                        | _ -> failwith "Should never happen! Match statement always matches."
+                    | _ -> failwith "Should never happen! Match statement always matches."
                 | [rOp1; addr; postOff] -> // str r0, [r1], #4
                     match rOp1 with
                     | RegCheck rOp1' ->
@@ -368,6 +375,7 @@ module Memory
                                 |> mapErrorApplyResult (Result.map (snd) tuple)
                                 |> mapErrorApplyResult ((checkSingleSuffix suffix) |> Ok)
                             | _ -> failwith "Should never happen! Match statement always matches."
+                        | _ -> failwith "Should never happen! Match statement always matches."
                     | _ -> failwith "Should never happen! Match statement always matches."
                 | _ -> 
                     (ls.Operands, "Syntax error. Instruction format is incorrect.")
@@ -376,13 +384,13 @@ module Memory
                     |> Error
 
             let make ops =
-                Ok { 
+                { 
                     PInstr= memTypeSingleMap.[root] ops |> Mem;
                     PLabel = None ; 
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            Result.map make ops
+            Result.map (make) ops
 
         let parse' (_instrC, (root,suffix,pCond)) =
             match root with
@@ -398,4 +406,3 @@ module Memory
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|)  = parse
-

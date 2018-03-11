@@ -37,3 +37,13 @@ module Errors
         | Ok arg', Ok res' -> res' arg' |> Ok
         | _, Error e -> e |> Error
         | Error e, _ -> e |> Error
+
+    let condenseResultList transform (lst: Result<'a,'b> list) : Result<'a list,'b> =
+        let rec condenser' inlst outlst = 
+            match inlst with
+            | head :: tail ->
+                match head with
+                | Ok res -> condenser' tail ((transform res) :: outlst)
+                | Error e -> e |> Error
+            | [] -> List.rev outlst |> Ok
+        condenser' lst [] 
