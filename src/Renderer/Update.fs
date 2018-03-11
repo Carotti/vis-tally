@@ -166,14 +166,14 @@ let lstToBytes (lst : (uint32 * uint32) list) =
 // Creates the html to format the memory table in contiguous blocks
 let updateMemory () =
     let makeRow (addr : uint32, value : uint32) =
-        let mutable tr = document.createElement("tr")
+        let tr = document.createElement("tr")
         tr.classList.add("tr-head-mem")
 
-        let mutable tdAddr = document.createElement("td")
+        let tdAddr = document.createElement("td")
         tdAddr.classList.add("selectable-text")
         tdAddr.innerHTML <- sprintf "0x%X" addr
 
-        let mutable tdValue = document.createElement("td")
+        let tdValue = document.createElement("td")
         tdValue.classList.add("selectable-text")
         tdValue.innerHTML <- formatter currentRep value
 
@@ -182,20 +182,20 @@ let updateMemory () =
         tr
 
     let makeContig (lst : (uint32 * uint32) list) = 
-        let mutable li = document.createElement("li")
+        let li = document.createElement("li")
         li.classList.add("list-group-item")
         li.style.padding <- "0px"
 
-        let mutable table = document.createElement("table")
+        let table = document.createElement("table")
         table.classList.add("table-striped")
 
-        let mutable tr = document.createElement("tr")
+        let tr = document.createElement("tr")
 
-        let mutable thAddr = document.createElement("th")
+        let thAddr = document.createElement("th")
         thAddr.classList.add("th-mem")
         thAddr.innerHTML <- "Address"
 
-        let mutable thValue = document.createElement("th")
+        let thValue = document.createElement("th")
         thValue.classList.add("th-mem")
         thValue.innerHTML <- "Value"
 
@@ -313,14 +313,14 @@ let setTabName id name =
     nameSpan.innerHTML <- name
 
 let createNamedFileTab name =
-    let mutable tab = document.createElement("div")
+    let tab = document.createElement("div")
     tab.classList.add("tab-item")
     tab.classList.add("tab-file")
 
     let defaultFileName = document.createElement("span")
     defaultFileName.classList.add("tab-file-name")
 
-    let mutable cancel = document.createElement("span")
+    let cancel = document.createElement("span")
     cancel.classList.add("icon")
     cancel.classList.add("icon-cancel")
     cancel.classList.add("icon-close-tab")
@@ -329,7 +329,7 @@ let createNamedFileTab name =
     tab.id <- fileTabIdFormatter id
 
     // Create an empty span to store the filepath of this tab
-    let mutable filePath = document.createElement("span")
+    let filePath = document.createElement("span")
     filePath.classList.add("invisible")
     filePath.id <- tabFilePathIdFormatter id
 
@@ -356,14 +356,14 @@ let createNamedFileTab name =
     fileTabMenu.insertBefore(tab, newFileTab) |> ignore
 
     // Create the new view div
-    let mutable fv = document.createElement("div")
+    let fv = document.createElement("div")
     fv.classList.add("editor")
     fv.classList.add("invisible")    
     fv.id <- fileViewIdFormatter id
 
     fileViewPane.appendChild(fv) |> ignore
 
-    let mutable editor = window?monaco?editor?create(fv, editorOptions)
+    let editor = window?monaco?editor?create(fv, editorOptions)
     
     // Whenever the content of this editor changes
     editor?onDidChangeModelContent(fun _ ->

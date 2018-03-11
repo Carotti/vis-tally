@@ -48,29 +48,61 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
 
 let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
 
+let menuSeperator = 
+    let sep = createEmpty<MenuItemOptions>
+    sep.``type`` <- Some Separator
+    sep
+
+let createMenuItem label accelerator click = 
+    let item = createEmpty<MenuItemOptions>
+    item.label <- Some label
+    item.accelerator <- accelerator
+    item.click <- handlerCaster click
+    item
+
 let getFileMenu =
-    let mutable save = createEmpty<MenuItemOptions>
-    save.label <- Some "Save"
-    save.accelerator <- Some "CmdOrCtrl+S"
-    save.click <- handlerCaster (fun _ _ -> saveFile())
+    let save = createMenuItem "Save" 
+                (Some "CmdOrCtrl+S") 
+                (fun _ _ -> saveFile())
 
-    let mutable saveAs = createEmpty<MenuItemOptions>
-    saveAs.label <- Some "Save As"
-    saveAs.accelerator <- Some "CmdOrCtrl+Shift+S"
-    saveAs.click <- handlerCaster (fun _ _ -> saveFileAs())
+    let saveAs = createMenuItem 
+                    "Save As" 
+                    (Some "CmdOrCtrl+Shift+S")
+                    (fun _ _ -> saveFileAs())
 
-    let mutable openf = createEmpty<MenuItemOptions>
-    openf.label <- Some "Open"
-    openf.accelerator <- Some "CmdOrCtrl+O"
-    openf.click <- handlerCaster (fun _ _ -> openFile())
+    let openf = createMenuItem
+                    "Open"
+                    (Some "CmdOrCtrl+O")
+                    (fun _ _ -> openFile())
+
+    let newf = createMenuItem
+                "New"
+                (Some "CmdOrCtrl+N")
+                (fun _ _ -> createFileTab())
+
+    let exit = createMenuItem 
+                "Quit"
+                (Some "Ctrl+Q")
+                (fun _ _ -> electron.remote.app.quit())
+
+    let close = createMenuItem
+                    "Close"
+                    (Some "Ctrl+W")
+                    (fun _ _ -> deleteFileTab currentFileTabId)
 
     let items = ResizeArray<MenuItemOptions> [
+                    newf
+                    menuSeperator
                     save
                     saveAs
                     openf
+                    menuSeperator
+                    close
+                    menuSeperator
+                    exit
                 ]
 
-    let mutable fileMenu = createEmpty<MenuItemOptions>
+    let fileMenu = createEmpty<MenuItemOptions>
     fileMenu.label <- Some "File"
     fileMenu.submenu <- items |> U2.Case2 |> Some
 
