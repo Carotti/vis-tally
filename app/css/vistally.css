@@ -3,7 +3,7 @@
 }
 
 .unsaved {
-    text-decoration: underline;
+    font-weight: bold;
 }
 
 .list-group-item {

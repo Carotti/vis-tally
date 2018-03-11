@@ -57,7 +57,7 @@ let init () =
         openFile ()
     )
     Ref.save.addEventListener_click(fun _ ->
-        Browser.window.alert (sprintf "woopeee")
+        saveFile ()
     )
     Ref.run.addEventListener_click(fun _ ->
         setTheme "vs-dark" |> ignore

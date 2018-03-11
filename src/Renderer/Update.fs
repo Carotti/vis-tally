@@ -308,6 +308,10 @@ let baseFilePath (path : string) =
     path.Split [|'/'|]
     |> Array.last
 
+let setTabName id name = 
+    let nameSpan = fileTabName id
+    nameSpan.innerHTML <- name
+
 let createNamedFileTab name =
     let mutable tab = document.createElement("div")
     tab.classList.add("tab-item")
@@ -374,10 +378,22 @@ let createFileTab () =
     createNamedFileTab "Untitled.S" 
     |> selectFileTab // Switch to the tab we just created
 
+// Load the node Buffer into the specified tab
 let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     let editor = editors.[tId]
     editor?setValue(fileData.toString("utf8")) |> ignore
     setTabSaved tId
+
+// Return the code in tab id tId as a string
+let getCode tId =
+    let editor = editors.[tId]
+    editor?getValue() :?> string
+
+// If x is undefined, return errCase, else return Ok x
+let resultUndefined errCase x =
+    match isUndefined x with
+    | true -> Result.Error errCase
+    | false -> Result.Ok x
 
 let openFile () =
     let options = createEmpty<OpenDialogOptions>
@@ -403,10 +419,61 @@ let openFile () =
         | false -> Result.Ok (res.ToArray())
 
     result
-    |> checkResult
+    |> resultUndefined ()
+    |> Result.map (fun x -> x.ToArray())
     |> Result.map Array.toList
     |> Result.map (List.map (makeTab >> readPath))
     |> Result.map List.last
     |> Result.map selectFileTab
     |> ignore
-    ()
+
+
+let writeToFile str path =
+    let errorHandler _err = // TODO: figure out how to handle errors which can occur
+        ()
+    fs.writeFile(path, str, errorHandler)
+
+let writeCurrentCodeToFile path = (writeToFile (getCode currentFileTabId) path)
+
+let saveFileAs () =
+    let options = createEmpty<SaveDialogOptions>
+
+    let currentPath = getTabFilePath currentFileTabId
+    
+    // If a path already exists for this file, open it
+    match currentPath with
+    | "" -> ()
+    | _ -> options.defaultPath <- Some currentPath
+
+    let result = electron.remote.dialog.showSaveDialog(options)
+
+    // Performs op on x then returns x
+    let split op x =
+        op x |> ignore
+        x
+
+    // Write the file, return the path again so it can be set
+    let writer = split writeCurrentCodeToFile
+
+    // Update the path of this tab and return the path again
+    let pathUpdater = split (setTabFilePath currentFileTabId)
+       
+    // If result is an actual path, write the contents of the current tab
+    // to the file
+    result
+    |> resultUndefined ()
+    |> Result.map writer
+    |> Result.map pathUpdater
+    |> Result.map baseFilePath
+    |> Result.map (setTabName currentFileTabId)
+    |> ignore
+
+    setTabSaved (currentFileTabId)
+
+// If a path already exists for a file, write it straight to disk without the dialog
+let saveFile () =
+    match getTabFilePath currentFileTabId with
+    | "" -> saveFileAs () // No current path exists
+    | path -> writeCurrentCodeToFile path
+
+    setTabSaved (currentFileTabId)
