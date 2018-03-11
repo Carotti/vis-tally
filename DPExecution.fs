@@ -291,8 +291,8 @@ module DPExecution
                 | Some S -> {dp with Fl = flags'}
                 | None -> dp
             match opcode with
-            | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 (Some S) [CVCheckSub; NZCheck]
-            | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 (Some S) [CVCheckAdd; NZCheck]
+            | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 (Some S) [NZCheck]
+            | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 (Some S) [NZCheck]
     
     
         let dp' : Result<DataPath<CommonTop.Instr>,ErrExe> =
