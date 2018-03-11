@@ -21,6 +21,9 @@ open Fable.Import.Browser
 open Ref
 open Fable
 
+[<Emit("$0 === undefined")>]
+let isUndefined (_: 'a) : bool = jsNative
+
 // The current number representation being used
 let mutable currentRep = Hex
 let mutable currentView = Registers
@@ -392,12 +395,18 @@ let openFile () =
         setTabFilePath tId path
         (path, tId)
 
-    let result = (electron.remote.dialog.showOpenDialog(options)).ToArray()
+    let result = electron.remote.dialog.showOpenDialog(options)
+
+    let checkResult (res : ResizeArray<string>) =
+        match isUndefined res with
+        | true -> Result.Error () // No files were opened, so don't do anything
+        | false -> Result.Ok (res.ToArray())
 
     result
-    |> Array.toList
-    |> List.map (makeTab >> readPath)
-    |> List.last
-    |> selectFileTab
+    |> checkResult
+    |> Result.map Array.toList
+    |> Result.map (List.map (makeTab >> readPath))
+    |> Result.map List.last
+    |> Result.map selectFileTab
     |> ignore
     ()
