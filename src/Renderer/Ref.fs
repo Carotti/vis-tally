@@ -98,3 +98,8 @@ let tabNameIdFormatter = sprintf "file-view-name-%d"
 
 let fileTabName id =
     Browser.document.getElementById(tabNameIdFormatter id)
+
+let tabFilePathIdFormatter = sprintf "file-view-path-%d"
+
+let tabFilePath id =
+    Browser.document.getElementById(tabFilePathIdFormatter id)

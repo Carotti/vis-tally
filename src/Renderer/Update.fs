@@ -19,6 +19,7 @@ open Fable.Import.Browser
 
 
 open Ref
+open Fable
 
 // The current number representation being used
 let mutable currentRep = Hex
@@ -267,7 +268,7 @@ let deleteFileTab id =
         match isTabUnsaved id with
         | false -> true
         | true -> Browser.window.confirm(
-                    sprintf "Are you sure you want to close '%s'?" (getTabName id)
+                    sprintf "You have unsaved changes, are you sure you want to close '%s'?" (getTabName id)
                     )
 
     match confirmDelete with
@@ -286,23 +287,24 @@ let deleteFileTab id =
         editors <- Map.remove id editors
     
 let setTabUnsaved id = 
-    let tab = fileTab id
-
-    match tab.lastElementChild.classList.contains("icon-record") with
-    | true -> ()
-    | false ->
-        let mutable unsaved = document.createElement("span")
-        unsaved.classList.add("icon")
-        unsaved.classList.add("unsaved")
-        unsaved.classList.add("icon-record")
-        unsaved.style.opacity <- "0.5"
-
-        tab.appendChild(unsaved) |> ignore
-
+    let tab = fileTabName id
+    tab.classList.add("unsaved")
 let setTabSaved id =
-    let tab = fileTab id
-    tab.lastElementChild.classList.remove("unsaved")
+    let tab = fileTabName id
+    tab.classList.remove("unsaved")
+
+let setTabFilePath id path =
+    let fp = (tabFilePath id)
+    fp.innerHTML <- path
  
+let getTabFilePath id =
+    let fp = (tabFilePath id)
+    fp.innerHTML
+
+let baseFilePath (path : string) =
+    path.Split [|'/'|]
+    |> Array.last
+
 let createNamedFileTab name =
     let mutable tab = document.createElement("div")
     tab.classList.add("tab-item")
@@ -316,16 +318,18 @@ let createNamedFileTab name =
     cancel.classList.add("icon-cancel")
     cancel.classList.add("icon-close-tab")
 
-    let mutable spacer = document.createElement("span")
-    spacer.innerHTML <- " "
-
     let id = uniqueTabId ()
     tab.id <- fileTabIdFormatter id
 
+    // Create an empty span to store the filepath of this tab
+    let mutable filePath = document.createElement("span")
+    filePath.classList.add("invisible")
+    filePath.id <- tabFilePathIdFormatter id
+
     // Add the necessary elements to create the new tab
+    tab.appendChild(filePath) |> ignore
     tab.appendChild(cancel) |> ignore
     tab.appendChild(defaultFileName) |> ignore
-    tab.appendChild(spacer) |> ignore
 
     defaultFileName.innerHTML <- name
 
@@ -375,15 +379,24 @@ let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
 let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
-    
-    (List.map ((fun x -> (x, createNamedFileTab x)) >> (fun (path, tId) ->
+
+    let readPath (path, tId) = 
         fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data
         ))
         |> ignore
         tId // Return the tab id list again to open the last one
-        )) ((electron.remote.dialog.showOpenDialog(options)).ToArray()
-    |> Array.toList))
+
+    let makeTab path =
+        let tId = createNamedFileTab (baseFilePath path)
+        setTabFilePath tId path
+        (path, tId)
+
+    let result = (electron.remote.dialog.showOpenDialog(options)).ToArray()
+
+    result
+    |> Array.toList
+    |> List.map (makeTab >> readPath)
     |> List.last
     |> selectFileTab
     |> ignore

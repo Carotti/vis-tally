@@ -126,7 +126,7 @@
  }
  
  * {
-   cursor: default;
+   /* cursor: default; */
    -webkit-user-drag: text;
    -webkit-user-select: none;
    user-select: none;

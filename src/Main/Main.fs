@@ -18,7 +18,11 @@ open Node.Exports
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
 
+[<Emit("require('electron-context-menu')({});")>]
+let contextMenu () = jsNative
+
 let createMainWindow () =
+    contextMenu()
     let options = createEmpty<BrowserWindowOptions>
     // Complete list of window options
     // https://electronjs.org/docs/api/browser-window#new-browserwindowoptions
