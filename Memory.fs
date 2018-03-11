@@ -77,7 +77,6 @@ module Memory
         | ``Invalid offset`` of ErrorBase
         | ``Invalid register`` of ErrorBase
         | ``Invalid shift`` of ErrorBase
-        | ``Invalid flexible second operand`` of ErrorBase
         | ``Invalid suffix`` of ErrorBase
         | ``Invalid instruction`` of ErrorBase
         | ``Syntax error`` of ErrorBase
@@ -125,7 +124,7 @@ module Memory
         | Some reg ->
             reg |> Ok |> Some
         | _ ->
-            (txt, " is not a valid register.")
+            (txt, notValidRegEM)
             ||> makeError
             |> ``Invalid register``
             |> Error
@@ -142,7 +141,7 @@ module Memory
             | ParseRegex "\[([rR][0-9]+)\]" address -> address |> makeReg |> Ok |> Some
             | ParseRegex "\[([rR][0-9]+)" address -> address |> makeReg |> Ok |> Some
             | _ -> 
-                ("["+str+"]", " is not a valid register.")
+                ("["+str+"]", notValidRegEM)
                 ||> makeError
                 |> ``Invalid register``
                 |> Error
@@ -171,8 +170,7 @@ module Memory
                         let preInd = None
                         (preInd, postInd) |> Ok
                     | Error e -> Error e
-                | _ -> 
-                    failwith "Should never happen! Match statement always matches."
+                | _ -> failwith alwaysMatchesFM
 
             /// Register Pre Index, No Post Index
             /// e.g. str r0, [r1, r2]
@@ -184,8 +182,7 @@ module Memory
                         let preInd = RegPre r' |> Some
                         (preInd, postInd) |> Ok
                     | Error e -> Error e
-                | _ -> 
-                    failwith "Should never happen! Match statement always matches."
+                | _ -> failwith alwaysMatchesFM
 
             
             /// Register Post Index and Pre Index
@@ -198,8 +195,7 @@ module Memory
                         let preInd = RegPre r' |> Some
                         (preInd, postInd) |> Ok
                     | Error e -> Error e
-                | _ ->
-                    failwith "Should never happen! Match statement always matches."
+                | _ -> failwith alwaysMatchesFM
 
             /// Immediate Post Index, No Pre Index
             /// e.g. str r0, [r1], #4
@@ -240,14 +236,14 @@ module Memory
             | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost |> Some
             | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost |> Some
             | _ -> 
-                (str, " is not a valid offset.")
+                (str, notValidOffsetEM)
                 ||> makeError
                 |> ``Invalid offset``
                 |> Error
                 |> Some
 
         /// parse for LDM, STM
-        let parseMult (root: string) suffix pCond : Result<Parse<Instr>,ErrInstr> =
+        let parseMult (root: string) suffix pCond : Result<Parse<Instr>, ErrInstr> =
 
             /// Regex match the numbers in a hyphen list {r1 - r7}
             /// in order to construct full reg list.
@@ -282,15 +278,19 @@ module Memory
             let splitMult = splitAny ls.Operands '{'
             
             let checkMultSuffix = function
-                | "IA" -> Some IA
-                | "IB" -> Some IB
-                | "DA" -> Some DA
-                | "DB" -> Some DB
-                | "FD" -> Some FD
-                | "ED" -> Some ED
-                | "FA" -> Some FA
-                | "EA" -> Some EA
-                | _ -> None
+                | "IA" -> Some IA |> Ok
+                | "IB" -> Some IB |> Ok
+                | "DA" -> Some DA |> Ok
+                | "DB" -> Some DB |> Ok
+                | "FD" -> Some FD |> Ok
+                | "ED" -> Some ED |> Ok
+                | "FA" -> Some FA |> Ok
+                | "EA" -> Some EA |> Ok
+                | _ -> 
+                    (suffix, notValidSuffixEM)
+                    ||> makeError
+                    |> ``Invalid suffix``
+                    |> Error
 
             let ops = 
                 match splitMult with
@@ -304,7 +304,7 @@ module Memory
                     
                     let checker = function
                         | RegCheck x -> x
-                        | _ -> failwithf "Should never happen! Match statement always matches."
+                        | _ -> failwith alwaysMatchesFM
 
                     let rec applyToAll f list =
                         match list with
@@ -319,10 +319,10 @@ module Memory
                     match reg with
                     | RegCheck r' -> 
                         combineErrorMapResult r' checkedRegs consMemMult
-                        |> mapErrorApplyResult ((checkMultSuffix suffix) |> Ok)
-                    | _ -> failwithf "Should never happen! Match statement always matches."     
+                        |> mapErrorApplyResult (checkMultSuffix suffix)
+                    | _ -> failwith alwaysMatchesFM     
                 | _ ->
-                    (ls.Operands, "Syntax error. Instruction format is incorrect.")
+                    (ls.Operands, notValidSyntaxEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -335,7 +335,7 @@ module Memory
                     PSize = 4u; 
                     PCond = pCond 
                 }
-            Result.map (make) ops
+            Result.map make ops
 
         let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,ErrInstr> =         
 
@@ -343,9 +343,12 @@ module Memory
             let splitOps = splitAny ls.Operands ','
 
             let checkSingleSuffix = function
-                | "B" -> Some B
-                | "" -> None
-                | _ -> failwithf "Should never happen, not a suffix"
+                | "B" -> Some B |> Ok
+                | _ -> 
+                    (suffix, notValidSuffixEM)
+                    ||> makeError
+                    |> ``Invalid suffix``
+                    |> Error
             
             let ops =
                 match splitOps with
@@ -358,9 +361,9 @@ module Memory
                             partialConsMem
                             |> mapErrorApplyResult (None |> Ok)
                             |> mapErrorApplyResult (None |> Ok)
-                            |> mapErrorApplyResult ((checkSingleSuffix suffix) |> Ok)
-                        | _ -> failwith "Should never happen! Match statement always matches."
-                    | _ -> failwith "Should never happen! Match statement always matches."
+                            |> mapErrorApplyResult (checkSingleSuffix suffix)
+                        | _ -> failwith alwaysMatchesFM
+                    | _ -> failwith alwaysMatchesFM
                 | [rOp1; addr; postOff] -> // str r0, [r1], #4
                     match rOp1 with
                     | RegCheck rOp1' ->
@@ -372,12 +375,12 @@ module Memory
                                 partialConsMem
                                 |> mapErrorApplyResult (Result.map (fst) tuple)
                                 |> mapErrorApplyResult (Result.map (snd) tuple)
-                                |> mapErrorApplyResult ((checkSingleSuffix suffix) |> Ok)
-                            | _ -> failwith "Should never happen! Match statement always matches."
-                        | _ -> failwith "Should never happen! Match statement always matches."
-                    | _ -> failwith "Should never happen! Match statement always matches."
+                                |> mapErrorApplyResult (checkSingleSuffix suffix)
+                            | _ -> failwith alwaysMatchesFM
+                        | _ -> failwith alwaysMatchesFM
+                    | _ -> failwith alwaysMatchesFM
                 | _ -> 
-                    (ls.Operands, "Syntax error. Instruction format is incorrect.")
+                    (ls.Operands, notValidSyntaxEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -397,7 +400,7 @@ module Memory
             | "STR" -> parseSingle root suffix pCond
             | "LDM" -> parseMult root suffix pCond
             | "STM" -> parseMult root suffix pCond
-            | _ -> failwithf "We appear to have a rogue root"
+            | _ -> failwith "We appear to have a rogue root"
            
 
         Map.tryFind ls.OpCode opCodes
