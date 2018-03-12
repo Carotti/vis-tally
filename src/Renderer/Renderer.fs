@@ -99,6 +99,7 @@ let init () =
     // Create an empty tab to start with
     createFileTab ()
 
+
 setMainMenu ()
 
 let handleMonacoReady (_: Event) = init ()

@@ -20,6 +20,7 @@ open Fable.Import.Browser
 
 open Ref
 open Fable
+open System.Configuration
 
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
@@ -47,6 +48,8 @@ let mutable editorOptions = createObj [
                                 "scrollBeyondLastLine" ==> false;
                                 "automaticLayout" ==> true;
                             ]
+
+let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
 
 // Returns a formatter for the given representation
 let formatter rep = 
@@ -267,11 +270,23 @@ let isTabUnsaved id =
     (fileTab id).lastElementChild.classList.contains("unsaved")
 
 let deleteFileTab id =
+    let isSettingsTab =
+        match settingsTab with
+        | Microsoft.FSharp.Core.option.None -> false
+        | Some tab when tab = id -> true
+        | _ -> false
+
+    // Confirm delete message is slightly different for the settings menu
+    let tabName =
+        match isSettingsTab with
+        | true -> "settings"
+        | false -> sprintf "'%s" (getTabName id)
+
     let confirmDelete = 
         match isTabUnsaved id with
         | false -> true
         | true -> Browser.window.confirm(
-                    sprintf "You have unsaved changes, are you sure you want to close '%s'?" (getTabName id)
+                    sprintf "You have unsaved changes, are you sure you want to close %s?" tabName
                     )
 
     match confirmDelete with
@@ -287,9 +302,13 @@ let deleteFileTab id =
         | _ -> ()
         fileTabMenu.removeChild(fileTab id) |> ignore
         fileViewPane.removeChild(fileView id) |> ignore
-        let editor = editors.[id]
-        editor?dispose() |> ignore // Delete the Monaco editor
-        editors <- Map.remove id editors
+        match isSettingsTab with
+        | true -> 
+            settingsTab <- Microsoft.FSharp.Core.option.None
+        | false ->
+            let editor = editors.[id]
+            editor?dispose() |> ignore // Delete the Monaco editor
+            editors <- Map.remove id editors
     
 let setTabUnsaved id = 
     let tab = fileTabName id
@@ -314,7 +333,8 @@ let setTabName id name =
     let nameSpan = fileTabName id
     nameSpan.innerHTML <- name
 
-let createNamedFileTab name =
+// Create a new tab of a particular name and then return its id
+let createTab name =
     let tab = document.createElement("div")
     tab.classList.add("tab-item")
     tab.classList.add("tab-file")
@@ -356,6 +376,10 @@ let createNamedFileTab name =
     fileTabList <- fileTabList @ [id]
 
     fileTabMenu.insertBefore(tab, newFileTab) |> ignore
+    id
+
+let createNamedFileTab name =
+    let id = createTab name
 
     // Create the new view div
     let fv = document.createElement("div")
@@ -375,6 +399,22 @@ let createNamedFileTab name =
     editors <- Map.add id editor editors
     // Return the id of the tab we just created
     id
+
+let createSettingsTab () =
+    match settingsTab with
+    | Some tab -> selectFileTab tab
+    | Microsoft.FSharp.Core.option.None ->
+        let id = createTab "Settings"
+        settingsTab <- Some id
+
+        let sv = document.createElement("div")
+        sv.classList.add("invisible")
+        sv.id <- fileViewIdFormatter id
+
+        sv.innerHTML <- "Settings Tab for now"
+
+        fileViewPane.appendChild(sv) |> ignore
+        selectFileTab id
 
 let createFileTab () = 
     createNamedFileTab "Untitled.S" 

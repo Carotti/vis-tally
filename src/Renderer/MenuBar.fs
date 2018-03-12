@@ -121,7 +121,7 @@ let getEditMenu =
     let preferences = createMenuItem
                         "Preferences"
                         Option.None
-                        id2
+                        (fun _ _ -> createSettingsTab ())
 
     let items = ResizeArray<MenuItemOptions> [
                     undo
