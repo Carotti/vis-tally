@@ -11,9 +11,6 @@ module Renderer
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Fable.Import.Electron
-open Node.Exports
-open Fable.PowerPack
 
 open Fable.Import.Browser
 
@@ -23,6 +20,7 @@ Browser.console.log "Hi from the renderer.js" |> ignore
 
 open Ref
 open Update
+open MenuBar
 open Emulator
 
 // TODO: Delete this piece of shit
@@ -45,74 +43,6 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
     |> Map.toList
     |> List.map (fst >> attachRep)
     |> ignore
-
-let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
-
-let menuSeperator = 
-    let sep = createEmpty<MenuItemOptions>
-    sep.``type`` <- Some Separator
-    sep
-
-let createMenuItem label accelerator click = 
-    let item = createEmpty<MenuItemOptions>
-    item.label <- Some label
-    item.accelerator <- accelerator
-    item.click <- handlerCaster click
-    item
-
-let getFileMenu =
-    let save = createMenuItem "Save" 
-                (Some "CmdOrCtrl+S") 
-                (fun _ _ -> saveFile())
-
-    let saveAs = createMenuItem 
-                    "Save As" 
-                    (Some "CmdOrCtrl+Shift+S")
-                    (fun _ _ -> saveFileAs())
-
-    let openf = createMenuItem
-                    "Open"
-                    (Some "CmdOrCtrl+O")
-                    (fun _ _ -> openFile())
-
-    let newf = createMenuItem
-                "New"
-                (Some "CmdOrCtrl+N")
-                (fun _ _ -> createFileTab())
-
-    let exit = createMenuItem 
-                "Quit"
-                (Some "Ctrl+Q")
-                (fun _ _ -> electron.remote.app.quit())
-
-    let close = createMenuItem
-                    "Close"
-                    (Some "Ctrl+W")
-                    (fun _ _ -> deleteFileTab currentFileTabId)
-
-    let items = ResizeArray<MenuItemOptions> [
-                    newf
-                    menuSeperator
-                    save
-                    saveAs
-                    openf
-                    menuSeperator
-                    close
-                    menuSeperator
-                    exit
-                ]
-
-    let fileMenu = createEmpty<MenuItemOptions>
-    fileMenu.label <- Some "File"
-    fileMenu.submenu <- items |> U2.Case2 |> Some
-
-    fileMenu
-
-let setMainMenu () =
-    let template = ResizeArray<MenuItemOptions> [
-                        getFileMenu
-                    ]
-    electron.remote.Menu.setApplicationMenu(electron.remote.Menu.buildFromTemplate(template))
 
 /// Initialization after `index.html` is loaded
 let init () =

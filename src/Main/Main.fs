@@ -18,6 +18,7 @@ open Node.Exports
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
 
+// Used for right-click context menu
 [<Emit("require('electron-context-menu')({});")>]
 let contextMenu () = jsNative
 
@@ -53,6 +54,12 @@ let createMainWindow () =
     // Maximize the window
     window.maximize()
 
+    // Clear the menuBar, this is overwritten by the renderer process
+    let template = ResizeArray<MenuItemOptions> [
+                        createEmpty<MenuItemOptions>
+                    ]
+    electron.Menu.setApplicationMenu(electron.Menu.buildFromTemplate(template))
+
     mainWindow <- Some window
 
 // This method will be called when Electron has finished
@@ -73,3 +80,4 @@ electron.app.on("activate", unbox(fun () ->
     if mainWindow.IsNone then
         createMainWindow()
 )) |> ignore
+
