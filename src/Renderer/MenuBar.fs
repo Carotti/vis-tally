@@ -23,6 +23,13 @@ let createMenuItem label accelerator click =
     item.click <- handlerCaster click
     item
     
+let makeSubMenu name items =
+    let subMenu = createEmpty<MenuItemOptions>
+    subMenu.label <- Some name
+    subMenu.submenu <- items |> U2.Case2 |> Some
+
+    subMenu
+
 let getFileMenu =
     let save = createMenuItem "Save" 
                 (Some "CmdOrCtrl+S") 
@@ -65,11 +72,7 @@ let getFileMenu =
                     exit
                 ]
 
-    let fileMenu = createEmpty<MenuItemOptions>
-    fileMenu.label <- Some "File"
-    fileMenu.submenu <- items |> U2.Case2 |> Some
-
-    fileMenu
+    makeSubMenu "File" items
 
 let getEditMenu =
     let undo = createMenuItem
@@ -136,15 +139,48 @@ let getEditMenu =
                     preferences
                 ]
 
-    let editMenu = createEmpty<MenuItemOptions>
-    editMenu.label <- Some "Edit"
-    editMenu.submenu <- items |> U2.Case2 |> Some
+    makeSubMenu "Edit" items
 
-    editMenu
+
+let getViewMenu = 
+    let fullscreen = createMenuItem
+                        "Toggle Fullscreen"
+                        (Some "F11")
+                        id2
+    fullscreen.role <- U2.Case1 MenuItemRole.Togglefullscreen |> Some
+
+    let zoomIn = createMenuItem
+                    "Zoom In"
+                    (Some "CmdOrCtrl+Plus")
+                    id2
+    zoomIn.role <- U2.Case1 MenuItemRole.Zoomin |> Some
+
+    let zoomOut = createMenuItem
+                    "Zoom Out"
+                    (Some "CmdOrCtrl+-")
+                    id2
+    zoomOut.role <- U2.Case1 MenuItemRole.Zoomout |> Some
+
+    let resetZoom = createMenuItem
+                       "Reset Zoom"
+                       (Some "CmdOrCtrl+0")
+                       id2
+    resetZoom.role <- U2.Case1 MenuItemRole.Resetzoom |> Some
+
+    let items = ResizeArray<MenuItemOptions> [
+                    fullscreen
+                    menuSeperator
+                    zoomIn
+                    zoomOut
+                    resetZoom
+                ]
+
+    makeSubMenu "View" items
 
 let setMainMenu () =
     let template = ResizeArray<MenuItemOptions> [
                         getFileMenu
                         getEditMenu
+                        getViewMenu
                     ]
     electron.remote.Menu.setApplicationMenu(electron.remote.Menu.buildFromTemplate(template))
