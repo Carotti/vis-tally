@@ -32,6 +32,8 @@ let mutable byteView = false
 
 let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
 
+let mutable symbolMap : Map<string, uint32> = Map.ofList []
+
 let mutable currentFileTabId = -1 // By default no tab is open
 let mutable fileTabList = []
 
@@ -227,6 +229,45 @@ let updateMemory () =
     memoryMap
     |> contiguousMemory
     |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
+    |> ignore
+
+let updateSymTable () =
+    let makeRow ((sym : string), value : uint32) =
+        let tr = document.createElement("tr")
+        tr.classList.add("tr-head-sym")
+
+        let tdSym = document.createElement("td")
+        tdSym.classList.add("selectable-text")
+        tdSym.innerHTML <- sym
+
+        let tdValue = document.createElement("td")
+        tdValue.classList.add("selectable-text")
+        tdValue.innerHTML <- formatter currentRep value
+
+        tr.appendChild(tdSym) |> ignore
+        tr.appendChild(tdValue) |> ignore
+        tr
+
+    // Clear the old symbol table
+    symTable.innerHTML <- ""
+
+    let tr = document.createElement("tr")
+    let thSym = document.createElement("th")
+    let thVal = document.createElement("th")
+
+    thSym.innerHTML <- "Symbol"
+    thVal.innerHTML <- "Value"
+
+    thSym.classList.add("th-mem")
+    thVal.classList.add("th-mem")
+
+    tr.appendChild(thSym) |> ignore
+    tr.appendChild(thVal) |> ignore
+
+    symTable.appendChild(tr) |> ignore
+
+    (List.map (makeRow >> (fun x -> symTable.appendChild(x))) (symbolMap
+    |> Map.toList))
     |> ignore
 
 let uniqueTabId () =

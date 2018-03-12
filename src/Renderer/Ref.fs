@@ -75,6 +75,12 @@ let byteViewBtn =
 let memList =
     Browser.document.getElementById("mem-list")
 
+let symView =
+    Browser.document.getElementById("sym-view")
+
+let symTable =
+    Browser.document.getElementById("sym-table")
+
 let fileTabMenu = 
     Browser.document.getElementById("tabs-files")
 let newFileTab =

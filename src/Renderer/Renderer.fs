@@ -32,6 +32,11 @@ let testMemory = Map.ofList [
                         0x104u, 0xAABBCCDDu;
                     ]
 
+let testSyms = Map.ofList [
+                    "Hello", 100u;
+                    "TestSymbol", 123u;
+                ]
+
 /// Access to `Emulator` project
 let dummyVariable = Emulator.Common.A
 
@@ -75,6 +80,7 @@ let init () =
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
         setRepresentation rep |> ignore
         updateMemory ()
+        updateSymTable ()
     )
 
     mapClickAttacher viewToIdTab Ref.viewTab (fun view ->
@@ -95,6 +101,9 @@ let init () =
 
     memoryMap <- testMemory
     updateMemory ()
+
+    symbolMap <- testSyms
+    updateSymTable ()
 
     // Create an empty tab to start with
     createFileTab ()
