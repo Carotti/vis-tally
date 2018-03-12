@@ -1,6 +1,5 @@
 module ErrorMessages
 
-
     /// Failure message for impossible match cases
     let alwaysMatchesFM = "Should never happen! Match statement always matches."
 

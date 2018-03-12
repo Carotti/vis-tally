@@ -46,3 +46,4 @@ module Errors
                 | Error e -> e |> Error
             | [] -> List.rev outlst |> Ok
         condenser' lst [] 
+

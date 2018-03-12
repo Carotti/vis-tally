@@ -190,7 +190,6 @@ module DP
         | ``Invalid flexible second operand`` of ErrorBase
         | ``Invalid suffix`` of ErrorBase
         | ``Invalid instruction`` of ErrorBase
-        | ``Syntax error`` of ErrorBase
             
     /// Constructs a `DP2S` from an optional suffix and a `DP2`
     let consDP2S suffix (dp2:DP2Form) =

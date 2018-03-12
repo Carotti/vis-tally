@@ -71,7 +71,7 @@ module Memory
     type Instr = 
         | Mem of MemInstr
 
-     /// Error types for parsing.
+    /// Error types for parsing.
     type ErrInstr =
         | ``Invalid memory address`` of ErrorBase
         | ``Invalid offset`` of ErrorBase
@@ -79,7 +79,6 @@ module Memory
         | ``Invalid shift`` of ErrorBase
         | ``Invalid suffix`` of ErrorBase
         | ``Invalid instruction`` of ErrorBase
-        | ``Syntax error`` of ErrorBase
 
     let memSpec = {
         InstrC = MEM
@@ -322,7 +321,7 @@ module Memory
                         |> mapErrorApplyResult (checkMultSuffix suffix)
                     | _ -> failwith alwaysMatchesFM     
                 | _ ->
-                    (ls.Operands, notValidSyntaxEM)
+                    (ls.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -380,7 +379,7 @@ module Memory
                         | _ -> failwith alwaysMatchesFM
                     | _ -> failwith alwaysMatchesFM
                 | _ -> 
-                    (ls.Operands, notValidSyntaxEM)
+                    (ls.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
