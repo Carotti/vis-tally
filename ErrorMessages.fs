@@ -19,8 +19,8 @@ module ErrorMessages
     /// Error message for `Invalid literal`
     let notValidLiteralEM = " is not a valid literal."
 
-    /// Error message for `Invalid shift`
-    let notValidShiftEM = " is not a valid literal or register."
+    /// Error message for `Invalid shift` or `Invalid second operand`
+    let notValidRegLitEM = " is not a valid literal or register."
 
     /// Error message for `Invalid flexible second operand`
     let notValidFlexOp2EM = " is an invalid flexible second operand"

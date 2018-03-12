@@ -85,13 +85,13 @@ module DPExecution
         ///  to determine the new C flag. 
         let calcShift (shift:FS2Form) dp =
             match shift.sInstr with
-            | LSL ->
+            | SInstr.LSL ->
                 shiftAndCarry (<<<) shift (fun s -> 32-s) dp
-            | LSR ->
+            | SInstr.LSR ->
                 shiftAndCarry (>>>) shift (fun s -> s-1) dp
-            | ASR ->
+            | SInstr.ASR ->
                 shiftAndCarry (fun a b -> (int32 a) >>> b |> uint32) shift (fun s -> s-1) dp
-            | ROR ->
+            | SInstr.ROR ->
                 shiftAndCarry (doROR) shift (fun s -> s-1) dp
 
         /// A function to determine the new value of the N flag.
