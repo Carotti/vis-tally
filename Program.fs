@@ -48,7 +48,7 @@ let replExecute cpuData =
                   repl' cpuData''
             | Error err -> 
                 err |> qp
-                repl' cpuData
+                repl' (cpuData' |> Ok)
         | Error e -> e |> qp
         
     repl' cpuData
