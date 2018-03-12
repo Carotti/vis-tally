@@ -415,10 +415,14 @@ let createSettingsTab () =
 
         fileViewPane.appendChild(sv) |> ignore
         selectFileTab id
-
 let createFileTab () = 
     createNamedFileTab "Untitled.S" 
     |> selectFileTab // Switch to the tab we just created
+
+let deleteCurrentTab () =
+    match currentFileTabId >= 0 with
+    | false -> ()
+    | true -> deleteFileTab currentFileTabId
 
 // Load the node Buffer into the specified tab
 let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =

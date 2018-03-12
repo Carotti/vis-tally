@@ -58,7 +58,7 @@ let getFileMenu =
     let close = createMenuItem
                     "Close"
                     (Some "Ctrl+W")
-                    (fun _ _ -> deleteFileTab currentFileTabId)
+                    (fun _ _ ->  deleteCurrentTab ())
 
     let items = ResizeArray<MenuItemOptions> [
                     newf
