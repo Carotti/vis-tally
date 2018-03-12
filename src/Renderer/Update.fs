@@ -20,7 +20,6 @@ open Fable.Import.Browser
 
 open Ref
 open Fable
-open System.Configuration
 
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
@@ -400,21 +399,6 @@ let createNamedFileTab name =
     // Return the id of the tab we just created
     id
 
-let createSettingsTab () =
-    match settingsTab with
-    | Some tab -> selectFileTab tab
-    | Microsoft.FSharp.Core.option.None ->
-        let id = createTab "Settings"
-        settingsTab <- Some id
-
-        let sv = document.createElement("div")
-        sv.classList.add("invisible")
-        sv.id <- fileViewIdFormatter id
-
-        sv.innerHTML <- "Settings Tab for now"
-
-        fileViewPane.appendChild(sv) |> ignore
-        selectFileTab id
 let createFileTab () = 
     createNamedFileTab "Untitled.S" 
     |> selectFileTab // Switch to the tab we just created

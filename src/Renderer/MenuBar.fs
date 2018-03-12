@@ -6,6 +6,7 @@ open Fable.Import
 open Fable.Import.Electron
 
 open Update
+open Settings
 
 let id2 = (fun _ _ -> ())
 
