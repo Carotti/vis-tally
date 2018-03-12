@@ -9,10 +9,10 @@
     <Compile Include="VLog.fs" />
     <Compile Include="Visual.fs" />
     <Compile Include="VTest.fs" /> -->
-    <Compile Include="ErrorMessages.fs" />
     <Compile Include="CommonData.fs" />
     <Compile Include="CommonLex.fs" />    
     <Compile Include="Helpers.fs" />
+    <Compile Include="ErrorMessages.fs" />
     <Compile Include="Errors.fs" />
     <Compile Include="Expressions.fs" />
     <Compile Include="Memory.fs" />

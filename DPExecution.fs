@@ -217,8 +217,6 @@ module DPExecution
                 | (MVN ops) -> Some (instr', ops)
             | _ -> None
         
-
-
         /// A function to completely evaluate the value of the flexible second operand.
         let calcOp2 fOp2 dp =
              match fOp2 with
@@ -248,11 +246,6 @@ module DPExecution
                 match operands.suff with
                 | Some S -> {dp with Fl = flags'}
                 | None -> dp
-            // dp' |> qp
-            // "op 1 and 2" |> qp
-            // op1 |> qp
-            // op2 |> qp
-            // opcode |> qp
             match opcode with
             | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [CVCheckAdd; NZCheck]
@@ -293,7 +286,6 @@ module DPExecution
             match opcode with
             | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 (Some S) [NZCheck]
             | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 (Some S) [NZCheck]
-    
     
         let dp' : Result<DataPath<CommonTop.Instr>,ErrExe> =
             match instr with            
