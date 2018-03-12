@@ -7,7 +7,7 @@ module ErrorMessages
     /// Error message for `Invalid offset`
     let notValidOffsetEM = " is not a valid offset."
     /// Error message for `Invalid instruction`
-    let notValidSyntaxEM = " Syntax error. Instruction format is incorrect."
+    let notValidFormatEM = " is not a valid instruction format."
     /// Error message for `Invalid literal`
     let notValidLiteralEM = " is not a valid literal."
     /// Error message for `Invalid shift`

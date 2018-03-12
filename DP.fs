@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////////////////
-//                   Chris Playing
+//      Generl data processing instruction parsing
 //////////////////////////////////////////////////////////////////////////////////////////
 
 module DP
@@ -146,7 +146,7 @@ module DP
         }
     
     /// All DP3S instructions, that is data processing instructions that have
-    ///  three operands (with a flexible second operand) and an optional suffix.
+    ///  three operands (with a flexible second operand) and an optional 'S' suffix.
     type DP3SInstr =
         | ADD of DP3SForm
         | ADC of DP3SForm
@@ -167,6 +167,8 @@ module DP
         | TEQ of DP2Form    
         | TST of DP2Form
     
+    /// All DP2S instructions, that is data processing instructions that have
+    ///  two operands (with a flexible second operand) and an optional 'S' suffix.
     type DP2SInstr =
         | MOV of DP2SForm
         | MVN of DP2SForm
@@ -210,11 +212,15 @@ module DP
     let DPSpec =
         {
             InstrC = DP
-            Roots = [   "ADD"; "ADC"; "SUB";
+            Roots = [   // DP3S roots
+                        "ADD"; "ADC"; "SUB";
                         "SBC"; "RSB"; "RSC";
                         "AND"; "ORR"; "EOR";    
-                        "BIC"; "CMP"; "CMN";
-                        "TST"; "TEQ";
+                        "BIC";
+                        // DP2 roots
+                        "CMP"; "CMN"; "TST";
+                        "TEQ";
+                        // DP2S roots
                         "MOV"; "MVN"
                     ]
             Suffixes = [""; "S"]
@@ -310,11 +316,7 @@ module DP
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
-    /// main function to parse a line of assembler
-    /// ls contains the line input
-    /// and other state needed to generate output
-    /// the result is None if the opcode does not match
-    /// otherwise it is Ok Parse or Error (parse error string)
+    /// Top level parsing function called from the `IMatch` active pattern.
     let parse (ld: LineData) : Result<Parse<Instr>,ErrInstr> option =
       
         /// A function to check the validity of literals according to the ARM spec.
@@ -330,7 +332,7 @@ module DP
                 Ok (B, snd hd)
             | [] ->
                 let txt = lit |> string
-                (txt, " is not a valid literal.")
+                (txt, notValidLiteralEM)
                 ||> makeError
                 |> ``Invalid literal``
                 |> Error
@@ -370,7 +372,7 @@ module DP
             | Some reg ->
                 reg |> Ok |> Some
             | _ ->
-                (txt, " is not a valid register.")
+                (txt, notValidRegEM)
                 ||> makeError
                 |> ``Invalid register``
                 |> Error
@@ -385,7 +387,7 @@ module DP
                 | RegCheck reg' ->
                     reg' |> Some
                 | _ ->
-                    failwith "Should never happen! Match statement always matches."
+                    failwith alwaysMatchesFM
             | _ ->
                 None
 
@@ -428,7 +430,7 @@ module DP
                                 |> Result.map(partialFS2)
                                 |> Some
                             | _ ->
-                                (oprnds, " is not a valid literal or register.")
+                                (oprnds, notValidShiftEM)
                                 ||> makeError
                                 |> ``Invalid shift``
                                 |> Error
@@ -438,7 +440,7 @@ module DP
                             |> Error
                             |> Some
                     | _ ->
-                        failwith "Should never happen! Match statement always matches."
+                        failwith alwaysMatchesFM
                 | _ ->
                     None  
 
@@ -453,7 +455,7 @@ module DP
                     let reg' = Result.map (Reg) reg
                     applyResultMapError createOp reg'
                 | _ ->
-                    (op2, " is an invalid flexible second operand")
+                    (op2, notValidFlexOp2EM)
                     ||> makeError
                     |> ``Invalid flexible second operand``
                     |> Error
@@ -470,7 +472,7 @@ module DP
                 let shift' = Result.map (Shift) shift
                 applyResultMapError createOp shift'
             | _ ->
-                ((rOp2 + ", " + extn), " is an invalid flexible second operand")
+                ((rOp2 + ", " + extn), notValidFlexOp2EM)
                 ||> makeError
                 |> ``Invalid flexible second operand``
                 |> Error
@@ -483,7 +485,7 @@ module DP
                 let dp32 = combineErrorMapResult rDest' rOp1' consDP3R
                 parseFOp2NoExtn op2 dp32
             | _ ->
-                failwith "Should never happen! Match statement always matches."
+                failwith alwaysMatchesFM
 
         /// A function to parse instructions with four comma-seperated operands.
         let parse4Ops rDest rOp1 rOp2 extn =
@@ -492,7 +494,7 @@ module DP
                 let dp32 = combineErrorMapResult rDest' rOp1' consDP3R
                 parseFOp2Extn rOp2 extn dp32
             | _ ->
-                failwith "Should never happen! Match statement always matches."
+                failwith alwaysMatchesFM
 
         /// Lazy data representing the operands for `DP2` instructions.    
         let operandsDP2 = 
@@ -507,16 +509,16 @@ module DP
                         let dp2 = Result.map(consDP2R) rOp1'
                         parseFOp2NoExtn op2 dp2
                     | _ ->
-                        failwith "Should never happen! Match statement always matches."
+                        failwith alwaysMatchesFM
                 | [rOp1; op2; extn] ->
                     match rOp1 with
                     | RegCheck rOp1' ->
                         let dp2 = Result.map(consDP2R) rOp1'
                         parseFOp2Extn op2 extn dp2
                     | _ ->
-                        failwith "Should never happen! Match statement always matches."  
+                        failwith alwaysMatchesFM  
                 | _ ->
-                    (ld.Operands, "Syntax error. Instruction format is incorrect.")
+                    (ld.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -534,7 +536,7 @@ module DP
                 | [rDest; rOp1; rOp2; extn] ->
                     parse4Ops rDest rOp1 rOp2 extn
                 | _ ->
-                    (ld.Operands, "Syntax error. Instruction format is incorrect.")
+                    (ld.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -600,7 +602,7 @@ module DP
                         |> Result.map (opcode) 
                         |> Result.map (DP2S)
                     | true, Some _suff' ->
-                        (suffix, "This instruction cannot have a suffix.")
+                        (suffix, notValidSuffixEM)
                         ||> makeError
                         |> ``Invalid suffix``
                         |> Error
