@@ -7,6 +7,8 @@ open Fable.Import.Electron
 
 open Update
 
+let id2 = (fun _ _ -> ())
+
 let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
 
 let menuSeperator = 
@@ -73,37 +75,50 @@ let getEditMenu =
     let undo = createMenuItem
                 "Undo"
                 (Some "CmdOrCtrl+Z")
-                (fun _ _ -> ())
-    undo.role <- U2.Case1 MenuItemRole.Undo |> Some
+                (fun _ _ -> editorUndo ())
 
     let redo = createMenuItem
                 "Redo"
-                (Some "CmdOrCtrl+Y")
-                (fun _ _ -> ())
-    redo.role <- U2.Case1 MenuItemRole.Redo |> Some
+                (Some "CmdOrCtrl+Shift+Z")
+                (fun _ _ -> editorRedo ())
 
     let cut = createMenuItem
                 "Cut"
                 (Some "CmdOrCtrl+X")
-                (fun _ _ -> ())
+                id2
     cut.role <- U2.Case1 MenuItemRole.Cut |> Some
 
     let copy = createMenuItem
                 "Copy"
                 (Some "CmdOrCtrl+C")
-                (fun _ _ -> ())
+                id2
     copy.role <- U2.Case1 MenuItemRole.Copy |> Some
     
     let paste = createMenuItem
                     "Paste"
                     (Some "CmdOrCtrl+V")
-                    (fun _ _ -> ())
+                    id2
     paste.role <- U2.Case1 MenuItemRole.Paste |> Some
+
+    let selectAll = createMenuItem
+                        "Select All"
+                        (Some "CmdOrCtrl+A")
+                        (fun _ _ -> editorSelectAll ())
+
+    let find = createMenuItem
+                "Find"
+                (Some "CmdOrCtrl+F")
+                (fun _ _ -> editorFind())
+               
+    let findReplace = createMenuItem
+                        "Replace"
+                        (Some "CmdOrCtrl+H")
+                        (fun _ _ -> editorFindReplace())
     
     let preferences = createMenuItem
                         "Preferences"
                         Option.None
-                        (fun _ _ -> ())
+                        id2
 
     let items = ResizeArray<MenuItemOptions> [
                     undo
@@ -112,6 +127,11 @@ let getEditMenu =
                     cut
                     copy
                     paste
+                    menuSeperator
+                    selectAll
+                    menuSeperator
+                    find
+                    findReplace
                     menuSeperator
                     preferences
                 ]

@@ -287,6 +287,8 @@ let deleteFileTab id =
         | _ -> ()
         fileTabMenu.removeChild(fileTab id) |> ignore
         fileViewPane.removeChild(fileView id) |> ignore
+        let editor = editors.[id]
+        editor?dispose() |> ignore // Delete the Monaco editor
         editors <- Map.remove id editors
     
 let setTabUnsaved id = 
@@ -477,3 +479,20 @@ let saveFile () =
     | path -> writeCurrentCodeToFile path
 
     setTabSaved (currentFileTabId)
+
+let editorFind () =
+    let action = editors.[0]?getAction("actions.find")
+    action?run() |> ignore
+ 
+let editorFindReplace () =
+    let action = editors.[currentFileTabId]?getAction("editor.action.startFindReplaceAction")
+    action?run() |> ignore
+
+let editorUndo () =
+    editors.[currentFileTabId]?trigger("Update.fs", "undo") |> ignore
+
+let editorRedo () =
+    editors.[currentFileTabId]?trigger("Update.fs", "redo") |> ignore
+
+let editorSelectAll () = 
+    editors.[currentFileTabId]?trigger("Update.fs", "selectAll") |> ignore
