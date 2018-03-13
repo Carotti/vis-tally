@@ -5,8 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Ref.fs" />
-    <Compile Include="Update.fs" />
+    <Compile Include="Tabs.fs" />
     <Compile Include="Settings.fs" />
+    <Compile Include="Update.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>

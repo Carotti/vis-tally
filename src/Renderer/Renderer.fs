@@ -22,6 +22,7 @@ open Ref
 open Update
 open MenuBar
 open Emulator
+open Tabs
 
 // TODO: Delete this piece of shit
 let testMemory = Map.ofList [

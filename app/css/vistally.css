@@ -103,9 +103,12 @@
 }
 
 .settings-menu {
-    width: 800px;
+    max-width: 800px;
     display: inline-block;
     background-color: white;
+    text-align: left;
+    padding-left: 20px;
+    overflow: auto;
 }
 
 #file-view-pane {

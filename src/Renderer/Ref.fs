@@ -15,6 +15,9 @@ open Fable.Import.Browser
 open Fable.Import.JS
 open Microsoft.FSharp.Collections
 
+[<Emit("$0 === undefined")>]
+let isUndefined (_: 'a) : bool = jsNative
+
 type Representations =
     | Hex
     | Bin
