@@ -74,9 +74,6 @@ let flag (id: string) (value: bool) =
             el.setAttribute("style", "background: #4285f4")
             el.innerHTML <- sprintf "%i" 1
 
-let setTheme theme = 
-    window?monaco?editor?setTheme(theme)
-
 let setRepresentation rep =
     // Disable the other button
     (representation currentRep).classList.remove("btn-rep-enabled")

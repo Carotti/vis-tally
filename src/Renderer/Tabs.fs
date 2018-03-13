@@ -14,6 +14,7 @@ open Ref
 // Default settings if they haven't already been defined by electron-settings
 let defaultSettings = Map.ofList [
                             "editor-font-size" ==> "12"
+                            "editor-theme" ==> "vs-light"
                         ]
 
 let getSetting (name : string) =
@@ -21,19 +22,10 @@ let getSetting (name : string) =
     match isUndefined setting with
     | true -> defaultSettings.[name]
     | false -> setting
-    
-let setSetting (name : string) (value : obj) =
-    settings?set(name, value) |> ignore
-
-let mutable currentFileTabId = -1 // By default no tab is open
-let mutable fileTabList : int list = []
-
-// Map tabIds to the editors which are contained in them
-let mutable editors : Map<int, obj> = Map.ofList []
 
 let editorOptions () = createObj [
                         // User defined settings
-                        "theme" ==> "vs-light";
+                        "theme" ==> getSetting "editor-theme";
                         "renderWhitespace" ==> "all";
                         "fontSize" ==> getSetting "editor-font-size";
                         // Application defined settings
@@ -43,6 +35,15 @@ let editorOptions () = createObj [
                         "scrollBeyondLastLine" ==> false;
                         "automaticLayout" ==> true;
                     ]
+    
+let setSetting (name : string) (value : obj) =
+    settings?set(name, value) |> ignore
+
+let mutable currentFileTabId = -1 // By default no tab is open
+let mutable fileTabList : int list = []
+
+// Map tabIds to the editors which are contained in them
+let mutable editors : Map<int, obj> = Map.ofList []
 
 let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
 
@@ -222,7 +223,12 @@ let deleteCurrentTab () =
 let updateEditor tId =
     editors.[tId]?updateOptions(editorOptions()) |> ignore
 
+let setTheme theme = 
+    window?monaco?editor?setTheme(theme)
+
 let updateAllEditors () =
     (List.map (fst >> updateEditor) (editors
     |> Map.toList))
     |> ignore
+
+    setTheme (editorOptions())?theme |> ignore

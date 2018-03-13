@@ -64,8 +64,8 @@
 }
 
 .invisible {
-    display: none;
-}
+    display: none !important; 
+} 
 
 .btn-byte-active {
     background-color: darkgray;
@@ -120,4 +120,8 @@
 
 .monaco-editor {
     text-align: left;
+}
+
+.settings-select {
+    max-width: 400px;
 }
