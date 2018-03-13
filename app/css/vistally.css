@@ -101,3 +101,20 @@
 #file-view--1 {
     background-color: darkgray;
 }
+
+.settings-menu {
+    width: 800px;
+    display: inline-block;
+    background-color: white;
+}
+
+#file-view-pane {
+    text-align: center;
+    height: 100%;
+    overflow: hidden;
+    background-color: lightgray;
+}
+
+.monaco-editor {
+    text-align: left;
+}

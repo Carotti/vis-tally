@@ -20,6 +20,7 @@ open Fable.Import.Browser
 
 open Ref
 open Fable
+open Expecto.Flip
 
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
@@ -507,39 +508,43 @@ let writeToFile str path =
 let writeCurrentCodeToFile path = (writeToFile (getCode currentFileTabId) path)
 
 let saveFileAs () =
-    let options = createEmpty<SaveDialogOptions>
+    // Don't do anything if the user tries to save the settings tab
+    match settingsTab with
+    | Some x when x = currentFileTabId -> ()
+    | _ ->
+        let options = createEmpty<SaveDialogOptions>
 
-    let currentPath = getTabFilePath currentFileTabId
-    
-    // If a path already exists for this file, open it
-    match currentPath with
-    | "" -> ()
-    | _ -> options.defaultPath <- Some currentPath
+        let currentPath = getTabFilePath currentFileTabId
+        
+        // If a path already exists for this file, open it
+        match currentPath with
+        | "" -> ()
+        | _ -> options.defaultPath <- Some currentPath
 
-    let result = electron.remote.dialog.showSaveDialog(options)
+        let result = electron.remote.dialog.showSaveDialog(options)
 
-    // Performs op on x then returns x
-    let split op x =
-        op x |> ignore
-        x
+        // Performs op on x then returns x
+        let split op x =
+            op x |> ignore
+            x
 
-    // Write the file, return the path again so it can be set
-    let writer = split writeCurrentCodeToFile
+        // Write the file, return the path again so it can be set
+        let writer = split writeCurrentCodeToFile
 
-    // Update the path of this tab and return the path again
-    let pathUpdater = split (setTabFilePath currentFileTabId)
-       
-    // If result is an actual path, write the contents of the current tab
-    // to the file
-    result
-    |> resultUndefined ()
-    |> Result.map writer
-    |> Result.map pathUpdater
-    |> Result.map baseFilePath
-    |> Result.map (setTabName currentFileTabId)
-    |> ignore
+        // Update the path of this tab and return the path again
+        let pathUpdater = split (setTabFilePath currentFileTabId)
+           
+        // If result is an actual path, write the contents of the current tab
+        // to the file
+        result
+        |> resultUndefined ()
+        |> Result.map writer
+        |> Result.map pathUpdater
+        |> Result.map baseFilePath
+        |> Result.map (setTabName currentFileTabId)
+        |> ignore
 
-    setTabSaved (currentFileTabId)
+        setTabSaved (currentFileTabId)
 
 // If a path already exists for a file, write it straight to disk without the dialog
 let saveFile () =
@@ -549,8 +554,14 @@ let saveFile () =
 
     setTabSaved (currentFileTabId)
 
+// Figure out if any of the tabs are unsaved
+let unsavedFiles () =
+    fileTabList
+    |> List.map isTabUnsaved
+    |> List.fold (||) false
+
 let editorFind () =
-    let action = editors.[0]?getAction("actions.find")
+    let action = editors.[currentFileTabId]?getAction("actions.find")
     action?run() |> ignore
  
 let editorFindReplace () =

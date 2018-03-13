@@ -11,7 +11,7 @@ module Renderer
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-
+open Fable.Import.Electron
 open Fable.Import.Browser
 
 // open DevTools to see the message
@@ -116,4 +116,3 @@ let handleMonacoReady (_: Event) = init ()
 let listener: U2<EventListener, EventListenerObject> = !^handleMonacoReady
 
 document.addEventListener("monaco-ready", listener)
-

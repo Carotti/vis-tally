@@ -80,4 +80,3 @@ electron.app.on("activate", unbox(fun () ->
     if mainWindow.IsNone then
         createMainWindow()
 )) |> ignore
-
