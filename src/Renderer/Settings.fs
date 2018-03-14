@@ -22,6 +22,7 @@ let inputSettings = [
 let themes = [
                 "vs-light", "Light"; 
                 "vs-dark", "Dark"; 
+                "one-dark-pro", "One Dark Pro";
               ]
 
 let setSettingsUnsaved = (fun _ -> setTabUnsaved (getSettingsTabId ()))
