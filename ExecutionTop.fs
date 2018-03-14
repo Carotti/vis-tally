@@ -24,8 +24,9 @@ module ExecutionTop
                     executeMem instr' cpuData
                 | CommonTop.IBRANCH (Branch instr') ->
                     executeBranch instr' cpuData
-                | CommonTop.IMISC (Misc _instr') ->
-                    failwithf "Trying to execute a MISC instruction"
+                | CommonTop.IMISC (Misc instr') ->
+                    executeMisc instr' cpuData
+                    // failwithf "Trying to execute a MISC instruction"
             | false -> 
                 updatePC instr cpuData |> Ok
         |> Result.map (updatePC instr)
