@@ -14,6 +14,7 @@ module TestFormats
                     "bigNum", 0xFFFFFFFFu
                     "n0thing", 0u
                     "branchTarget", 4444u
+                    "beccaHallam", 0xB00BFACEu
                 ]
     let symbolArrayOf table =
         Map.toList table
