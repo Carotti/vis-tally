@@ -6,6 +6,7 @@ module Branch
     open CommonData
     open CommonLex
     open Expressions
+    open Errors
     
     type BranchInstr =
         | B of SymbolExp
@@ -16,8 +17,8 @@ module Branch
     type Instr =
         | Branch of BranchInstr
 
-    type ErrInstr = 
-        | InvalidExp of string
+    type ErrInstr =
+        | ``Invalid expression`` of ErrorBase
 
     /// Resolve the symbols for an instruction which requires it
     let resolvePInstr (syms : SymbolTable) ins =
@@ -45,7 +46,11 @@ module Branch
         let bindB t =
             match ls.Operands with
             | Expr (exp, "") -> Ok exp
-            | _ -> InvalidExp ls.Operands |> Error
+            | _ -> 
+                (ls.Operands, " is an invalid expression.")
+                ||> makeError
+                |> ``Invalid expression``
+                |> Error
             |> Result.map (ExpUnresolved >> t)
 
         let parse' (_instrC, ((root : string),_suffix,pCond)) =
