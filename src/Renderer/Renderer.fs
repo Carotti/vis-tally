@@ -11,7 +11,6 @@ module Renderer
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Fable.Import.Electron
 open Fable.Import.Browser
 
 // open DevTools to see the message
@@ -64,8 +63,7 @@ let init () =
         saveFile ()
     )
     Ref.run.addEventListener_click(fun _ ->
-        setTheme "vs-dark" |> ignore
-        Browser.window.alert "NotImplemented :|"
+        disableEditors ()
     )
     // just for fun!
     (Ref.register 0).addEventListener_click(fun _ ->

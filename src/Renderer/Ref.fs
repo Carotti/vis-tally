@@ -12,7 +12,6 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
-open Fable.Import.JS
 open Microsoft.FSharp.Collections
 
 [<Emit("$0 === undefined")>]
@@ -112,3 +111,6 @@ let tabFilePathIdFormatter = sprintf "file-view-path-%d"
 
 let tabFilePath id =
     Browser.document.getElementById(tabFilePathIdFormatter id)
+
+let darkenOverlay =
+    Browser.document.getElementById("darken-overlay")

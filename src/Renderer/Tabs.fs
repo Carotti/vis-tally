@@ -1,9 +1,10 @@
+// Code that is specific to individual tabs, e.g. individual editor settings, tab switching etc.
 module Tabs
 
 open Fable.Core.JsInterop
 open Fable.Import
-
 open Fable.Import.Browser
+open Fable.Core
 
 open Ref
 open Editor
@@ -201,3 +202,43 @@ let updateAllEditors () =
     |> ignore
 
     setTheme (editorOptions())?theme |> ignore
+
+// Disable the editor and tab selection during execution
+let disableEditors () = 
+    fileTabMenu.classList.add("disabled-click")
+    (fileView currentFileTabId).classList.add("disabled-click")
+    fileViewPane.onclick <- (fun _ ->
+        Browser.window.alert("Cannot use editor pane during execution")
+    )
+    darkenOverlay.classList.remove("invisible")
+
+// Enable the editor once execution has completed
+let enableEditors () =
+    fileTabMenu.classList.remove("disabled-click")
+    (fileView currentFileTabId).classList.remove("disabled-click")
+    fileViewPane.onclick <- ignore
+    darkenOverlay.classList.add("invisible")
+
+let mutable decorations : obj = createObj []
+
+[<Emit "new monaco.Range($0,$1,$2,$3)">]
+let monacoRange _ _ _ _ = jsNative
+
+[<Emit "$0.deltaDecorations($1, [
+    { range: $2, options: { isWholeLine: true, inlineClassName: $3 }},
+  ]);">]
+let lineDecoration _editor _range _name = jsNative
+
+[<Emit "$0.deltaDecorations($1, []);">]
+let removeDecorations _editor _decorations = jsNative
+
+// Remove all the other decorations and highlight a particular line
+let highlightLine number = 
+    Browser.console.log("Trying to highlight") |> ignore
+    decorations <- removeDecorations editors.[currentFileTabId] decorations
+    decorations <- lineDecoration editors.[currentFileTabId] 
+                    decorations 
+                    (monacoRange number 1 number 1)
+                    "editor-line-highlight"
+
+

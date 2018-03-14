@@ -1,3 +1,4 @@
+// Code that is generic for all editors
 module Editor
 
 open Fable.Core.JsInterop
