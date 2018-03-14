@@ -125,3 +125,8 @@
 .settings-select {
     max-width: 400px;
 }
+
+.settings-label {
+    margin-bottom: 0px;
+    margin-top: 10px;
+}

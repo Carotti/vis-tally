@@ -1,26 +1,30 @@
 module Settings
 
-open Fable.Core
-open Fable.Core.JsInterop
-open Fable.Import
-open Fable.Import.Electron
-open Node.Exports
-open Fable.PowerPack
-
 open Fable.Import.Browser
 
 open Ref
 open Tabs
+open Editor
 
 let editorFontSize = "editor-font-size"
 let editorTheme = "editor-theme"
+let editorWordWrap = "editor-word-wrap"
+let editorRenderWhitespace = "editor-render-whitespace"
 
+let inputSettings = [
+                        editorFontSize
+                        editorTheme
+                        editorWordWrap
+                        editorRenderWhitespace
+                    ]
 
 
 let themes = [
                 "vs-light", "Light"; 
                 "vs-dark", "Dark"; 
               ]
+
+let setSettingsUnsaved = (fun _ -> setTabUnsaved (getSettingsTabId ()))
 
 let getSettingInput (name : string) =
     let input = document.getElementById(name) :?> HTMLInputElement
@@ -31,8 +35,7 @@ let setSettingInput (name : string) =
 
 // Go through the form extracting all of the relevant settings
 let saveSettings () =
-    setSettingInput editorFontSize
-    setSettingInput editorTheme
+    List.map setSettingInput inputSettings |> ignore
     updateAllEditors()
 
 let makeFormGroup label input =
@@ -41,6 +44,7 @@ let makeFormGroup label input =
 
     let lab = document.createElement("label")
     lab.innerHTML <- label
+    lab.classList.add("settings-label")
 
     let br = document.createElement("br")
 
@@ -56,7 +60,7 @@ let makeInputVal inType name =
     fi.id <- name
     fi.value <- (getSetting name).ToString()
     // Whenever a form input is changed, set the settings tab unsaved
-    fi.onchange <- (fun _ -> setTabUnsaved (getSettingsTabId ()))
+    fi.onchange <- setSettingsUnsaved
     fi
 
 let makeInputSelect options name =
@@ -73,22 +77,52 @@ let makeInputSelect options name =
 
     List.map (makeOption >> (fun x -> select.appendChild(x))) options |> ignore
 
-    Browser.console.log (sprintf "Setting to %A" ((getSetting name).ToString()))
     select.value <- (getSetting name).ToString()
-    Browser.console.log (sprintf "Value after: %A" select.value)
+
+    select.onchange <- setSettingsUnsaved
 
     select
+
+let makeInputCheckbox name trueVal falseVal =
+    let checkbox = document.createElement_input()
+    checkbox.``type`` <- "checkbox"
+    checkbox.id <- name
+
+    let setValue() = 
+        checkbox.value <- match checkbox.``checked`` with
+                            | true -> trueVal
+                            | false -> falseVal
+
+    // When the checkbox is ticked, update its value
+    checkbox.addEventListener_click (fun _ -> setValue())
+
+    checkbox.``checked`` <- match (getSetting name).ToString() with
+                            | x when x = trueVal -> true
+                            | _ -> false
+    
+    setValue()
+
+    checkbox.onchange <- setSettingsUnsaved
+    checkbox
 
 let editorForm () =
     let form = document.createElement("form")
 
+    let makeAdd label input =
+        let group = makeFormGroup label input
+        form.appendChild(group) |> ignore
+
     let fontSizeInput = makeInputVal "number" editorFontSize
-    let fontSize = makeFormGroup "Font Size" fontSizeInput
-    form.appendChild(fontSize) |> ignore
+    makeAdd "Font Size" fontSizeInput
 
     let themeSelect = makeInputSelect themes editorTheme
-    let theme = makeFormGroup "Theme" themeSelect
-    form.appendChild(theme) |> ignore
+    makeAdd "Theme" themeSelect
+
+    let wordWrapCheck = makeInputCheckbox editorWordWrap "on" "off"
+    makeAdd "Word Wrap" wordWrapCheck
+
+    let renderWhitespace = makeInputCheckbox editorRenderWhitespace "all" "none"
+    makeAdd "Render Whitespace Characters" renderWhitespace
 
     form
 

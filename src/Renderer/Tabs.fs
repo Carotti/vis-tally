@@ -1,43 +1,12 @@
 module Tabs
 
-open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Fable.Import.Electron
-open Node.Exports
-open Fable.PowerPack
 
 open Fable.Import.Browser
 
 open Ref
-
-// Default settings if they haven't already been defined by electron-settings
-let defaultSettings = Map.ofList [
-                            "editor-font-size" ==> "12"
-                            "editor-theme" ==> "vs-light"
-                        ]
-
-let getSetting (name : string) =
-    let setting = settings?get(name)
-    match isUndefined setting with
-    | true -> defaultSettings.[name]
-    | false -> setting
-
-let editorOptions () = createObj [
-                        // User defined settings
-                        "theme" ==> getSetting "editor-theme";
-                        "renderWhitespace" ==> "all";
-                        "fontSize" ==> getSetting "editor-font-size";
-                        // Application defined settings
-                        "value" ==> "";
-                        "language" ==> "arm";
-                        "roundedSelection" ==> false;
-                        "scrollBeyondLastLine" ==> false;
-                        "automaticLayout" ==> true;
-                    ]
-    
-let setSetting (name : string) (value : obj) =
-    settings?set(name, value) |> ignore
+open Editor
 
 let mutable currentFileTabId = -1 // By default no tab is open
 let mutable fileTabList : int list = []

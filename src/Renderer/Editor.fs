@@ -1,0 +1,36 @@
+module Editor
+
+open Fable.Core.JsInterop
+
+open Ref
+
+// Default settings if they haven't already been defined by electron-settings
+let defaultSettings = Map.ofList [
+                            "editor-font-size" ==> "12"
+                            "editor-theme" ==> "vs-light"
+                            "editor-word-wrap" ==> "on"
+                            "editor-render-whitespace" ==> "none"
+                        ]
+
+let getSetting (name : string) =
+    let setting = settings?get(name)
+    match isUndefined setting with
+    | true -> defaultSettings.[name]
+    | false -> setting
+
+let editorOptions () = createObj [
+                        // User defined settings
+                        "theme" ==> getSetting "editor-theme";
+                        "renderWhitespace" ==> getSetting "editor-render-whitespace"
+                        "fontSize" ==> getSetting "editor-font-size";
+                        "wordWrap" ==> getSetting "editor-word-wrap";
+                        // Application defined settings
+                        "value" ==> "";
+                        "language" ==> "arm";
+                        "roundedSelection" ==> false;
+                        "scrollBeyondLastLine" ==> false;
+                        "automaticLayout" ==> true;
+                    ]
+    
+let setSetting (name : string) (value : obj) =
+    settings?set(name, value) |> ignore
