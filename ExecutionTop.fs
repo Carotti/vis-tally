@@ -22,8 +22,8 @@ module ExecutionTop
                     executeDP instr' cpuData
                 | CommonTop.IMEM (Mem instr') ->
                     executeMem instr' cpuData
-                // | CommonTop.IBRANCH (Branch instr') ->
-                //     executeBranch instr' cpuData
+                | CommonTop.IBRANCH (Branch instr') ->
+                    executeBranch instr' cpuData
                 | CommonTop.IMISC (Misc _instr') ->
                     failwithf "Trying to execute a MISC instruction"
             | false -> 

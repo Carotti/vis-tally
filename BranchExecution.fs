@@ -4,6 +4,7 @@ module BranchExecution
     open CommonData
     open CommonLex
     open Execution
+    open Errors
 
     /// Execute a Branch instruction
     let executeBranch ins dp =

@@ -16,10 +16,6 @@ module Branch
     type Instr =
         | Branch of BranchInstr
 
-    type ErrExe =
-        | NotInstrMem of uint32 // Address where there is no instruction
-        | EXIT // Used to exit execution of the simulation
-
     type ErrInstr = 
         | InvalidExp of string
 

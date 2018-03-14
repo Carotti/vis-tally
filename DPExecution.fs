@@ -22,8 +22,8 @@ module DPExecution
         {dp with Regs = Map.map updater dp.Regs}
 
     /// Error types for execution stage.
-    type ErrExe =
-        | ``Run time error`` of string
+    // type ErrExe =
+    //     | ``Run time error`` of string
 
     /// Instruction to initiate execution of data processing instructions.
     let executeDP instr (dp: DataPath<CommonTop.Instr>) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
@@ -293,7 +293,8 @@ module DPExecution
             | DP2Match (instr', ops) -> executeDP2 dp instr' ops
             | DP2SMatch (instr', ops) -> executeDP2S dp instr' ops
             | _ ->
-                "Instruction has not been implemented"
+                ("instr", "Instruction has not been implemented")
+                ||> makeError
                 |> ``Run time error``
                 |> Error
 

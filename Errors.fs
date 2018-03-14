@@ -1,4 +1,4 @@
-module Errors   
+module Errors
 
     type ErrorBase =
         {
@@ -6,6 +6,10 @@ module Errors
             errorMessage : string;
         }
 
+    type ErrExe =
+        | NotInstrMem of uint32 // Address where there is no instruction
+        | ``Run time error`` of ErrorBase
+        | EXIT // Used to exit execution of the simulation
     let makeError txt message =
         {
             errorTxt = txt;
