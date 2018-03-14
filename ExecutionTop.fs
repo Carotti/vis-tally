@@ -10,6 +10,7 @@ module ExecutionTop
     open MemExecution
     open BranchExecution
     open MiscExecution
+    open Helpers
 
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
@@ -25,7 +26,7 @@ module ExecutionTop
                 | CommonTop.IBRANCH (Branch instr') ->
                     executeBranch instr' cpuData
                 | CommonTop.IMISC (Misc instr') ->
-                    executeMisc instr' cpuData
+                    executeMisc instr' minAddress cpuData
                     // failwithf "Trying to execute a MISC instruction"
             | false -> 
                 updatePC instr cpuData |> Ok

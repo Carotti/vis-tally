@@ -131,7 +131,7 @@ module Memory
 
     /// Where everything happens
     let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
-
+        let (WA la) = ls.LoadAddr
         /// Partial Active pattern for matching regexes
         /// Looking for something like [r1] or [r13
         /// For matching the address location 
@@ -285,6 +285,7 @@ module Memory
                 | "ED" -> Some ED |> Ok
                 | "FA" -> Some FA |> Ok
                 | "EA" -> Some EA |> Ok
+                | ""   -> Some IA |> Ok
                 | _ -> 
                     (suffix, notValidSuffixEM)
                     ||> makeError
@@ -330,7 +331,7 @@ module Memory
             let make ops =
                 { 
                     PInstr= memTypeMultMap.[root] ops |> Mem;
-                    PLabel = None ; 
+                    PLabel = ls.Label |> Option.map (fun lab -> lab, la); 
                     PSize = 4u; 
                     PCond = pCond 
                 }
@@ -387,7 +388,7 @@ module Memory
             let make ops =
                 { 
                     PInstr= memTypeSingleMap.[root] ops |> Mem;
-                    PLabel = None ; 
+                    PLabel =ls.Label |> Option.map (fun lab -> lab, la); 
                     PSize = 4u; 
                     PCond = pCond 
                 }

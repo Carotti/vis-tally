@@ -22,11 +22,27 @@ module Misc
         | Misc of MiscInstr
         
     /// Errors which can occur during parsing
+    // type ErrInstr =
+    //     | InvalidExp of string
+    //     | InvalidExpList of string
+    //     | InvalidFill of string
+    //     | LabelRequired
+    /// Error types for parsing.
     type ErrInstr =
-        | InvalidExp of string
-        | InvalidExpList of string
-        | InvalidFill of string
-        | LabelRequired
+        | ``Invalid literal`` of ErrorBase
+        | ``Invalid second operand`` of ErrorBase
+        | ``Invalid flexible second operand`` of ErrorBase
+        | ``Invalid memory address`` of ErrorBase
+        | ``Invalid offset`` of ErrorBase
+        | ``Invalid register`` of ErrorBase
+        | ``Invalid shift`` of ErrorBase
+        | ``Invalid suffix`` of ErrorBase
+        | ``Invalid instruction`` of ErrorBase
+        | ``Invalid expression`` of ErrorBase
+        | ``Invalid expression list`` of ErrorBase
+        | ``Invalid fill`` of ErrorBase
+        | ``Label required`` of ErrorBase
+
 
     /// Errors which can occur during resolving of an expression
     type ErrResolve =
@@ -74,10 +90,15 @@ module Misc
             (evalSymExp syms) exp
             |> Result.map EQU
             |> Result.mapError SymbolErrors 
+    
     let parseExpr txt =
         match txt with
         | Expr (exp, "") -> exp |> ExpUnresolved |> Ok
-        | _ -> InvalidExp txt |> Error
+        | _ -> 
+            (txt, " is an invalid expression.")
+            ||> makeError
+            |> ``Invalid expression``
+            |> Error
 
     let rec parseExprList txt =
         match txt with
@@ -86,8 +107,16 @@ module Misc
             | RegexPrefix "," (_, rst') -> 
                 Result.map (fun lst -> (ExpUnresolved exp) :: lst) (parseExprList rst')
             | "" -> Ok [ExpUnresolved exp]
-            | _ -> InvalidExp txt |> Error
-        | _ -> InvalidExpList txt |> Error
+            | _ -> 
+                (txt, " is an invalid expression.")
+                ||> makeError
+                |> ``Invalid expression``
+                |> Error
+        | _ -> 
+            (txt, " is an invalid expression list.")
+            ||> makeError
+            |> ``Invalid expression list``
+            |> Error
 
     let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
@@ -95,7 +124,11 @@ module Misc
         let labelBinder f = 
             match ls.Label with
             | Some lab -> f lab
-            | None -> LabelRequired |> Error
+            | None -> 
+                (ls.OpCode + " " + ls.Operands, " requires a label.")
+                ||> makeError
+                |> ``Label required``
+                |> Error
 
         let parseDCD () =
             let parseDCD' lab =
@@ -159,12 +192,22 @@ module Misc
                     Ok (num, Literal 0u, 1)
                 | [Expr (_, "") ; inv ; _ ]
                 | [Expr (_, "") ; inv] -> 
-                    InvalidFill inv |> Error
+                    (inv, " is an invalid fill.")
+                    ||> makeError
+                    |> ``Invalid fill``
+                    |> Error
                 | [inv ; _ ; _ ]
                 | [inv ; _ ]
                 | [inv] -> 
-                    InvalidExp inv |> Error
-                | _ -> InvalidFill ls.Operands |> Error
+                    (inv, " is an invalid expression.")
+                    ||> makeError
+                    |> ``Invalid expression``
+                    |> Error
+                | _ -> 
+                    (ls.Operands, " is an invalid fill.")
+                    ||> makeError
+                    |> ``Invalid fill``
+                    |> Error
                 |> Result.map fillPack |> Result.map Misc
             fillMap parseFILL'
 
