@@ -1,0 +1,7 @@
+Not doing this...
+`n` Specifies the shift length. The range of shift length depends on the instruction:
+* ASR shift length from 1 to 32
+* LSL shift length from 0 to 31
+* LSR shift length from 1 to 32
+* ROR shift length from 1 to 31.
+Will modulo it later
