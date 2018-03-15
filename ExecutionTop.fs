@@ -49,6 +49,8 @@ module ExecutionTop
                 | CommonTop.IMISC (Misc instr') ->
                     // let resolved = resolve symTable instr'
                     executeMisc instr' minAddress cpuData
+                | CommonTop.EMPTY _ ->
+                    cpuData |> Ok
             | false -> 
                 updatePC instr cpuData |> Ok
         |> Result.map (updatePC instr)
