@@ -132,7 +132,7 @@ module DPExecution
             | _                                         ->
                 "C IS LOW" |> qp
                 {flags with C = false}, op1, op2, value
-
+            
         /// A function to determine the new value of the V flag if an additive
         ///  instruction was executed.
         let additiveOverflowCheck (flags,op1,op2,value) =
@@ -196,6 +196,17 @@ module DPExecution
                 | (EOR ops) -> Some (instr', ops)
                 | (BIC ops) -> Some (instr', ops)
             | _ -> None
+        
+        /// An active pattern to match and unpack `DP3RS` instructions.
+        let (|DP3RSMatch|_|) instr =
+            match instr with
+            | (DP3RS instr') ->
+                match instr' with
+                | DP3RSInstr.ASR ops -> Some (instr', ops)
+                | DP3RSInstr.LSL ops -> Some (instr', ops)
+                | DP3RSInstr.LSR ops -> Some (instr', ops)
+                | DP3RSInstr.ROR ops -> Some (instr', ops)
+            | _ -> None
 
         /// An active pattern to match and unpack `DP2` instructions.   
         let (|DP2Match|_|) instr =
@@ -234,6 +245,11 @@ module DPExecution
         /// A list of checks for the V and C flags if a subtractive instruction was executed.
         let CVCheckSub = [subtractiveOverFlowCheck; subtractiveCarryCheck]
 
+        let regLitToFOp2 (rL:RegLit) : FlexOp2 =
+            match rL with
+            | RegOp reg -> Reg reg
+            | LitOp lit -> Lit lit
+
         /// A function to determine which `DP3S` instruction is to be executed, 
         ///  execute it, and return the new datapath.
         let executeDP3S dp opcode (operands:DP3SForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
@@ -258,6 +274,19 @@ module DPExecution
             | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [NZCheck]
             | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff [NZCheck]
 
+        let executeDP3RS dp opcode (operands:DP3RSForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+            let dest = Some operands.rDest
+            let op1 = dp.Regs.[operands.rOp1]
+            // discard the updated flags, not needed
+            let op2, _flags' =
+                (operands.op2 |> regLitToFOp2, dp)
+                ||> calcOp2
+            match opcode with
+            | ASR _ -> execute dp (fun op1 op2 -> ((int32 op1) >>> (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+            | LSL _ -> execute dp (fun op1 op2 -> (op1 <<< (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+            | LSR _ -> execute dp (fun op1 op2 -> (op1 <<< (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+            | ROR _ -> execute dp (fun op1 op2 -> doROR op1 (int32 op2)) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+
 
         /// A function to determine which `DP2` instruction is to be executed, 
         ///  execute it, and return the new datapath.
@@ -273,6 +302,8 @@ module DPExecution
             | TST _ -> execute dp' (fun op1 op2 -> op1 &&& op2) None op1 op2 (Some S) [NZCheck]
             | TEQ _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) None op1 op2 (Some S) [NZCheck]
         
+        /// A function to determine which `DP2S` instruction is to be executed, 
+        ///  execute it, and return the new datapath.
         let executeDP2S dp opcode (operands:DP2SForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
             let dest = Some operands.rOp1
             let op1 = 0u
@@ -289,7 +320,8 @@ module DPExecution
     
         let dp' : Result<DataPath<CommonTop.Instr>,ErrExe> =
             match instr with            
-            | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops 
+            | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops
+            | DP3RSMatch (instr', ops) -> executeDP3RS dp instr' ops 
             | DP2Match (instr', ops) -> executeDP2 dp instr' ops
             | DP2SMatch (instr', ops) -> executeDP2S dp instr' ops
             | _ ->
