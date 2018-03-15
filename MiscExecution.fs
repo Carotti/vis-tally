@@ -4,7 +4,16 @@
     open Expressions
     open CommonData
     open Errors
-    open System.Runtime.InteropServices.ComTypes
+
+    // let miscDowncast (ins : Parse<CommonTop.Instr>) =
+    // match ins.PInstr with
+    // | IMISC miscIns -> miscIns
+    // | _ -> failwithf "Invalid downcast to MISC"
+
+    // let produceMisc = produceTop resolve miscDowncast
+
+    // let runMisc txt : DataPath<CommonTop.Instr> = 
+    //     execute (initialDp (), assumedMemBase) (produceMisc txt) |> fst
 
     /// Execute a MISC instruction against the datapath
     /// mem is where to start placing in memory

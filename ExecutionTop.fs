@@ -11,6 +11,18 @@ module ExecutionTop
     open BranchExecution
     open MiscExecution
     open Helpers
+    open Symbols
+
+    let fillSymMap (instr: CommonLex.Parse<Instr>) symbolMap =
+        let symMapUpdate = 
+            match instr.PLabel with
+            | Some label ->
+                let symMapNew = symMap.Add((label |> fst), (label |> snd))
+                symMapNew
+            | None -> 
+                symbolMap
+        symMapUpdate |> qp
+        symMapUpdate
 
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing

@@ -4,6 +4,7 @@ module MemExecution
     open Memory
     open CommonTop
     open Execution
+    open Errors
 
     let executeMem instr (cpuData: DataPath<Instr>) =
 
@@ -33,8 +34,12 @@ module MemExecution
         /// check if valid, if so return Word Address
         let wordAddress a = 
             match a with
-            | Valid -> WA a
-            | _ -> failwithf "Nope"
+            | Valid -> WA a |> Ok
+            | _ -> 
+                (a |> string, " is not a valid word address.")
+                ||> makeError 
+                |> ``Run time error``
+                |> Error
         
         /// make an offset list for ldm and stm by recursively
         /// adding an incr to the address for the length of the list
