@@ -228,6 +228,15 @@ module DPExecution
                 | (MVN ops) -> Some (instr', ops)
             | _ -> None
         
+        /// An active pattern to match and unpack `DP2RS` instructions. 
+        let (|DP2RSMatch|_|) instr =
+         match instr with
+            | (DP2RS instr') ->
+                match instr' with      
+                | (RRX ops) -> Some (instr', ops)
+            | _ -> None
+        
+
         /// A function to completely evaluate the value of the flexible second operand.
         let calcOp2 fOp2 dp =
              match fOp2 with
@@ -324,6 +333,8 @@ module DPExecution
             | DP3RSMatch (instr', ops) -> executeDP3RS dp instr' ops 
             | DP2Match (instr', ops) -> executeDP2 dp instr' ops
             | DP2SMatch (instr', ops) -> executeDP2S dp instr' ops
+            | DP2RSMatch (intr', ops) ->
+                failwithf "I am Odin brother of Freya"
             | _ ->
                 ("instr", "Instruction has not been implemented")
                 ||> makeError
