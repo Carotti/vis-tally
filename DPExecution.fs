@@ -95,13 +95,13 @@ module DPExecution
                 shiftAndCarry (doROR) shift (fun s -> s-1) dp
 
         /// A function to determine the new value of the N flag.
-        let negCheck (flags,op1,op2,value) =
+        let negCheck (flags, op1, op2, value) =
             match value >>> 31 with
             | 1u    ->  {flags with N = true}, op1, op2, value
             | _     ->  {flags with N = false}, op2, op2, value
 
         /// A function to determine the new value of the Z flag.
-        let zeroCheck (flags,op1,op2,value) =
+        let zeroCheck (flags, op1, op2, value) =
             match value with
             | 0u    ->  {flags with Z = true}, op1, op2, value
             | _     ->  {flags with Z = false}, op1, op2, value
@@ -234,7 +234,7 @@ module DPExecution
                 | Lit litVal    -> calcLiteral litVal, dp.Fl
                 | Reg reg       -> dp.Regs.[reg], dp.Fl
                 | Shift shift   -> calcShift shift dp
-                | RRX reg       -> calcRRX reg dp
+                | FRRX reg       -> calcRRX reg dp
 
         /// A list of checks for the N and Z flags.
         let NZCheck = [negCheck; zeroCheck]
@@ -284,7 +284,7 @@ module DPExecution
             match opcode with
             | ASR _ -> execute dp (fun op1 op2 -> ((int32 op1) >>> (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | LSL _ -> execute dp (fun op1 op2 -> (op1 <<< (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
-            | LSR _ -> execute dp (fun op1 op2 -> (op1 <<< (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+            | LSR _ -> execute dp (fun op1 op2 -> (op1 >>> (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | ROR _ -> execute dp (fun op1 op2 -> doROR op1 (int32 op2)) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
 
 
@@ -315,8 +315,8 @@ module DPExecution
                 | Some S -> {dp with Fl = flags'}
                 | None -> dp
             match opcode with
-            | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 (Some S) [NZCheck]
-            | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 (Some S) [NZCheck]
+            | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 operands.suff [NZCheck]
+            | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 operands.suff [NZCheck]
     
         let dp' : Result<DataPath<CommonTop.Instr>,ErrExe> =
             match instr with            

@@ -101,7 +101,7 @@ module DP
         | Lit       of Literal
         | Reg       of RName
         | Shift     of FS2Form
-        | RRX       of RName
+        | FRRX       of RName
     
     /// Second operand format that allows registers or literals (used for ASR, LSL, LSR, ROR).
     type RegLit =
@@ -213,6 +213,9 @@ module DP
     type DP2SInstr =
         | MOV of DP2SForm
         | MVN of DP2SForm
+    
+    type DP2RSInstr =
+        | RRX of DP2RSForm
 
     /// All DP3RS instructions, that is data processing instructions that have
     ///  three operands (but not a flexible second operand) and an optional 'S' suffix.
@@ -228,6 +231,7 @@ module DP
         | DP2 of DP2Instr
         | DP2S of DP2SInstr
         | DP3RS of DP3RSInstr
+        | DP2RS of DP2RSInstr
   
     /// Top level instruction type compatible withcCommon code.
     type Instr =
@@ -250,7 +254,11 @@ module DP
             fOp2 = dp2.fOp2
             suff = suffix
         }
-    
+
+    /// Constructs a `DP2R` from an optional suffix and a `DP3`
+    let consDP2RS suffix (dp2: DP2RSForm) =
+        {dp2 with suff = suffix}
+
      /// Constructs a `DP3S` from an optional suffix and a `DP3`
     let consDP3S suffix (dp3:DP3Form) =
         {
@@ -284,7 +292,7 @@ module DP
                         "MOV"; "MVN"
                         // DP3RS
                         "ASR"; "LSL"; "LSR";
-                        "ROR";
+                        "ROR"; "RRX"
                     ]
             Suffixes = [""; "S"]
         }
@@ -524,7 +532,7 @@ module DP
         let parseFOp2Extn rOp2 extn createOp =
             match extn with
             | RrxMatch rOp2 reg ->
-                let reg' = Result.map (RRX) reg
+                let reg' = Result.map (FRRX) reg
                 applyResultMapError createOp reg'
             | ShiftMatch rOp2 shift ->
                 let shift' = Result.map (Shift) shift
@@ -605,7 +613,7 @@ module DP
                     | _ ->
                         failwith alwaysMatchesFM  
                 | _ ->
-                    (ld.Operands, notValidFormatEM)
+                    (ld.OpCode + " " + ld.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -623,7 +631,7 @@ module DP
                 | [rDest; rOp1; rOp2; extn] ->
                     parse4Ops rDest rOp1 rOp2 extn
                 | _ ->
-                    (ld.Operands, notValidFormatEM)
+                    (ld.OpCode + " " + ld.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
@@ -639,13 +647,36 @@ module DP
                 | [rDest; rOp1; op2] ->
                     parse3ROps rDest rOp1 op2
                 | _ ->
-                    (ld.Operands, notValidFormatEM)
+                    (ld.OpCode + " " + ld.Operands, notValidFormatEM)
+                    ||> makeError
+                    |> ``Invalid instruction``
+                    |> Error
+            )
+        
+        let operandsDP2RS =
+            lazy (
+                let consDPRRX (rD:RName) (r1:RName) : DP2RSForm =
+                            {
+                                rDest = rD;
+                                rOp1 = r1;
+                                suff = None;
+                            }
+                ld.Operands.Split([|','|])
+                |> Array.toList
+                |> List.map (fun op -> op.ToUpper())
+                |> function
+                | [rDest; rOp1] ->
+                    match rDest, rOp1 with
+                    | RegCheck rDest', RegCheck rOp1' ->
+                        combineErrorMapResult rDest' rOp1' consDPRRX
+                | _ ->
+                    (ld.OpCode + " " + ld.Operands, notValidFormatEM)
                     ||> makeError
                     |> ``Invalid instruction``
                     |> Error
             )
 
-        
+       
         let (WA la) = ld.LoadAddr
 
         /// A helper function for quick construction of a complete top-level instruction.
@@ -685,6 +716,11 @@ module DP
                 "MVN", MVN;
             ]
         
+        let opcodesDP2RS =
+            Map.ofList [
+                "RRX", RRX;
+            ]
+        
         let opcodesDP3RS =
             Map.ofList [
                 "ASR", ASR;
@@ -698,7 +734,7 @@ module DP
         let parse' (_instrC, (root, suffix, cond)) =
             let suff = match suffix with "S" -> Some S | _ -> None
             let instr =
-                match (Map.containsKey root opcodesDP2 || Map.containsKey root opcodesDP2S) with
+                match (Map.containsKey root opcodesDP2 || Map.containsKey root opcodesDP2S || Map.containsKey root opcodesDP2RS) with
                 | true ->
                     let operands = operandsDP2.Force()
                     match Map.containsKey root opcodesDP2, suff with
@@ -708,11 +744,20 @@ module DP
                         |> Result.map (opcode) 
                         |> Result.map (DP2)
                     | false, _ ->
-                        let opcode = opcodesDP2S.[root]
-                        operands
-                        |> Result.map (consDP2S suff)
-                        |> Result.map (opcode) 
-                        |> Result.map (DP2S)
+                        match Map.containsKey root opcodesDP2S, suff with
+                        | true, _ ->               
+                            let opcode = opcodesDP2S.[root]
+                            operands
+                            |> Result.map (consDP2S suff)
+                            |> Result.map (opcode) 
+                            |> Result.map (DP2S)
+                        | false, _ ->
+                            let operands = operandsDP2RS.Force()
+                            let opcode = opcodesDP2RS.[root]
+                            operands
+                            |> Result.map (consDP2RS suff)
+                            |> Result.map (opcode)
+                            |> Result.map (DP2RS)
                     | true, Some _suff' ->
                         (suffix, notValidSuffixEM)
                         ||> makeError
