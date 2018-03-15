@@ -117,15 +117,14 @@ module Helpers
     /// Highest level for producing a function from its text
     /// Only this can be at this level since the other functions
     /// rely on functions which are module dependent
-    // let produceTop resolver downcaster txt = 
-    //     // Don't care about the word address for these instructions
-    //     let ins = parseTop txt
-    //     match ins with 
-    //     | Ok top ->
-    //         match resolver ts (downcaster top) with
-    //         | Ok miscIns -> miscIns
-    //         | _ -> failwithf "Invalid symbol"
-    //     | _ -> failwithf "Invalid production of instruction"
+    let produceTop resolver downcaster ins = 
+        // Don't care about the word address for these instructions
+        match ins with 
+        | Ok top ->
+            match resolver ts (downcaster top) with
+            | Ok miscIns -> miscIns
+            | _ -> failwithf "Invalid symbol"
+        | _ -> failwithf "Invalid production of instruction"
         
     /// Very simple property based tests for functions which I use a lot.
     /// Some truly are trivial! Huzzah!
