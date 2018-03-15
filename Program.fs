@@ -10,10 +10,13 @@ open Symbols
 let instrLst = [
         "hello MOV r0, #1";
         "goodbye MOV r1, #2";
+        " \t  ";
         "lsl r4, r1, #6";
         "aufwiedersehn MOV r2, #3";
+        "\n   ";
         "tchus MOV r3, #4";
         "aurevoir MOV r4, #0x100";
+        "   ";
     ]
 
 /// A List of instructions to parse and then execute.
@@ -104,7 +107,11 @@ let main argv =
             "Executing list..." |> qp
             listExecute (initDataPath |> Ok) instrLst
             0
-            
+         | [|"plist"|] ->
+            "Parsing list..." |> qp
+            List.map parseInstr instrLst |> qpl |> ignore
+            0
+
         | _ -> 
             "blah" |> qp
             |> ignore

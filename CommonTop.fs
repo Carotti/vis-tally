@@ -6,12 +6,14 @@ module CommonTop
     open CommonLex
     open CommonData
 
+
     /// allows different modules to return different instruction types
     type Instr =
         | IMEM of Memory.Instr
         | IDP of DP.Instr
         | IMISC of Misc.Instr
         | IBRANCH of Branch.Instr
+        | EMPTY
     
     /// allows different modules to return different error info
     /// by default all return string so this is not needed
@@ -22,6 +24,12 @@ module CommonTop
         | ERRBRANCH of Branch.ErrInstr
         | ERRTOPLEVEL of string
     
+    let Blank = {
+        PCond = Cal;
+        PInstr = EMPTY;
+        PLabel = None;
+        PSize = 0u;
+    }
 
     /// Note that Instr in Mem and DP modules is NOT same as Instr in this module
     /// Instr here is all possible isntruction values combines with a D.U.
@@ -42,6 +50,9 @@ module CommonTop
     type CondInstr = Condition * Instr
 
     let parseLine (symtab: SymbolTable option) (loadAddr: WAddr) (asmLine:string) =
+        let checkBlankLine = function
+            | "" -> true
+            | _ -> false
         /// put parameters into a LineData record
         let makeLineData opcode operands = {
             OpCode=opcode
@@ -79,7 +90,9 @@ module CommonTop
                 | None -> 
                     Error (ERRTOPLEVEL (sprintf "Unimplemented instruction %s" opc))
                 | Some pa -> pa
+            | None, [] -> Blank |> Ok
             | _ -> Error (ERRTOPLEVEL (sprintf "Unimplemented instruction %A" words))
+
         asmLine
         |> removeComment
         |> splitIntoWords
