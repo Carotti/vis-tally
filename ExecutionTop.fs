@@ -13,7 +13,10 @@ module ExecutionTop
     open MiscExecution
     open Helpers
 
-
+    let generateErrorList (instrLst: Result<CommonLex.Parse<Instr>,ErrInstr> list) =
+        [1u..(List.length instrLst) |> uint32]
+        |> List.zip instrLst
+        |> List.filter (function | Error _, _ -> true | Ok _, _ -> false)
 
     let fillSymTable (instrLst: Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable: SymbolTable) =
         // let memAddrList = List.fold (fun lst instr-> ) instrLst

@@ -12,9 +12,11 @@ let instrLst = [
         "goodbye MOV r1, #2";
         " \t  ";
         "lsl r4, r1, #6";
+        "lsr r23, r4, r2";
         "aufwiedersehn MOV r2, #3";
         "\n   ";
         "tchus MOV r3, #4";
+        "add r1, r2, r3, lsl r50";
         "aurevoir MOV r4, #0x100";
         "   ";
     ]
@@ -84,11 +86,27 @@ let listExecute cpuData (lst: string list) =
                 err |> qp
                 listExecute' cpuData' tail
         | [] -> "Finished" |> qp
-    let parsedList = List.map parseInstr lst
-    let symTable = fillSymTable parsedList symMap
-    listExecute' cpuData parsedList
-    symTable |> qp
 
+    let parsedList = List.map parseInstr lst
+    let errorList = 
+        parsedList
+        |> generateErrorList
+    errorList
+    |> List.length
+    |> function
+    | 0 ->
+        // no errors, can execute
+        // let symTable = fillSymTable parsedList symMap
+        // listExecute' cpuData parsedList
+        // symTable |> qp
+        // dummy return
+        "NO ERRORS - EXECUTE!" |> qp
+    | n ->
+        // n errors, send to Nippy's shit code to highight
+        // dummy return
+        errorList |> qpl |> ignore
+        "HIGHLIGHT IT SHIPPY" |> qp
+        
     
     
 [<EntryPoint>]
