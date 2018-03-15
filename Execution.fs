@@ -25,7 +25,9 @@ module Execution
         let pc = cpuData.Regs.[R15]
         let size = instr.PSize
         setReg R15 (pc + size) cpuData
-
+    
+    let getPC (cpuData: DataPath<Instr>) =
+        cpuData.Regs.[R15]
 
     /// Tom's condExecute instruction as he made it first (don't reinvent the wheel)
     let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =

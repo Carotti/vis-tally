@@ -53,29 +53,29 @@ let replExecute cpuData =
                 |> function
                 | cpuData'' ->
                   prettyPrint cpuData''
-                  repl' cpuData''
+                  repl' cpuData'' 
             | Error err -> 
                 err |> qp
-                repl' (cpuData' |> Ok)
+                repl' (cpuData' |> Ok) 
         | Error e -> e |> qp
     repl' cpuData
 
 /// Parses and executes items in a given list
 let listExecute cpuData (lst: string list) = 
-    let rec listSymbolRes symTable lst' = 
-        match lst' with 
-        | head :: tail ->
-            match head with 
-            | Ok instr ->
-                let newSymTable = fillSymMap instr symTable
-                listSymbolRes newSymTable tail
-            | Error e -> 
-                e |> qp
-                listSymbolRes symTable tail
-        | _ -> symTable
+    // let rec listSymbolRes symTable lst' = 
+    //     match lst' with 
+    //     | head :: tail ->
+    //         match head with 
+    //         | Ok instr ->
+    //             let newSymTable = fillSymMap instr symTable
+    //             listSymbolRes newSymTable tail
+    //         | Error e -> 
+    //             e |> qp
+    //             listSymbolRes symTable tail
+    //     | _ -> symTable
 
-    List.map parseInstr lst
-    |> listSymbolRes symMap |> ignore
+    // List.map parseInstr lst
+    // |> listSymbolRes symMap |> qp
 
     prettyPrint cpuData
     let rec listExecute' cpuData' lst' = 
@@ -95,15 +95,19 @@ let listExecute cpuData (lst: string list) =
                 err |> qp
                 listExecute' cpuData' tail
         | [] -> "Finished" |> qp
-    List.map parseInstr lst
-    |> listExecute' cpuData
+    let parsedList = List.map parseInstr lst
+    let symTable = fillSymTable parsedList symMap
+    listExecute' cpuData parsedList
+    symTable |> qp
+
+    
     
 [<EntryPoint>]
 let main argv =
     match argv with
         | [|"xrepl"|] ->
             "Doug's Remarkable REPL..." |> qp
-            replExecute (initDataPath |> Ok)
+            replExecute (initDataPath |> Ok) 
             0
 
         | [|"prepl"|] ->

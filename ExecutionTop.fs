@@ -11,18 +11,23 @@ module ExecutionTop
     open BranchExecution
     open MiscExecution
     open Helpers
-    open Symbols
 
-    let fillSymMap (instr: CommonLex.Parse<Instr>) symbolMap =
-        let symMapUpdate = 
-            match instr.PLabel with
-            | Some label ->
-                let symMapNew = symMap.Add((label |> fst), (label |> snd))
-                symMapNew
-            | None -> 
-                symbolMap
-        symMapUpdate |> qp
-        symMapUpdate
+    let fillSymTable (instrLst: Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable: Map<string,uint32>) =
+        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable': Map<string,uint32>) loc =
+            match instrLst' with
+            | head :: tail ->
+                match head with
+                | Ok instr' ->
+                    match instr'.PLabel with
+                    | Some label ->
+                        let symTableNew = symTable'.Add((label |> fst), (loc))
+                        fillSymTable' tail symTableNew (loc + instr'.PSize)
+                    | None ->
+                        fillSymTable' tail symTable' (loc + instr'.PSize)
+                | Error _ -> symTable'
+            | [] ->
+                symTable'
+        fillSymTable' instrLst symTable 0u
 
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
@@ -39,7 +44,6 @@ module ExecutionTop
                     executeBranch instr' cpuData
                 | CommonTop.IMISC (Misc instr') ->
                     executeMisc instr' minAddress cpuData
-                    // failwithf "Trying to execute a MISC instruction"
             | false -> 
                 updatePC instr cpuData |> Ok
         |> Result.map (updatePC instr)
