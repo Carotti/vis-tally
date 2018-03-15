@@ -63,9 +63,7 @@ let init () =
         saveFile ()
     )
     Ref.run.addEventListener_click(fun _ ->
-        // disableEditors ()
-        // highlightLine currentFileTabId 1
-        makeError currentFileTabId 1 "#This is a test error \n Hello!"
+        disableEditors ()
     )
     // just for fun!
     (Ref.register 0).addEventListener_click(fun _ ->

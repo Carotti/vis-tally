@@ -236,27 +236,35 @@ let removeDecorations _editor _decorations = jsNative
 let removeEditorDecorations tId =
     decorations <- removeDecorations editors.[tId] decorations
 
-let editorLineDecorate editor range decoration =
+let editorLineDecorate editor number decoration =
+    let model = editor?getModel()
+    let lineWidth = model?getLineMaxColumn(number)
     decorations <- lineDecoration editor
                     decorations
-                    range
+                    (monacoRange number 1 number lineWidth)
                     decoration
 
 // Remove all the other decorations and highlight a particular line
 let highlightLine tId number = 
-    editorLineDecorate editors.[tId]
-            (monacoRange number 1 number 1)
-            (createObj[
-                "isWholeLine" ==> true
-                "inlineClassName" ==> "editor-line-highlight"
-            ])
+    editorLineDecorate 
+        editors.[tId]
+        number
+        (createObj[
+            "isWholeLine" ==> true
+            "inlineClassName" ==> "editor-line-highlight"
+        ])
 
 
 
-[<Emit "$0.deltaDecorations([], [
-	{ range: $1, options: { isWholeLine: true, inlineClassName: 'editor-line-error', hoverMessage: {value: $2}}},
-]);">]
-let errorMsg _editor _range _text = jsNative
+[<Emit "{isWholeLine: true, inlineClassName: 'editor-line-error', hoverMessage: {value: $2}}">]
+let errorMsg _text = jsNative
 
 let makeError tId lineNumber text = 
-    errorMsg editors.[tId] (monacoRange lineNumber 1 lineNumber 1) text
+    editorLineDecorate 
+        editors.[tId]
+        lineNumber 
+        (createObj[
+            "isWholeLine" ==> true
+            "inlineClassName" ==> "editor-line-error"
+            "hoverMessage" ==> createObj["value" ==> text]
+        ])
