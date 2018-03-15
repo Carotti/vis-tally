@@ -5,6 +5,7 @@ module ExecutionTop
     open Branch
     open Misc
     open CommonTop
+    open CommonLex
     open Execution
     open DPExecution
     open MemExecution
@@ -12,8 +13,8 @@ module ExecutionTop
     open MiscExecution
     open Helpers
 
-    let fillSymTable (instrLst: Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable: Map<string,uint32>) =
-        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable': Map<string,uint32>) loc =
+    let fillSymTable (instrLst: Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable: SymbolTable) =
+        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<Instr>,ErrInstr> list) (symTable': SymbolTable) loc =
             match instrLst' with
             | head :: tail ->
                 match head with
@@ -32,7 +33,7 @@ module ExecutionTop
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
     /// instructions, then calling their executes.
-    let execute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
+    let execute (instr: CommonLex.Parse<Instr>) (symTable: SymbolTable) (cpuData: DataPath<Instr>) =
         match condExecute instr cpuData with
             | true -> 
                 match instr.PInstr with
@@ -43,7 +44,8 @@ module ExecutionTop
                 | CommonTop.IBRANCH (Branch instr') ->
                     executeBranch instr' cpuData
                 | CommonTop.IMISC (Misc instr') ->
-                    executeMisc instr' minAddress cpuData
+                    let resolved = resolve symTable instr'
+                    executeMisc (resolve instr') minAddress cpuData
             | false -> 
                 updatePC instr cpuData |> Ok
         |> Result.map (updatePC instr)

@@ -10,6 +10,7 @@ open Symbols
 let instrLst = [
         "hello MOV r0, #1";
         "goodbye MOV r1, #2";
+        "lsl r4, r1, #6";
         "aufwiedersehn MOV r2, #3";
         "tchus MOV r3, #4";
         "aurevoir MOV r4, #0x100";
@@ -62,21 +63,6 @@ let replExecute cpuData =
 
 /// Parses and executes items in a given list
 let listExecute cpuData (lst: string list) = 
-    // let rec listSymbolRes symTable lst' = 
-    //     match lst' with 
-    //     | head :: tail ->
-    //         match head with 
-    //         | Ok instr ->
-    //             let newSymTable = fillSymMap instr symTable
-    //             listSymbolRes newSymTable tail
-    //         | Error e -> 
-    //             e |> qp
-    //             listSymbolRes symTable tail
-    //     | _ -> symTable
-
-    // List.map parseInstr lst
-    // |> listSymbolRes symMap |> qp
-
     prettyPrint cpuData
     let rec listExecute' cpuData' lst' = 
         match lst' with

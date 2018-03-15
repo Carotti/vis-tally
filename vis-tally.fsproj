@@ -12,10 +12,10 @@
     <Compile Include="CommonData.fs" />
     <Compile Include="CommonLex.fs" />    
     <Compile Include="Helpers.fs" />
-    <Compile Include="Symbols.fs" />
     <Compile Include="ErrorMessages.fs" />
     <Compile Include="Errors.fs" />
     <Compile Include="Expressions.fs" />
+    <Compile Include="Symbols.fs" />
     <Compile Include="Memory.fs" />
     <Compile Include="DP.fs" />
     <Compile Include="Branch.fs" />
