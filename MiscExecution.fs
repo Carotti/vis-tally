@@ -4,6 +4,7 @@
     open Expressions
     open CommonData
     open Errors
+    open System.Runtime.InteropServices.ComTypes
 
     /// Execute a MISC instruction against the datapath
     /// mem is where to start placing in memory
@@ -14,7 +15,11 @@
         let expectResolved exp =
             match exp with
             | ExpResolved data -> data
-            | _ -> failwithf "Trying to execute unresolved data"
+            | _ -> failwith " Trying to execute unresolved data."
+                // ("", " Trying to execute unresolved data.")
+                // ||> makeError 
+                // |> ``Run time error``
+                // |> Error
 
         let executeDCD lst =
             let foldDCD (dp', mem') exp =
