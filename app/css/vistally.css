@@ -150,3 +150,7 @@
     height: 100%;
     z-index: 10;
 }
+
+.editor-line-error {
+    border-bottom: 2px dotted red;
+}

@@ -225,20 +225,37 @@ let mutable decorations : obj = createObj []
 let monacoRange _ _ _ _ = jsNative
 
 [<Emit "$0.deltaDecorations($1, [
-    { range: $2, options: { isWholeLine: true, inlineClassName: $3 }},
+    { range: $2, options: $3},
   ]);">]
-let lineDecoration _editor _range _name = jsNative
+let lineDecoration _editor _decorations _range _name = jsNative
 
 [<Emit "$0.deltaDecorations($1, []);">]
 let removeDecorations _editor _decorations = jsNative
 
+// Remove all text decorations associated with an editor
+let removeEditorDecorations tId =
+    decorations <- removeDecorations editors.[tId] decorations
+
+let editorLineDecorate editor range decoration =
+    decorations <- lineDecoration editor
+                    decorations
+                    range
+                    decoration
+
 // Remove all the other decorations and highlight a particular line
-let highlightLine number = 
-    Browser.console.log("Trying to highlight") |> ignore
-    decorations <- removeDecorations editors.[currentFileTabId] decorations
-    decorations <- lineDecoration editors.[currentFileTabId] 
-                    decorations 
-                    (monacoRange number 1 number 1)
-                    "editor-line-highlight"
+let highlightLine tId number = 
+    editorLineDecorate editors.[tId]
+            (monacoRange number 1 number 1)
+            (createObj[
+                "isWholeLine" ==> true
+                "inlineClassName" ==> "editor-line-highlight"
+            ])
 
-
+let makeError tId lineNumber text = 
+    editorLineDecorate editors.[tId]
+        (monacoRange lineNumber 1 lineNumber 10)
+        (createObj [
+            "isWholeLine" ==> true
+            "hoverMessage" ==> arr text
+            "inlineClassName" ==> "editor-line-error"
+        ])
