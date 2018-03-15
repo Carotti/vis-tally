@@ -251,11 +251,12 @@ let highlightLine tId number =
                 "inlineClassName" ==> "editor-line-highlight"
             ])
 
+
+
+[<Emit "$0.deltaDecorations([], [
+	{ range: $1, options: { isWholeLine: true, inlineClassName: 'editor-line-error', hoverMessage: {value: $2}}},
+]);">]
+let errorMsg _editor _range _text = jsNative
+
 let makeError tId lineNumber text = 
-    editorLineDecorate editors.[tId]
-        (monacoRange lineNumber 1 lineNumber 10)
-        (createObj [
-            "isWholeLine" ==> true
-            "hoverMessage" ==> arr text
-            "inlineClassName" ==> "editor-line-error"
-        ])
+    errorMsg editors.[tId] (monacoRange lineNumber 1 lineNumber 1) text
