@@ -55,11 +55,17 @@ module ExecutionTop
                 | Ok instr' ->
                     match instr'.PInstr with
                     | CommonTop.IMISC (Misc instr'') ->
-                        let resInstr = miscResolve instr'' symTable' 
+                        let label =
+                            match instr'.PLabel with
+                            | Some s -> s
+                            | _ -> failwith "2222Woaaaaaaaaaaaaaah we need to sort this"
+                        let symTableNew = symTable'.Add((label |> fst), (minAddress))
+                        let resInstr = miscResolve instr'' symTableNew
                         executeMisc resInstr minAddress cpuData'
                         |> function
-                        | Ok cpuData''' ->  fillSymTable' tail symTable' cpuData''' loc     
-                        | Error _ -> failwithf "Woaaaaaaaaaaaaaah we need to sort this"         
+                        | Ok cpuData''' ->  fillSymTable' tail symTableNew cpuData''' loc     
+                        | Error _ -> failwithf "Woaaaaaaaaaaaaaah we need to sort this"
+
                     | _ ->
                         let cpuData'' = setMemInstr (instr'.PInstr) loc cpuData'
                         match instr'.PLabel with
