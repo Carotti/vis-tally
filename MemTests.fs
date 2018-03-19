@@ -9,7 +9,6 @@ module MemTests
     open Expecto
     open Helpers
     open DPTests
-    open DPTests
 
     /// Removes the last item in a list
     let removeTail lst = 
