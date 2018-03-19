@@ -101,12 +101,15 @@
         |> function
         | 0 ->
             "NO ERRORS - EXECUTE!" |> qp |> ignore
-
-            // no errors, can execute
-            let symTable' = fillSymTable parsedList symMap
-            listExecute' cpuData  symTable' parsedList
-            symTable' |> qp
-            // dummy return
+            match cpuData with
+            | Ok cpuData' ->
+                let symTable', cpuData'' = fillSymTable parsedList symMap cpuData'
+                // CHRIS WILL KILL 10 PUPPIES IF WE DO NOT CHANGE THIS
+                // listExecute' (cpuData'' |> Ok)  symTable' parsedList
+                prettyPrint (Ok cpuData'')
+                symTable' |> qp
+            | Error e ->
+                e |> qp
         | n ->
             // n errors, send to Nippy's shit code to highight
             // dummy return
@@ -114,7 +117,7 @@
             "HIGHLIGHT IT SHIPPY" |> qp
             
         
-        
+         
     [<EntryPoint>]
     let main argv =
         match argv with

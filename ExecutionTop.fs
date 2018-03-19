@@ -31,27 +31,29 @@ module ExecutionTop
         |> List.zip instrLst
         |> List.filter (function | Error _, _ -> true | Ok _, _ -> false)
 
-    let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) =
-        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) loc =
+    let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
+        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<CommonTop.Instr>) loc =
             match instrLst' with
             | head :: tail ->
                 match head with
                 | Ok instr' ->
                     match instr'.PInstr with
                     | CommonTop.IMISC (Misc instr'') ->
-                        // executeMisc resInstr minAddress 
-                        qp "We are here" |> ignore
-                        symTable'
+                        let resInstr = miscResolve instr'' symTable' 
+                        executeMisc resInstr minAddress cpuData'
+                        |> function
+                        | Ok cpuData''' ->  fillSymTable' tail symTable' cpuData''' loc     
+                        | Error _ -> failwithf "Woaaaaaaaaaaaaaah we need to sort this"         
                     | _ ->
                         match instr'.PLabel with
                         | Some label ->
                             let symTableNew = symTable'.Add((label |> fst), (loc))
-                            fillSymTable' tail symTableNew (loc + instr'.PSize)
+                            fillSymTable' tail symTableNew cpuData' (loc + instr'.PSize)
                         | None ->
-                            fillSymTable' tail symTable' (loc + instr'.PSize)
-                | Error _ -> symTable'
-            | [] -> symTable'
-        fillSymTable' instrLst symTable 0u
+                            fillSymTable' tail symTable' cpuData' (loc + instr'.PSize)
+                | Error _ -> symTable', cpuData'
+            | [] -> symTable', cpuData'
+        fillSymTable' instrLst symTable cpuData 0u
 
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
