@@ -13,6 +13,22 @@ module ExecutionTop
     open MiscExecution
     open Helpers
     open Branch
+
+
+    let setMemInstr contents (addr: uint32) (cpuData: DataPath<CommonTop.Instr>) = 
+    // let updateMem contents addr (cpuData: DataPath<CommonTop.Instr>) =
+        match addr % 4u with
+        | 0u -> {cpuData with MM = Map.add (WA addr) (Code contents) cpuData.MM}
+        | _ -> failwithf "Not aligned, but should have been checked already."
+        // match contents.PInstr with
+        // | CommonTop.IDP (DPTop instr') ->
+        //     updateMem instr' addr cpuData
+        // | CommonTop.IMEM (Mem instr') ->
+        //     updateMem instr' addr cpuData
+        // | CommonTop.IBRANCH (Branch instr') ->
+        //     updateMem instr' addr cpuData
+        // | _ -> failwithf "Shouldnt be in mem."
+        
         
     let miscResolve instr symTable =
         let resolved = Misc.resolve symTable instr
@@ -45,12 +61,14 @@ module ExecutionTop
                         | Ok cpuData''' ->  fillSymTable' tail symTable' cpuData''' loc     
                         | Error _ -> failwithf "Woaaaaaaaaaaaaaah we need to sort this"         
                     | _ ->
+                        let cpuData'' = setMemInstr (instr'.PInstr) loc cpuData'
                         match instr'.PLabel with
                         | Some label ->
                             let symTableNew = symTable'.Add((label |> fst), (loc))
-                            fillSymTable' tail symTableNew cpuData' (loc + instr'.PSize)
+                            "strange number we don't know = " + (label |> snd |> string) |> qp
+                            fillSymTable' tail symTableNew cpuData'' (loc + instr'.PSize)
                         | None ->
-                            fillSymTable' tail symTable' cpuData' (loc + instr'.PSize)
+                            fillSymTable' tail symTable' cpuData'' (loc + instr'.PSize)
                 | Error _ -> symTable', cpuData'
             | [] -> symTable', cpuData'
         fillSymTable' instrLst symTable cpuData 0u

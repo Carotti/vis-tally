@@ -1,5 +1,5 @@
 module Helpers
-    open CommonData
+    open CommonData    
     open System.Text.RegularExpressions
     open Expecto
     
@@ -105,6 +105,8 @@ module Helpers
     
     /// Useful converstion from uint32 to DataLoc followed by setting the memory
     let setMemData contents = setMem (DataLoc contents)
+
+
     /// Multiple setMemDatas 
     let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
 
@@ -113,7 +115,7 @@ module Helpers
     let getMemData = function
         | DataLoc dl -> dl
         | _ -> 0u
-
+   
 
     /// Very simple property based tests for functions which I use a lot.
     /// Some truly are trivial! Huzzah!
