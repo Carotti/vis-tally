@@ -1,5 +1,6 @@
 ﻿module Program
     open CommonTop
+    open CommonLex
     open CommonData
     open Helpers
     open Execution
@@ -8,17 +9,19 @@
 
     /// A List of instructions to parse and then execute.
     let instrLst = [
+            "fish DCD 123";
             "hello MOV r0, #1";
             "goodbye MOV r1, #2";
             " \t  ";
             "lsl r4, r1, #6";
-            "lsr r23, r4, r2";
+            "lsr r3, r4, r2";
             "aufwiedersehn MOV r2, #3";
             "\n   ";
             "tchus MOV r3, #4";
-            "add r1, r2, r3, lsl r50";
+            "add r1, r2, r3, lsl r2";
             "aurevoir MOV r4, #0x100";
             "   ";
+            "B tchus";
         ]
 
     /// A List of instructions to parse and then execute.
@@ -48,7 +51,7 @@
     /// have fun :)
     let replExecute (cpuData : Result<DataPath<Instr>, Errors.ErrExe>) : unit =
         prettyPrint cpuData
-        let rec repl' (cpuData' : Result<DataPath<Instr>, Errors.ErrExe>) =
+        let rec repl' (cpuData' : Result<DataPath<Instr>, Errors.ErrExe>) (symTable : SymbolTable) =
             match cpuData' with
             | Ok cpuData' ->
                 printf  "=> "
@@ -56,36 +59,37 @@
                 |> parseInstr
                 |> function
                 | Ok instr ->
-                    execute instr cpuData'
+                    symTable |> qp |> ignore
+                    execute instr cpuData' symTable
                     |> function
                     | cpuData'' ->
                       prettyPrint cpuData''
-                      repl' cpuData'' 
+                      repl' cpuData'' symTable
                 | Error err -> 
                     err |> qp
-                    repl' (cpuData' |> Ok) 
+                    repl' (cpuData' |> Ok) symTable
             | Error e -> e |> qp
-        repl' cpuData
+        repl' cpuData symMap
 
     /// Parses and executes items in a given list
     let listExecute (cpuData : Result<DataPath<Instr>, Errors.ErrExe>) (lst: string list) = 
         prettyPrint cpuData
-        let rec listExecute' cpuData' lst' = 
+        let rec listExecute' cpuData' (symTable : SymbolTable) lst' = 
             match lst' with
             | head :: tail -> 
                 match head with
                 | Ok instr ->
                     match cpuData' with
                     | Ok cpuData' ->
-                        execute instr cpuData'
+                        execute instr cpuData' symTable
                         |> function    
                         | cpuData'' ->
                               prettyPrint cpuData''
-                              listExecute' cpuData'' tail
+                              listExecute' cpuData'' symTable tail
                     | Error e -> e |> qp
                 | Error err ->
                     err |> qp
-                    listExecute' cpuData' tail
+                    listExecute' cpuData' symTable tail
             | [] -> "Finished" |> qp
 
         let parsedList = List.map parseInstr lst
@@ -99,9 +103,9 @@
             "NO ERRORS - EXECUTE!" |> qp |> ignore
 
             // no errors, can execute
-            // let symTable = fillSymTable parsedList symMap
-            // listExecute' cpuData parsedList
-            // symTable |> qp
+            let symTable' = fillSymTable parsedList symMap
+            listExecute' cpuData  symTable' parsedList
+            symTable' |> qp
             // dummy return
         | n ->
             // n errors, send to Nippy's shit code to highight

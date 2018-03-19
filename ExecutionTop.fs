@@ -14,8 +14,14 @@ module ExecutionTop
     open Helpers
     open Branch
         
-    let miscSymTable instr symTable =
+    let miscResolve instr symTable =
         let resolved = Misc.resolve symTable instr
+        match resolved with
+        | Ok resInstr -> resInstr
+        | Error _ -> failwithf "Invalid Symbol"
+    
+    let branchResolve instr symTable =
+        let resolved = Branch.resolvePInstr symTable instr
         match resolved with
         | Ok resInstr -> resInstr
         | Error _ -> failwithf "Invalid Symbol"
@@ -33,8 +39,9 @@ module ExecutionTop
                 | Ok instr' ->
                     match instr'.PInstr with
                     | CommonTop.IMISC (Misc instr'') ->
-                        let resInstr = miscSymTable instr'' symTable
                         // executeMisc resInstr minAddress 
+                        qp "We are here" |> ignore
+                        symTable'
                     | _ ->
                         match instr'.PLabel with
                         | Some label ->
@@ -49,7 +56,7 @@ module ExecutionTop
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
     /// instructions, then calling their executes.
-    let execute (instr: CommonLex.Parse<CommonTop.Instr>) (cpuData: DataPath<CommonTop.Instr>) =
+    let execute (instr: CommonLex.Parse<CommonTop.Instr>) (cpuData: DataPath<CommonTop.Instr>) (symTable: SymbolTable) =
         match condExecute instr cpuData with
             | true -> 
                 match instr.PInstr with
@@ -58,9 +65,11 @@ module ExecutionTop
                 | CommonTop.IMEM (Mem instr') ->
                     executeMem instr' cpuData
                 | CommonTop.IBRANCH (Branch instr') ->
-                    executeBranch instr' cpuData
+                    let resInstr = branchResolve instr' symTable
+                    executeBranch resInstr cpuData
                 | CommonTop.IMISC (Misc instr') ->
-                    executeMisc instr' minAddress cpuData
+                    let resInstr = miscResolve instr' symTable
+                    executeMisc resInstr minAddress cpuData
                 | CommonTop.EMPTY _ ->
                     cpuData |> Ok
             | false -> 
