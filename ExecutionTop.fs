@@ -48,7 +48,7 @@ module ExecutionTop
         |> List.filter (function | Error _, _ -> true | Ok _, _ -> false)
 
     let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
-        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<CommonTop.Instr>) loc =
+        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<CommonTop.Instr>) instrAddr dataAddr  =
             match instrLst' with
             | head :: tail ->
                 match head with
@@ -59,25 +59,28 @@ module ExecutionTop
                             match instr'.PLabel with
                             | Some s -> s
                             | _ -> failwith "2222Woaaaaaaaaaaaaaah we need to sort this"
-                        let symTableNew = symTable'.Add((label |> fst), (minAddress))
+                        let symTableNew = symTable'.Add((label |> fst), (dataAddr))
                         let resInstr = miscResolve instr'' symTableNew
-                        executeMisc resInstr minAddress cpuData'
+                        
+                        executeMisc resInstr dataAddr cpuData'
                         |> function
-                        | Ok cpuData''' ->  fillSymTable' tail symTableNew cpuData''' loc     
+                        | Ok (cpuData''', nextAddr) -> 
+                            "value of nextAddr" + string(nextAddr) |> qp
+                            fillSymTable' tail symTableNew cpuData''' instrAddr nextAddr      
                         | Error _ -> failwithf "Woaaaaaaaaaaaaaah we need to sort this"
 
                     | _ ->
-                        let cpuData'' = setMemInstr (instr'.PInstr) loc cpuData'
+                        let cpuData'' = setMemInstr (instr'.PInstr) instrAddr cpuData'
                         match instr'.PLabel with
                         | Some label ->
-                            let symTableNew = symTable'.Add((label |> fst), (loc))
+                            let symTableNew = symTable'.Add((label |> fst), (instrAddr))
                             "strange number we don't know = " + (label |> snd |> string) |> qp
-                            fillSymTable' tail symTableNew cpuData'' (loc + instr'.PSize)
+                            fillSymTable' tail symTableNew cpuData'' (instrAddr + instr'.PSize) dataAddr
                         | None ->
-                            fillSymTable' tail symTable' cpuData'' (loc + instr'.PSize)
+                            fillSymTable' tail symTable' cpuData'' (instrAddr + instr'.PSize) dataAddr
                 | Error _ -> symTable', cpuData'
             | [] -> symTable', cpuData'
-        fillSymTable' instrLst symTable cpuData 0u
+        fillSymTable' instrLst symTable cpuData 0u minAddress
 
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
@@ -94,8 +97,9 @@ module ExecutionTop
                     let resInstr = branchResolve instr' symTable
                     executeBranch resInstr cpuData
                 | CommonTop.IMISC (Misc instr') ->
-                    let resInstr = miscResolve instr' symTable
-                    executeMisc resInstr minAddress cpuData
+                        cpuData |> Ok
+                //     let resInstr = miscResolve instr' symTable
+                //     executeMisc resInstr minAddress cpuData
                 | CommonTop.EMPTY _ ->
                     cpuData |> Ok
             | false -> 

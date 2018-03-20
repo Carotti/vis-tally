@@ -51,7 +51,7 @@ module MemExecution
         /// STRB to set the correct byte
         let setCorrectByte value addr = 
             let shift = 8u * (addr % 4u) |> int32
-            (value &&& 0x000000FFu) <<< shift
+            value &&& (0x000000FFu <<< shift)
 
         /// LDRB to load the correct byte
         let getCorrectByte value addr = 

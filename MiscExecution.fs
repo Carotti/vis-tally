@@ -20,7 +20,7 @@
     /// Return new mem which is where the next instruction
     /// would begin placing in memory
     // let executeMisc (dp, mem) ins : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
-    let executeMisc ins mem  dp : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+    let executeMisc ins mem  dp : (Result<DataPath<CommonTop.Instr>*uint32,ErrExe>) =
         let expectResolved exp =
             match exp with
             | ExpResolved data -> data
@@ -55,7 +55,7 @@
             doFillByte mem dp
 
         match ins with
-        | DCD lst -> executeDCD lst |> fst |> Ok
-        | DCB lst -> executeDCB lst |> fst |> Ok
-        | FILL fIns -> executeFILL fIns |> fst |> Ok
+        | DCD lst -> executeDCD lst |> Ok
+        | DCB lst -> executeDCB lst |> Ok
+        | FILL fIns -> executeFILL fIns |> Ok
         | EQU _ -> failwithf "Can't execute EQU"

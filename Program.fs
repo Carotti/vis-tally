@@ -9,19 +9,32 @@
 
     /// A List of instructions to parse and then execute.
     let instrLst = [
-            "fish DCD 123";
-            "hello MOV r0, #1";
-            "goodbye MOV r1, #2";
-            " \t  ";
-            "lsl r4, r1, #6";
-            "lsr r3, r4, r2";
-            "aufwiedersehn MOV r2, #3";
-            "\n   ";
-            "tchus MOV r3, #4";
-            "add r1, r2, r3, lsl r2";
-            "aurevoir MOV r4, #0x100";
-            "   ";
-            "B tchus";
+            // "dcd1 DCD 123";
+            "mov r1, #0xff";
+            "add r1, r1, #1";
+            "dcb1 DCB 9";
+            "ldrb r3, [r1]";
+            // "dcb2 DCB 10";
+            
+            // "hello MOV r0, #1";
+           
+            // "goodbye MOV r1, #2";
+            
+            // " \t  ";
+            // "dcb3 DCB 11";
+            // // "lsl r4, r1, #6";
+            // "dcb4 DCB 12";
+            // // "lsr r3, r4, r2";
+            // // "aufwiedersehn MOV r2, #3";
+            // "dcd2 DCD 500";
+            // "\n   ";
+            // // "tchus MOV r3, #4";
+            // // "add r1, r2, r3, lsl r2";
+            // "dcd3 DCD 700";
+            // // "aurevoir MOV r4, #0x100";
+            // "   ";
+
+            // "B tchus";
         ]
 
     /// A List of instructions to parse and then execute.
@@ -100,13 +113,13 @@
         |> List.length
         |> function
         | 0 ->
-            "NO ERRORS - EXECUTE!" |> qp |> ignore
+            "NO PARSE ERRORS - EXECUTE!" |> qp |> ignore
             match cpuData with
             | Ok cpuData' ->
                 let symTable', cpuData'' = fillSymTable parsedList symMap cpuData'
                 // CHRIS WILL KILL 10 PUPPIES IF WE DO NOT CHANGE THIS
-                // listExecute' (cpuData'' |> Ok)  symTable' parsedList
-                prettyPrint (Ok cpuData'')
+                listExecute' (cpuData'' |> Ok)  symTable' parsedList
+                // prettyPrint (Ok cpuData'')
                 symTable' |> qp
             | Error e ->
                 e |> qp
@@ -114,7 +127,7 @@
             // n errors, send to Nippy's shit code to highight
             // dummy return
             errorList |> qpl |> ignore
-            "HIGHLIGHT IT SHIPPY" |> qp
+            "ERROR: HIGHLIGHT IT SHIPPY" |> qp
             
         
          
