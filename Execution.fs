@@ -95,3 +95,9 @@ module Execution
             Regs = emptyRegs;
             MM = Map.ofList []
         }
+    let isMisc instr =
+        match instr.PInstr with
+        | CommonTop.IMISC _ ->
+            true
+        | _ ->
+            false

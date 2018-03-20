@@ -1,4 +1,5 @@
 module Errors
+    open ErrorMessages
 
     type ErrorBase =
         {
@@ -51,3 +52,6 @@ module Errors
             | [] -> List.rev outlst |> Ok
         condenser' lst [] 
 
+    let stripResultList lst =
+        lst
+        |> List.map (function | Ok i -> i | _ -> failwith alwaysMatchesFM) 
