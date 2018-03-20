@@ -79,6 +79,7 @@ module Execution
             | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
             | _ -> failwithf "Updating byte at instruction address"
         updateMem (DataLoc newVal) baseAddr dp
+        
     let fillRegs (vals : uint32 list) =
         List.zip [0..15] vals
         |> List.map (fun (r, v) -> (register r, v))
