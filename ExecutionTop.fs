@@ -50,24 +50,24 @@ module ExecutionTop
         lineNumLst
         |> List.filter (function | Error _, _ -> true | Ok _, _ -> false)
     
-    let pcToLine (instrLst: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr> list) =
-        let getOPcInc (instr: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr>) =
+    let makePcToLineNum (instrLst: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr> list) =
+        let getPcInc (instr: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr>) =
             match instr with
             | Ok instr' ->
-                match instr'.PInstr with
-                | CommonTop.IMEM (Mem instr'') ->
-                    instr'.PSize
-                | CommonTop.IDP (DPTop instr'') ->
-                    instr'.PSize
-                | CommonTop.IBRANCH (Branch instr'') ->
-                    instr'.PSize
-                | _ -> 
+                match isMisc instr' with
+                | true ->
                     0u
-            | _ ->
-                0u
+                | false ->
+                    instr'.PSize 
+        let addPcToLine ((lineMap:Map<uint32,uint32>), pc) (instr, lineNum) =
+            let lineMap' = lineMap.Add(pc,lineNum)
+            let pc' = pc + (getPcInc instr)
+            (lineMap', pc')
+        
         instrLst
         |> lineNumList
-        // |> List.fold (fun (m, a) i -> (m.Add(a,)) ) (Map.empty, 0u)
+        |> List.fold (addPcToLine) (Map.empty, 0u)
+        |> fst
 
     let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
         let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<CommonTop.Instr>) instrAddr dataAddr  =

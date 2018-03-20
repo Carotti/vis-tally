@@ -118,8 +118,8 @@ module Helpers
     let getMemData = function
         | DataLoc dl -> dl
         | _ -> 0u
-   
-
+  
+ 
     /// Very simple property based tests for functions which I use a lot.
     /// Some truly are trivial! Huzzah!
     [<Tests>]
