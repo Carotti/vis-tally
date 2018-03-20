@@ -26,7 +26,7 @@ module Execution
         | _ -> failwith "Lists given to setMultRegs function were of different sizes."
         
     /// Blank dataPath with all regs set to Zero and flags to false
-    let initDataPath : DataPath<Instr> =
+    let initDataPath : DataPath<Parse<CommonTop.Instr>> =
         let flags =
             {N = false; C = false; Z = false; V = false}
 
@@ -42,12 +42,12 @@ module Execution
             MM = Map.ofList []
         }
 
-    let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Instr>) : DataPath<Instr> =
+    let updatePC (instr: Parse<Instr>) (cpuData: DataPath<Parse<CommonTop.Instr>>) : DataPath<Parse<CommonTop.Instr>> =
         let pc = cpuData.Regs.[R15]
         let size = instr.PSize
         setReg R15 (pc + size) cpuData
     
-    let getPC (cpuData: DataPath<Instr>) =
+    let getPC (cpuData: DataPath<Parse<CommonTop.Instr>>) =
         cpuData.Regs.[R15]
 
     let getMemLoc addr cpuData =
@@ -57,7 +57,7 @@ module Execution
         Map.containsKey m cpuData.MM
 
     /// Tom's condExecute instruction as he made it first (don't reinvent the wheel)
-    let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
+    let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Parse<CommonTop.Instr>>) =
         let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
         match instr.PCond with
         | Cal -> true
@@ -93,7 +93,7 @@ module Execution
     //     | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
     //     | _ -> failwithf "Trying to update memory at unaligned address"
 
-    let updateMem value (addr : uint32) (dp: DataPath<Instr>) =
+    let updateMem value (addr : uint32) (dp: DataPath<Parse<CommonTop.Instr>>) =
         match validateWA addr with
         | true -> {dp with MM = Map.add (WA addr) value dp.MM} |> Ok
         | false -> 
@@ -122,7 +122,7 @@ module Execution
     //         | _ -> failwithf "Updating byte at instruction address"
     //     updateMem (DataLoc newVal) baseAddr dp
     
-    let updateMemByte (value : byte) (addr : uint32) (dp: DataPath<Instr>) =
+    let updateMemByte (value : byte) (addr : uint32) (dp: DataPath<Parse<CommonTop.Instr>>) =
         let baseAddr = alignAddress addr
         let shft = (int ((addr % word)* 8u))
         let mask = 0xFFu <<< shft |> (~~~)
@@ -145,7 +145,7 @@ module Execution
         let shift = 8u * (addr % word) |> int32
         ((0x000000FFu <<< shift) &&& value) >>> shift
 
-    let fetchMemData reg addr (cpuData: DataPath<Instr>) =
+    let fetchMemData reg addr (cpuData: DataPath<Parse<CommonTop.Instr>>) =
         match validateWA addr with
         | true ->
             match addr with
@@ -174,7 +174,7 @@ module Execution
             |> ``Run time error``
             |> Error
     
-    let fetchMemByte reg addr (cpuData: DataPath<Instr>) =
+    let fetchMemByte reg addr (cpuData: DataPath<Parse<CommonTop.Instr>>) =
         match addr with
         | a when (a < minAddress) ->
             (a |> string, " Trying to access memory where instructions are stored.")
@@ -204,7 +204,7 @@ module Execution
 
     /// Recursive function for storing multiple values at multiple memory addresses
     /// Need to check that the lists provided are the same length
-    let rec setMultMem contentsLst addrLst cpuData : Result<DataPath<Instr>, ErrExe> =
+    let rec setMultMem contentsLst addrLst cpuData : Result<DataPath<Parse<CommonTop.Instr>>, ErrExe> =
         match addrLst, contentsLst with
         | mhead :: mtail, chead :: ctail when (List.length addrLst = List.length contentsLst) ->
             let newCpuData = updateMemData chead mhead cpuData

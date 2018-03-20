@@ -26,7 +26,7 @@ module DPExecution
     //     | ``Run time error`` of string
 
     /// Instruction to initiate execution of data processing instructions.
-    let executeDP instr (dp: DataPath<CommonTop.Instr>) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+    let executeDP instr (dp: DataPath<Parse<CommonTop.Instr>>) : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
 
         /// A helper function to get the `n`th bit of `value`.
         let getBit n (value:uint32) =
@@ -41,7 +41,7 @@ module DPExecution
             |> System.Convert.ToBoolean
 
         /// A function an RRX and return the would-be values of the CPSR.
-        let calcRRX reg (dp:DataPath<CommonTop.Instr>) =
+        let calcRRX reg (dp:DataPath<Parse<CommonTop.Instr>>) =
             let c' = getBitBool 0 dp.Regs.[reg]
             let res =
                 dp.Regs.[reg] >>> 1
@@ -162,7 +162,7 @@ module DPExecution
             | _ -> {flags with V = false}, op1, op2, value
         
         /// A higher-order function for executing DP instructions.
-        let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+        let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
             let result = func op1 op2
             let dp' =
                 match dest with
@@ -261,7 +261,7 @@ module DPExecution
 
         /// A function to determine which `DP3S` instruction is to be executed, 
         ///  execute it, and return the new datapath.
-        let executeDP3S dp opcode (operands:DP3SForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+        let executeDP3S dp opcode (operands:DP3SForm) : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
             let dest = Some operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
             let Cb = dp.Fl.C
@@ -283,7 +283,7 @@ module DPExecution
             | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [NZCheck]
             | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff [NZCheck]
 
-        let executeDP3RS dp opcode (operands:DP3RSForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+        let executeDP3RS dp opcode (operands:DP3RSForm) : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
             let dest = Some operands.rDest
             let op1 = dp.Regs.[operands.rOp1]
             // discard the updated flags, not needed
@@ -299,7 +299,7 @@ module DPExecution
 
         /// A function to determine which `DP2` instruction is to be executed, 
         ///  execute it, and return the new datapath.
-        let executeDP2 dp opcode (operands:DP2Form) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+        let executeDP2 dp opcode (operands:DP2Form) : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
             let op1 = dp.Regs.[operands.rOp1]
             let C = dp.Fl.C |> System.Convert.ToUInt32
             let op2, flags' = calcOp2 operands.fOp2 dp
@@ -313,7 +313,7 @@ module DPExecution
         
         /// A function to determine which `DP2S` instruction is to be executed, 
         ///  execute it, and return the new datapath.
-        let executeDP2S dp opcode (operands:DP2SForm) : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
+        let executeDP2S dp opcode (operands:DP2SForm) : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
             let dest = Some operands.rOp1
             let op1 = 0u
             let Cb = dp.Fl.C
@@ -327,7 +327,7 @@ module DPExecution
             | MOV _ -> execute dp' (fun _op1 op2 -> op2) dest op1 op2 operands.suff [NZCheck]
             | MVN _ -> execute dp' (fun _op1 op2 -> ~~~op2) dest op1 op2 operands.suff [NZCheck]
     
-        let dp' : Result<DataPath<CommonTop.Instr>,ErrExe> =
+        let dp' : Result<DataPath<Parse<CommonTop.Instr>>,ErrExe> =
             match instr with            
             | DP3SMatch (instr', ops) -> executeDP3S dp instr' ops
             | DP3RSMatch (instr', ops) -> executeDP3RS dp instr' ops 

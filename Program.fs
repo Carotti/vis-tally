@@ -32,6 +32,7 @@
             "aurevoir MOV r4, #0x100";//20, 40
             "   ";//21, n/a
             "B tchus";//22, 44
+            "END";
         ]
 
     /// A List of instructions to parse and then execute.
@@ -59,9 +60,9 @@
     
     /// a REPL for parsing and executing instructions
     /// have fun :)
-    let replExecute (cpuData : Result<DataPath<Instr>, Errors.ErrExe>) : unit =
+    let replExecute (cpuData : Result<DataPath<Parse<CommonTop.Instr>>, Errors.ErrExe>) : unit =
         prettyPrint cpuData
-        let rec repl' (cpuData' : Result<DataPath<Instr>, Errors.ErrExe>) (symTable : SymbolTable) =
+        let rec repl' (cpuData' : Result<DataPath<Parse<CommonTop.Instr>>, Errors.ErrExe>) (symTable : SymbolTable) =
             match cpuData' with
             | Ok cpuData' ->
                 printf  "=> "
@@ -81,7 +82,7 @@
             | Error e -> e |> qp
         repl' cpuData emptySymMap
    
-    let fetchInstr (cpuData: DataPath<Instr>) addr : Result<Instr, ErrExe> =
+    let fetchInstr (cpuData: DataPath<Parse<CommonTop.Instr>>) addr : Result<Parse<CommonTop.Instr>, ErrExe> =
         match validateWA addr with
         | true -> 
             let instrAddr = WA addr
@@ -101,14 +102,14 @@
             |> ``Run time error``
             |> Error
 
-    let exeFromMem (cpuData: Result<DataPath<Instr>, ErrExe>) (lst: string list) =
-        let rec executer (cpuData: Result<DataPath<Instr>, ErrExe>) pcToLine (symTable: SymbolTable) =
+    let exeFromMem (cpuData: Result<DataPath<Parse<CommonTop.Instr>>, ErrExe>) (lst: string list) =
+        let rec executer (cpuData: Result<DataPath<Parse<CommonTop.Instr>>, ErrExe>) pcToLine (symTable: SymbolTable) =
             match cpuData with
             | Ok cpuData' ->
                 let pc = getPC cpuData'
                 match Map.containsKey pc pcToLine with
                 | true ->
-                    let instr : Result<Parse<Instr>,ErrExe> =
+                    let instr : Result<Parse<CommonTop.Instr>,ErrExe> =
                         cpuData'
                         |> getPC
                         |> fetchInstr cpuData'
@@ -126,7 +127,7 @@
                         e |> qp
                         failwith "Instruction has an error."   
                 | false ->
-                    cpuData'                
+                    prettyPrint (cpuData' |> Ok)              
             | Error e ->
                 e |> qp
                 failwith "The DataPath has an error."                    
@@ -147,8 +148,9 @@
                 let pcLineMap = 
                     parsedList
                     |> makePcToLineNum
+                symTable' |> qp
                 executer (cpuData'' |> Ok) pcLineMap symTable'
-                // symTasble' |> qp
+                
             | Error e ->
                 e |> qp
         | n ->
@@ -158,7 +160,7 @@
             "ERROR: HIGHLIGHT IT SHIPPY" |> qp
 
     /// Parses and executes items in a given list
-    let listExecute (cpuData : Result<DataPath<Instr>, Errors.ErrExe>) (lst: string list) = 
+    let listExecute (cpuData : Result<DataPath<Parse<CommonTop.Instr>>, Errors.ErrExe>) (lst: string list) = 
         prettyPrint cpuData
         let rec listExecute' cpuData' (symTable : SymbolTable) lst' = 
             match lst' with
@@ -234,7 +236,8 @@
 
             | [|"xmem"|] ->
                 "Executing from memory..." |> qp
-                // exeFromMem (initDataPath |> Ok) 
+                exeFromMem (initDataPath |> Ok) instrLst
+                0
 
             | _ -> 
                 "blah" |> qp

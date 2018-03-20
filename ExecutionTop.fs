@@ -110,7 +110,7 @@ module ExecutionTop
     /// The Top level execute instruction taking any Parse<Instr>
     /// and downcasting it to the revelvant memory or data processing
     /// instructions, then calling their executes.
-    let execute (instr: CommonLex.Parse<CommonTop.Instr>) (cpuData: DataPath<CommonTop.Instr>) (symTable: SymbolTable) =
+    let execute (instr: Parse<CommonTop.Instr>) (cpuData: DataPath<Parse<CommonTop.Instr>>) (symTable: SymbolTable) =
         match condExecute instr cpuData with
             | true -> 
                 match instr.PInstr with

@@ -1,12 +1,13 @@
 module MemExecution
     open CommonData
+    open CommonLex
     open Helpers
     open Memory
     open CommonTop
     open Execution
     open Errors
 
-    let executeMem instr (cpuData: DataPath<Instr>) =
+    let executeMem instr (cpuData: DataPath<Parse<CommonTop.Instr>>) =
 
         let regContents r = cpuData.Regs.[r]
 
@@ -51,7 +52,7 @@ module MemExecution
             (value &&& 0x000000FFu) <<< shift
 
         /// Check if B suffix is presesnt on STR
-        let setWordOrByte suffix (value: uint32) addr (cpuData: DataPath<Instr>) = 
+        let setWordOrByte suffix (value: uint32) addr (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
             match suffix with
             | Some B -> updateMemByte (value |> byte) addr cpuData
             | None -> updateMemData value addr cpuData
@@ -62,7 +63,7 @@ module MemExecution
         //     | Some B -> getCorrectByte value addr
         //     | None -> value
         
-        let getWordOrByte suffix reg addr (cpuData: DataPath<Instr>) = 
+        let getWordOrByte suffix reg addr (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
             match suffix with
             | Some B -> fetchMemByte reg addr cpuData
             | None -> fetchMemData reg addr cpuData
@@ -105,13 +106,13 @@ module MemExecution
         //     let newCpuData = setReg rn value cpuData
         //     setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) newCpuData
         
-        let executeLDR suffix rn addr offset (cpuData: DataPath<Instr>) = 
+        let executeLDR suffix rn addr offset (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
             let address = (regContents addr.addrReg + getOffsetType addr.offset)
             let cpuData' = getWordOrByte suffix rn address cpuData
             Result.map (setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset)) cpuData'
             // setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) cpuData'
                 
-        let executeSTR suffix rn addr offset (cpuData: DataPath<Instr>) = 
+        let executeSTR suffix rn addr offset (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
             let address = (regContents addr.addrReg + getOffsetType addr.offset)
             let cpuData' = setWordOrByte suffix (regContents rn) address cpuData
             Result.map (setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset)) cpuData'
@@ -199,7 +200,7 @@ module MemExecution
             let regContentsList = List.map regContents rl
             setMultMem regContentsList (offsetList baseAddrInt) cpuData
 
-        let executeInstr (instr: MemInstr) (cpuData: DataPath<Instr>) = 
+        let executeInstr (instr: MemInstr) (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
             match instr with
             | LDR operands -> 
                 executeLDR operands.suff operands.Rn operands.addr operands.postOffset cpuData

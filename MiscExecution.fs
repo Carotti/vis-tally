@@ -3,6 +3,8 @@
     open Execution
     open Expressions
     open CommonData
+    open CommonLex
+    open CommonTop
     open Errors
 
     /// Execute a MISC instruction against the datapath
@@ -11,7 +13,7 @@
     /// would begin placing in memory
     // let executeMisc (dp, mem) ins : (Result<DataPath<CommonTop.Instr>,ErrExe>) =
 
-    let executeMisc ins mem dp : (Result<DataPath<CommonTop.Instr>*uint32,ErrExe>) =
+    let executeMisc ins mem dp : (Result<DataPath<Parse<CommonTop.Instr>>*uint32,ErrExe>) =
         let expectResolved exp =
             match exp with
             | ExpResolved data ->
@@ -59,7 +61,7 @@
 
         let executeFILL fIns =
             
-            let rec doFillByte numBytes fillVal mem' (dp': DataPath<CommonTop.Instr>) =
+            let rec doFillByte numBytes fillVal mem' (dp': DataPath<Parse<CommonTop.Instr>>) =
                 match mem' = mem + numBytes with
                 | false ->
                     Result.bind (doFillByte numBytes fillVal (mem' + 1u)) (updateMemByte (byte fillVal) mem' dp')
