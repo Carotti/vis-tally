@@ -8,7 +8,7 @@ module Symbols
     //     | SymbolErrors of EvalErr list
     //     | InvalidFillMultiple // When numBytes is not a multiple of valueSize
 
-    let symMap = Map.empty
+    let emptySymMap = Map.empty
 
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is

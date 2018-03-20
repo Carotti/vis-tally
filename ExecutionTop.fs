@@ -16,7 +16,7 @@ module ExecutionTop
     open ErrorMessages
 
 
-    let setMemInstr contents (addr: uint32) (cpuData: DataPath<CommonTop.Instr>) = 
+    let setMemInstr (contents: Parse<CommonTop.Instr>) (addr: uint32) (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
     // let updateMem contents addr (cpuData: DataPath<CommonTop.Instr>) =
         match addr % 4u with
         | 0u -> {cpuData with MM = Map.add (WA addr) (Code contents) cpuData.MM}
@@ -72,8 +72,8 @@ module ExecutionTop
         |> List.fold (pairLinePC) (Map.empty, 0u)
         |> fst
 
-    let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
-        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<CommonTop.Instr>) instrAddr dataAddr  =
+    let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<Parse<CommonTop.Instr>>) =
+        let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<Parse<CommonTop.Instr>>) instrAddr dataAddr  =
             match instrLst' with
             | head :: tail ->
                 match head with
@@ -95,7 +95,7 @@ module ExecutionTop
                         | Error _ -> failwithf "Woaaaaaaaaaaaaaah we need to sort this"
 
                     | _ ->
-                        let cpuData'' = setMemInstr (instr'.PInstr) instrAddr cpuData'
+                        let cpuData'' = setMemInstr (instr') instrAddr cpuData'
                         match instr'.PLabel with
                         | Some label ->
                             let symTableNew = symTable'.Add((label |> fst), (instrAddr))
