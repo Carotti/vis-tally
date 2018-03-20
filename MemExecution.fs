@@ -12,7 +12,7 @@ module MemExecution
 
         /// check if word address is valid and multiple of 4
         let (|Valid|_|) (input: uint32) = 
-            if input % 4u = 0u 
+            if input % word = 0u 
             then Valid |> Some
             else None
         
@@ -47,7 +47,7 @@ module MemExecution
  
         /// STRB to set the correct byte
         let setCorrectByte value addr = 
-            let shift = 8u * (addr % 4u) |> int32
+            let shift = 8u * (addr % word) |> int32
             (value &&& 0x000000FFu) <<< shift
 
         /// Check if B suffix is presesnt on STR
@@ -155,7 +155,8 @@ module MemExecution
                 List.map (fun el -> el |> uint32) lst
             let baseAddrInt = (regContents rn) |> int32
             let contents = getMemMult (offsetList baseAddrInt) [] cpuData
-            setMultRegs rl contents cpuData
+            let condensedContents = condenseResultList (id) contents
+            Result.map (fun conts -> setMultRegs rl conts cpuData) condensedContents
 
         let executeSTM suffix rn rl cpuData = 
             let offsetList start = 
@@ -196,7 +197,7 @@ module MemExecution
                 List.map (fun el -> el |> uint32) lst
             let baseAddrInt = (regContents rn) |> int32
             let regContentsList = List.map regContents rl
-            setMultMemData regContentsList (offsetList baseAddrInt) cpuData
+            setMultMem regContentsList (offsetList baseAddrInt) cpuData
 
         let executeInstr (instr: MemInstr) (cpuData: DataPath<Instr>) = 
             match instr with

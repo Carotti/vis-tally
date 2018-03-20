@@ -4,7 +4,27 @@ module Execution
     open Helpers
     open CommonTop
     open Errors
+
+    /// Function for setting a register
+    /// Takes RName and value and returns
+    /// new DataPath with that register set.
+    let setReg reg contents cpuData =
+        let setter reg' old = 
+            match reg' with
+            | x when x = reg -> contents
+            | _ -> old
+        {cpuData with Regs = Map.map setter cpuData.Regs}
     
+    /// Recursive function for setting multiple registers
+    /// Need to check that the lists provided are the same length
+    let rec setMultRegs regLst contentsLst cpuData =
+        match regLst, contentsLst with
+        | rhead :: rtail, chead :: ctail when (List.length regLst = List.length contentsLst) ->
+            let newCpuData = setReg rhead chead cpuData
+            setMultRegs rtail ctail newCpuData 
+        | [], [] -> cpuData
+        | _ -> failwith "Lists given to setMultRegs function were of different sizes."
+        
     /// Blank dataPath with all regs set to Zero and flags to false
     let initDataPath : DataPath<Instr> =
         let flags =
@@ -62,7 +82,7 @@ module Execution
         {dp with Regs = Map.add rX value dp.Regs}
         
     let validateWA addr =
-        match addr % 4u with
+        match addr % word with
         | 0u -> true
         | _ -> false
             
@@ -85,7 +105,7 @@ module Execution
     let updateMemData value = updateMem (DataLoc value)
 
     /// Return the next aligned address after addr
-    let alignAddress addr = (addr / 4u) * 4u
+    let alignAddress addr = (addr / word) * word
         
     /// Update a single byte in memory (Little Endian)
     // let updateMemByte (value : byte) (addr : uint32) dp =
@@ -104,7 +124,7 @@ module Execution
     
     let updateMemByte (value : byte) (addr : uint32) (dp: DataPath<Instr>) =
         let baseAddr = alignAddress addr
-        let shft = (int ((addr % 4u)* 8u))
+        let shft = (int ((addr % word)* 8u))
         let mask = 0xFFu <<< shft |> (~~~)
         let oldVal = 
             match Map.containsKey (WA baseAddr) dp.MM with
@@ -122,7 +142,7 @@ module Execution
 
    /// LDRB to load the correct byte
     let getCorrectByte value addr = 
-        let shift = 8u * (addr % 4u) |> int32
+        let shift = 8u * (addr % word) |> int32
         ((0x000000FFu <<< shift) &&& value) >>> shift
 
     let fetchMemData reg addr (cpuData: DataPath<Instr>) =
@@ -181,6 +201,20 @@ module Execution
                 // |> ``Run time warning``
                 // |> Error
                 setReg reg 0u cpuData |> Ok
+
+    /// Recursive function for storing multiple values at multiple memory addresses
+    /// Need to check that the lists provided are the same length
+    let rec setMultMem contentsLst addrLst cpuData : Result<DataPath<Instr>, ErrExe> =
+        match addrLst, contentsLst with
+        | mhead :: mtail, chead :: ctail when (List.length addrLst = List.length contentsLst) ->
+            let newCpuData = updateMemData chead mhead cpuData
+            Result.bind (setMultMem ctail mtail) newCpuData
+        | [], [] -> cpuData |> Ok
+        | _ -> failwith "Lists given to setMultMem function were of different sizes."
+    
+    /// Multiple setMemDatas 
+    // let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
+
         
     let fillRegs (vals : uint32 list) =
         List.zip [0..15] vals

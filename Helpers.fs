@@ -59,66 +59,6 @@ module Helpers
         match opList with
         | h1 :: h2 :: _ when (regsValid [h1 ; h2]) -> true 
         | _ -> false
-    
-    /// Function for setting a register
-    /// Takes RName and value and returns
-    /// new DataPath with that register set.
-    let setReg reg contents cpuData =
-        let setter reg' old = 
-            match reg' with
-            | x when x = reg -> contents
-            | _ -> old
-        {cpuData with Regs = Map.map setter cpuData.Regs}
-    
-    /// Recursive function for setting multiple registers
-    /// Need to check that the lists provided are the same length
-    let rec setMultRegs regLst contentsLst cpuData =
-        match regLst, contentsLst with
-        | rhead :: rtail, chead :: ctail when (List.length regLst = List.length contentsLst) ->
-            let newCpuData = setReg rhead chead cpuData
-            setMultRegs rtail ctail newCpuData
-        | [], [] -> cpuData
-        | _ -> failwithf "Something went wrong with lists"
-    
-    /// Function for storing a value at a memory location
-    /// Takes MemLoc and value and returns
-    /// new DataPath with that value stored.
-    let setMem contents (addr: uint32) cpuData =
-        match addr with
-        | x when (x < minAddress) ->
-            "Trying to access code memory location. < 0x100" |> qp |> ignore
-            cpuData
-        | _ ->
-            match addr % 4u with
-            | 0u -> {cpuData with MM = Map.add (WA addr) contents cpuData.MM}
-            | _ -> failwithf "Not aligned, but should have been checked already."
-    
-    /// Recursive function for storing multiple values at multiple memory addresses
-    /// Need to check that the lists provided are the same length
-    let rec setMultMem contentsLst addrLst cpuData =
-        match addrLst, contentsLst with
-        | mhead :: mtail, chead :: ctail when (List.length addrLst = List.length contentsLst) ->
-            let newCpuData = setMem chead mhead cpuData
-            setMultMem ctail mtail newCpuData
-        | [], [] -> cpuData
-        | _ -> failwithf "Something went wrong with lists"
-    
-    /// Useful converstion from uint32 to DataLoc followed by setting the memory
-    let setMemData contents = setMem (DataLoc contents)
-
-
-    /// Multiple setMemDatas 
-    let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
-
-    let fetchMem = function
-        | DataLoc dl -> dl
-        | Code c -> c
-        
-    /// Useful function for returning the uint32 stored at a MemLoc
-    let getMemData = function
-        | DataLoc dl -> dl
-        | _ -> 0u
-  
  
     /// Very simple property based tests for functions which I use a lot.
     /// Some truly are trivial! Huzzah!
