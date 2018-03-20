@@ -15,6 +15,7 @@
 - Adding multiple DCDs
 
 # Doug (King) and Maccth (Sultan)
+- Ask Nippy about `Currently assume that valueSize is always 1` in MiscExecution.fs
 - Adding multiple DCDs to memory and ST
 - Maintaining line number to currently executing instruction
 - Correctly executing a sequence of instructions
