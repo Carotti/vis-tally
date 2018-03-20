@@ -10,6 +10,12 @@ module MemExecution
 
         let regContents r = cpuData.Regs.[r]
 
+        let getMemLoc addr cpuData =
+            cpuData.MM.[addr]
+
+        let locExists m = 
+            Map.containsKey m cpuData.MM
+
         /// check if word address is valid and multiple of 4
         let (|Valid|_|) (input: uint32) = 
             if input % 4u = 0u 
@@ -66,6 +72,49 @@ module MemExecution
             match suffix with
             | Some B -> getCorrectByte value addr
             | None -> value
+        
+        let fetchMemData reg addr cpuData =
+            match addr with
+            | a when (a < minAddress) ->
+                (a |> string, " Trying to access memory where instructions are stored.")
+                ||> makeError 
+                |> ``Run time error``
+                |> Error
+            | _ -> 
+                let wordAddr = WA addr
+                match locExists wordAddr with
+                | true -> 
+                    match getMemLoc wordAddr cpuData with
+                    | DataLoc dl ->
+                        setReg reg dl cpuData |> Ok
+                    | Code c -> 
+                        (c |> string, " Trying to access memory where instructions are stored.")
+                        ||> makeError 
+                        |> ``Run time error``
+                        |> Error
+                | false -> setReg reg 0u cpuData |> Ok
+        
+        let fetchMemByte reg addr cpuData =
+            match addr with
+            | a when (a < minAddress) ->
+                (a |> string, " Trying to access memory where instructions are stored.")
+                ||> makeError 
+                |> ``Run time error``
+                |> Error
+            | _ -> 
+                let wordAddr = WA addr
+                match locExists wordAddr with
+                | true -> 
+                    match getMemLoc wordAddr cpuData with
+                    | DataLoc dl ->
+                        let byteValue = getCorrectByte dl addr
+                        setReg reg byteValue cpuData |> Ok
+                    | Code c -> 
+                        (c |> string, " Trying to access memory where instructions are stored.")
+                        ||> makeError 
+                        |> ``Run time error``
+                        |> Error
+                | false -> setReg reg 0u cpuData |> Ok
 
         /// get memory stored a address check its not in code segment 
         let getMem addr cpuData = 
@@ -74,9 +123,8 @@ module MemExecution
                 "Trying to access code memory location. < 0x100" |> qp |> ignore
                 0u
             | _ -> 
-                let memValid m = Map.containsKey m cpuData.MM
                 let wordAddr = WA addr
-                match memValid wordAddr with
+                match locExists wordAddr with
                 | true -> 
                     let memloc = cpuData.MM.[wordAddr] 
                     getMemData memloc

@@ -3,6 +3,7 @@ module Execution
     open CommonLex
     open Helpers
     open CommonTop
+    open Errors
     
     /// Blank dataPath with all regs set to Zero and flags to false
     let initDataPath : DataPath<Instr> =
@@ -60,6 +61,15 @@ module Execution
         | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
         | _ -> failwithf "Trying to update memory at unaligned address"
 
+    // let updateMem value (addr : uint32) dp =
+    //     match addr % 4u with
+    //     | 0u -> {dp with MM = Map.add (WA addr) value dp.MM} |> Ok
+    //     | _ -> 
+    //         (addr |> string, " Trying to update memory at unaligned address.")
+    //         ||> makeError 
+    //         |> ``Run time error``
+    //         |> Error
+
     let updateMemData value = updateMem (DataLoc value)
 
     /// Return the next aligned address after addr
@@ -79,6 +89,24 @@ module Execution
             | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
             | _ -> failwithf "Updating byte at instruction address"
         updateMem (DataLoc newVal) baseAddr dp
+    
+    // let updateMemByte (value : byte) (addr : uint32) dp =
+    //     let baseAddr = alignAddress (addr)
+    //     let shft = (int ((addr % 4u)* 8u))
+    //     let mask = 0xFFu <<< shft |> (~~~)
+    //     let oldVal = 
+    //         match Map.containsKey (WA baseAddr) dp.MM with
+    //         | true -> dp.MM.[WA baseAddr]
+    //         | false -> DataLoc 0u // Uninitialised memory is zeroed
+    //     match oldVal with
+    //     | DataLoc x -> 
+    //         let newVal = (x &&& mask) ||| ((uint32 value) <<< shft)
+    //         updateMem (DataLoc newVal) baseAddr dp |> Ok
+    //     | Code c -> 
+    //         (c |> string, " Updating a byte at an instruction address.")
+    //         ||> makeError 
+    //         |> ``Run time error``
+    //         |> Error
         
     let fillRegs (vals : uint32 list) =
         List.zip [0..15] vals
