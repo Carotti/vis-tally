@@ -108,6 +108,7 @@
         let parsedList = List.map parseInstr lst
         let errorList = 
             parsedList
+            |> lineNumList
             |> generateErrorList
         errorList
         |> List.length

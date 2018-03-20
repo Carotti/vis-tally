@@ -42,9 +42,12 @@ module ExecutionTop
         | Ok resInstr -> resInstr
         | Error _ -> failwithf "Invalid Symbol"
 
-    let generateErrorList (instrLst: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr> list) =
+    let lineNumList (instrLst: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr> list) =
         [1u..(List.length instrLst) |> uint32]
         |> List.zip instrLst
+
+    let generateErrorList lineNumLst =
+        lineNumLst
         |> List.filter (function | Error _, _ -> true | Ok _, _ -> false)
 
     let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
