@@ -110,7 +110,10 @@ module Helpers
     /// Multiple setMemDatas 
     let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
 
-
+    let fetchMem = function
+        | DataLoc dl -> dl
+        | Code c -> c
+        
     /// Useful function for returning the uint32 stored at a MemLoc
     let getMemData = function
         | DataLoc dl -> dl
