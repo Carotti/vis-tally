@@ -30,6 +30,12 @@ module Execution
     let getPC (cpuData: DataPath<Instr>) =
         cpuData.Regs.[R15]
 
+    let getMemLoc addr cpuData =
+        cpuData.MM.[addr]
+
+    let locExists m cpuData = 
+        Map.containsKey m cpuData.MM
+
     /// Tom's condExecute instruction as he made it first (don't reinvent the wheel)
     let condExecute (instr: CommonLex.Parse<Instr>) (cpuData: DataPath<Instr>) =
         let n, c, z, v = (cpuData.Fl.N, cpuData.Fl.C, cpuData.Fl.Z, cpuData.Fl.V)
@@ -54,21 +60,27 @@ module Execution
     /// Return a new datapath with reg rX set to value
     let updateReg value rX dp =
         {dp with Regs = Map.add rX value dp.Regs}
+        
+    let validateWA addr =
+        match addr % 4u with
+        | 0u -> true
+        | _ -> false
+            
 
     // Update the whole word at addr with value in dp
-    let updateMem value (addr : uint32) dp =
-        match addr % 4u with
-        | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
-        | _ -> failwithf "Trying to update memory at unaligned address"
-
     // let updateMem value (addr : uint32) dp =
     //     match addr % 4u with
-    //     | 0u -> {dp with MM = Map.add (WA addr) value dp.MM} |> Ok
-    //     | _ -> 
-    //         (addr |> string, " Trying to update memory at unaligned address.")
-    //         ||> makeError 
-    //         |> ``Run time error``
-    //         |> Error
+    //     | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
+    //     | _ -> failwithf "Trying to update memory at unaligned address"
+
+    let updateMem value (addr : uint32) (dp: DataPath<Instr>) =
+        match validateWA addr with
+        | true -> {dp with MM = Map.add (WA addr) value dp.MM} |> Ok
+        | false -> 
+            (addr |> string, " Trying to update memory at unaligned address.")
+            ||> makeError 
+            |> ``Run time error``
+            |> Error
 
     let updateMemData value = updateMem (DataLoc value)
 
@@ -76,20 +88,6 @@ module Execution
     let alignAddress addr = (addr / 4u) * 4u
         
     /// Update a single byte in memory (Little Endian)
-    let updateMemByte (value : byte) (addr : uint32) dp =
-        let baseAddr = alignAddress (addr)
-        let shft = (int ((addr % 4u)* 8u))
-        let mask = 0xFFu <<< shft |> (~~~)
-        let oldVal = 
-            match Map.containsKey (WA baseAddr) dp.MM with
-            | true -> dp.MM.[WA baseAddr]
-            | false -> DataLoc 0u // Uninitialised memory is zeroed
-        let newVal = 
-            match oldVal with
-            | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
-            | _ -> failwithf "Updating byte at instruction address"
-        updateMem (DataLoc newVal) baseAddr dp
-    
     // let updateMemByte (value : byte) (addr : uint32) dp =
     //     let baseAddr = alignAddress (addr)
     //     let shft = (int ((addr % 4u)* 8u))
@@ -98,15 +96,91 @@ module Execution
     //         match Map.containsKey (WA baseAddr) dp.MM with
     //         | true -> dp.MM.[WA baseAddr]
     //         | false -> DataLoc 0u // Uninitialised memory is zeroed
-    //     match oldVal with
-    //     | DataLoc x -> 
-    //         let newVal = (x &&& mask) ||| ((uint32 value) <<< shft)
-    //         updateMem (DataLoc newVal) baseAddr dp |> Ok
-    //     | Code c -> 
-    //         (c |> string, " Updating a byte at an instruction address.")
-    //         ||> makeError 
-    //         |> ``Run time error``
-    //         |> Error
+    //     let newVal = 
+    //         match oldVal with
+    //         | DataLoc x -> (x &&& mask) ||| ((uint32 value) <<< shft)
+    //         | _ -> failwithf "Updating byte at instruction address"
+    //     updateMem (DataLoc newVal) baseAddr dp
+    
+    let updateMemByte (value : byte) (addr : uint32) (dp: DataPath<Instr>) =
+        let baseAddr = alignAddress addr
+        let shft = (int ((addr % 4u)* 8u))
+        let mask = 0xFFu <<< shft |> (~~~)
+        let oldVal = 
+            match Map.containsKey (WA baseAddr) dp.MM with
+            | true -> dp.MM.[WA baseAddr]
+            | false -> DataLoc 0u // Uninitialised memory is zeroed
+        match oldVal with
+        | DataLoc x -> 
+            let newVal = (x &&& mask) ||| ((uint32 value) <<< shft)
+            updateMem (DataLoc newVal) baseAddr dp
+        | Code c -> 
+            (c |> string, " Updating a byte at an instruction address.")
+            ||> makeError 
+            |> ``Run time error``
+            |> Error
+
+   /// LDRB to load the correct byte
+    let getCorrectByte value addr = 
+        let shift = 8u * (addr % 4u) |> int32
+        ((0x000000FFu <<< shift) &&& value) >>> shift
+
+    let fetchMemData reg addr (cpuData: DataPath<Instr>) =
+        match validateWA addr with
+        | true ->
+            match addr with
+            | a when (a < minAddress) ->
+                (a |> string, " Trying to access memory where instructions are stored.")
+                ||> makeError 
+                |> ``Run time error``
+                |> Error
+            | _ -> 
+                let baseAddr = alignAddress addr
+                let wordAddr = WA baseAddr
+                match locExists wordAddr cpuData with
+                | true -> 
+                    match getMemLoc wordAddr cpuData with
+                    | DataLoc dl ->
+                        setReg reg dl cpuData |> Ok
+                    | Code c -> 
+                        (c |> string, " Trying to access memory where instructions are stored.")
+                        ||> makeError 
+                        |> ``Run time error``
+                        |> Error
+                | false -> setReg reg 0u cpuData |> Ok
+        | false -> 
+            (addr |> string, " Trying to update memory at unaligned address.")
+            ||> makeError 
+            |> ``Run time error``
+            |> Error
+    
+    let fetchMemByte reg addr (cpuData: DataPath<Instr>) =
+        match addr with
+        | a when (a < minAddress) ->
+            (a |> string, " Trying to access memory where instructions are stored.")
+            ||> makeError 
+            |> ``Run time error``
+            |> Error
+        | _ -> 
+            let baseAddr = alignAddress addr
+            let wordAddr = WA baseAddr
+            match locExists wordAddr cpuData with
+            | true -> 
+                match getMemLoc wordAddr cpuData with
+                | DataLoc dl ->
+                    let byteValue = getCorrectByte dl addr
+                    setReg reg byteValue cpuData |> Ok
+                | Code c -> 
+                    (c |> string, " Trying to access memory where instructions are stored.")
+                    ||> makeError 
+                    |> ``Run time error``
+                    |> Error
+            | false -> 
+                // (addr |> string, " You have not stored anything at this address, value is set to 0.")
+                // ||> makeError 
+                // |> ``Run time warning``
+                // |> Error
+                setReg reg 0u cpuData |> Ok
         
     let fillRegs (vals : uint32 list) =
         List.zip [0..15] vals

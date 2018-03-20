@@ -10,12 +10,6 @@ module MemExecution
 
         let regContents r = cpuData.Regs.[r]
 
-        let getMemLoc addr cpuData =
-            cpuData.MM.[addr]
-
-        let locExists m = 
-            Map.containsKey m cpuData.MM
-
         /// check if word address is valid and multiple of 4
         let (|Valid|_|) (input: uint32) = 
             if input % 4u = 0u 
@@ -56,81 +50,44 @@ module MemExecution
             let shift = 8u * (addr % 4u) |> int32
             (value &&& 0x000000FFu) <<< shift
 
-        /// LDRB to load the correct byte
-        let getCorrectByte value addr = 
-            let shift = 8u * (addr % 4u) |> int32
-            ((0x000000FFu <<< shift) &&& value) >>> shift
-
         /// Check if B suffix is presesnt on STR
-        let setWordOrByte suffix (value: uint32) addr cpuData = 
+        let setWordOrByte suffix (value: uint32) addr (cpuData: DataPath<Instr>) = 
             match suffix with
             | Some B -> updateMemByte (value |> byte) addr cpuData
             | None -> updateMemData value addr cpuData
 
         /// Check if B suffix is presesnt on LDR
-        let getWordOrByte suffix value addr = 
+        // let getWordOrByte suffix value addr = 
+        //     match suffix with
+        //     | Some B -> getCorrectByte value addr
+        //     | None -> value
+        
+        let getWordOrByte suffix reg addr (cpuData: DataPath<Instr>) = 
             match suffix with
-            | Some B -> getCorrectByte value addr
-            | None -> value
-        
-        let fetchMemData reg addr cpuData =
-            match addr with
-            | a when (a < minAddress) ->
-                (a |> string, " Trying to access memory where instructions are stored.")
-                ||> makeError 
-                |> ``Run time error``
-                |> Error
-            | _ -> 
-                let wordAddr = WA addr
-                match locExists wordAddr with
-                | true -> 
-                    match getMemLoc wordAddr cpuData with
-                    | DataLoc dl ->
-                        setReg reg dl cpuData |> Ok
-                    | Code c -> 
-                        (c |> string, " Trying to access memory where instructions are stored.")
-                        ||> makeError 
-                        |> ``Run time error``
-                        |> Error
-                | false -> setReg reg 0u cpuData |> Ok
-        
-        let fetchMemByte reg addr cpuData =
-            match addr with
-            | a when (a < minAddress) ->
-                (a |> string, " Trying to access memory where instructions are stored.")
-                ||> makeError 
-                |> ``Run time error``
-                |> Error
-            | _ -> 
-                let wordAddr = WA addr
-                match locExists wordAddr with
-                | true -> 
-                    match getMemLoc wordAddr cpuData with
-                    | DataLoc dl ->
-                        let byteValue = getCorrectByte dl addr
-                        setReg reg byteValue cpuData |> Ok
-                    | Code c -> 
-                        (c |> string, " Trying to access memory where instructions are stored.")
-                        ||> makeError 
-                        |> ``Run time error``
-                        |> Error
-                | false -> setReg reg 0u cpuData |> Ok
-
+            | Some B -> fetchMemByte reg addr cpuData
+            | None -> fetchMemData reg addr cpuData
+    
         /// get memory stored a address check its not in code segment 
         let getMem addr cpuData = 
             match addr with
             | x when (x < minAddress) ->
-                "Trying to access code memory location. < 0x100" |> qp |> ignore
-                0u
+                (x |> string, " Trying to access memory where instructions are stored.")
+                ||> makeError 
+                |> ``Run time error``
+                |> Error
             | _ -> 
                 let wordAddr = WA addr
-                match locExists wordAddr with
+                match locExists wordAddr cpuData with
                 | true -> 
-                    let memloc = cpuData.MM.[wordAddr] 
-                    getMemData memloc
-                | false -> 
-                    "Nothing stored at provided address" |> qp
-                    0u
+                    match getMemLoc wordAddr cpuData with
+                    | DataLoc dl ->
+                        dl |> Ok
+                    | Code c -> 
+                        (c |> string, " Trying to access memory where instructions are stored.")
+                        ||> makeError 
+                        |> ``Run time error``
+                        |> Error
+                | false -> 0u |> Ok
         
         /// get multiple memory 
         let rec getMemMult addrList contentsLst cpuData = 
@@ -140,18 +97,24 @@ module MemExecution
                 getMemMult tail addedVal cpuData
             | [] -> contentsLst |> List.rev
         
-        let executeLDR suffix rn addr offset cpuData = 
+        // let executeLDR suffix rn addr offset cpuData = 
+        //     let address = (regContents addr.addrReg + getOffsetType addr.offset)
+        //     let alignedAddr = alignAddress address
+        //     let contents = getMem alignedAddr cpuData
+        //     let value = getWordOrByte suffix contents (regContents addr.addrReg + getOffsetType addr.offset)
+        //     let newCpuData = setReg rn value cpuData
+        //     setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) newCpuData
+        
+        let executeLDR suffix rn addr offset (cpuData: DataPath<Instr>) = 
             let address = (regContents addr.addrReg + getOffsetType addr.offset)
-            let alignedAddr = alignAddress address
-            let contents = getMem alignedAddr cpuData
-            let value = getWordOrByte suffix contents (regContents addr.addrReg + getOffsetType addr.offset)
-            let newCpuData = setReg rn value cpuData
-            setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) newCpuData
+            let cpuData' = getWordOrByte suffix rn address cpuData
+            Result.map (setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset)) cpuData'
+            // setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) cpuData'
                 
-        let executeSTR suffix rn addr offset cpuData = 
+        let executeSTR suffix rn addr offset (cpuData: DataPath<Instr>) = 
             let address = (regContents addr.addrReg + getOffsetType addr.offset)
             let cpuData' = setWordOrByte suffix (regContents rn) address cpuData
-            setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset) cpuData'
+            Result.map (setReg addr.addrReg (regContents addr.addrReg + getPostIndex offset)) cpuData'
 
         let executeLDM suffix rn rl cpuData =
             let offsetList start = 
@@ -246,6 +209,6 @@ module MemExecution
             | STM operands ->
                 executeSTM operands.suff operands.Rn operands.rList cpuData
 
-        executeInstr instr cpuData |> Ok
+        executeInstr instr cpuData
 
 

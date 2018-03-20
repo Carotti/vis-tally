@@ -3,6 +3,8 @@ module ErrorMessages
     /// Failure message for impossible match cases
     let alwaysMatchesFM = "Should never happen! Match statement always matches."
 
+    let noErrorsFM = "Should never happen! No errors at this stage."
+
     // *************************************************************************
     // Error messages for instruction parsing
     // *************************************************************************

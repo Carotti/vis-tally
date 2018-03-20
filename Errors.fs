@@ -10,7 +10,9 @@ module Errors
     type ErrExe =
         | NotInstrMem of uint32 // Address where there is no instruction
         | ``Run time error`` of ErrorBase
+        | ``Run time warning`` of ErrorBase
         | EXIT // Used to exit execution of the simulation
+
     let makeError txt message =
         {
             errorTxt = txt;
@@ -51,7 +53,3 @@ module Errors
                 | Error e -> e |> Error
             | [] -> List.rev outlst |> Ok
         condenser' lst [] 
-
-    let stripResultList lst =
-        lst
-        |> List.map (function | Ok i -> i | _ -> failwith alwaysMatchesFM) 

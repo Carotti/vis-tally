@@ -13,6 +13,7 @@ module ExecutionTop
     open MiscExecution
     open Helpers
     open Branch
+    open ErrorMessages
 
 
     let setMemInstr contents (addr: uint32) (cpuData: DataPath<CommonTop.Instr>) = 
@@ -58,15 +59,17 @@ module ExecutionTop
                 | true ->
                     0u
                 | false ->
-                    instr'.PSize 
-        let addPcToLine ((lineMap:Map<uint32,uint32>), pc) (instr, lineNum) =
-            let lineMap' = lineMap.Add(pc,lineNum)
+                    instr'.PSize
+            | Error _ -> failwith noErrorsFM
+
+        let pairLinePC ((lineMap:Map<uint32,uint32>), pc) (instr, lineNum) =
+            let lineMap' = lineMap.Add(pc, lineNum)
             let pc' = pc + (getPcInc instr)
             (lineMap', pc')
         
         instrLst
         |> lineNumList
-        |> List.fold (addPcToLine) (Map.empty, 0u)
+        |> List.fold (pairLinePC) (Map.empty, 0u)
         |> fst
 
     let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
