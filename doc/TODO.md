@@ -12,7 +12,6 @@
 - Adding program counter for non-MISC instructions to symbol table
 - Misc instructions executing
 - Storing instructions in memory
-
 - Adding multiple DCDs
 
 # Doug (King) and Maccth (Sultan)

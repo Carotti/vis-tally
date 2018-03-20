@@ -49,6 +49,25 @@ module ExecutionTop
     let generateErrorList lineNumLst =
         lineNumLst
         |> List.filter (function | Error _, _ -> true | Ok _, _ -> false)
+    
+    let pcToLine (instrLst: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr> list) =
+        let getOPcInc (instr: Result<CommonLex.Parse<CommonTop.Instr>, CommonTop.ErrInstr>) =
+            match instr with
+            | Ok instr' ->
+                match instr'.PInstr with
+                | CommonTop.IMEM (Mem instr'') ->
+                    instr'.PSize
+                | CommonTop.IDP (DPTop instr'') ->
+                    instr'.PSize
+                | CommonTop.IBRANCH (Branch instr'') ->
+                    instr'.PSize
+                | _ -> 
+                    0u
+            | _ ->
+                0u
+        instrLst
+        |> lineNumList
+        // |> List.fold (fun (m, a) i -> (m.Add(a,)) ) (Map.empty, 0u)
 
     let fillSymTable (instrLst: Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable: SymbolTable) (cpuData : DataPath<CommonTop.Instr>) =
         let rec fillSymTable' (instrLst': Result<CommonLex.Parse<CommonTop.Instr>,CommonTop.ErrInstr> list) (symTable': SymbolTable) (cpuData' : DataPath<CommonTop.Instr>) instrAddr dataAddr  =
