@@ -15,17 +15,18 @@
 - Adding multiple DCDs
 - Spreading error monads for execution
 - Adding multiple DCDs to memory and ST
+- Correctly executing a sequence of instructions
+- Maintaining line number to currently executing instruction
+- Checking line number and message for parse error
+- Fix byte in MEM
 
 
 # Doug (King) and Maccth (Sultan)
 - Ask Nippy about `Currently assume that valueSize is always 1` in MiscExecution.fs
 
-- Maintaining line number to currently executing instruction
-- Correctly executing a sequence of instructions
+- Checking line number and message for execution error
 - Debugging DP execution (add tests)
-- Fix byte in MEM (add tests)
 - Create headless mode
-- Terminal REPL
 - Marrying the GUI
 - Removing code redunduncy
 - Make helper documentation

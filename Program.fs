@@ -31,7 +31,7 @@
             "dcd3 DCD 700";//19, n/a
             "aurevoir MOV r4, #0x100";//20, 40
             "   ";//21, n/a
-            "aGoodBranch mov r0, #5"; //22, 44
+            "aGoodBranch mov r0, #0"; //22, 44
             "add r0, r0, #7"; //23, 48 
             "B aGoodBranch";//24, 52
             "END";
@@ -153,6 +153,7 @@
                     parsedList
                     |> makePcToLineNum
                 symTable' |> qp
+                prettyPrint (cpuData'' |> Ok) 
                 executer (cpuData'' |> Ok) pcLineMap symTable'
                 
             | Error e ->
