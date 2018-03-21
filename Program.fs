@@ -26,12 +26,14 @@
             "aufwiedersehn MOV r2, #3"; //14, 28
             "dcd2 DCD 500";//15, n/a
             "\n   ";//16, n/a
-            "tchus MOV r3, #4";//17, 32
+            "MOV r3, #4";//17, 32
             "add r1, r2, r3, lsl r2";//18, 36
             "dcd3 DCD 700";//19, n/a
             "aurevoir MOV r4, #0x100";//20, 40
             "   ";//21, n/a
-            "B tchus";//22, 44
+            "aGoodBranch mov r0, #5"; //22, 44
+            "add r0, r0, #7"; //23, 48 
+            "B aGoodBranch";//24, 52
             "END";
         ]
 
@@ -45,7 +47,7 @@
         | Ok cpuData ->
             cpuData.Regs |> Map.toList |> List.map (fun (r, v) -> printfn "(%A : 0x%x)" r v) |> ignore
             cpuData.Fl |> qp |> ignore
-            cpuData.MM |> Map.toList |> qpl |> ignore
+            // cpuData.MM |> Map.toList |> qpl |> ignore
         | Error e -> e |> qp
         
     let replParse() =
@@ -127,7 +129,9 @@
                         e |> qp
                         failwith "Instruction has an error."   
                 | false ->
-                    prettyPrint (cpuData' |> Ok)              
+                    prettyPrint (cpuData' |> Ok)
+            | Error EXIT ->
+                prettyPrint cpuData      
             | Error e ->
                 e |> qp
                 failwith "The DataPath has an error."                    
