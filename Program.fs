@@ -11,29 +11,7 @@
     /// A List of instructions to parse and then execute.
     let instrLst = [
             "dcd1 DCD 123"; // 1, n/a
-            "mov r1, #0xff"; // 2, 0
-            "add r1, r1, #1"; //3, 4 
-            "dcb1 DCB 9"; // 4, n/a
-            "ldrb r3, [r1]"; // 5, 8
-            "dcb2 DCB 10"; // 6, n/a
-            "hello MOV r0, #1"; // 7, 12
-            "goodbye MOV r1, #2"; // 8, 16
-            " \t  "; // 9 n/a
-            "dcb3 DCB 11"; // 10, n/a
-            "lsl r4, r1, #6"; // 11, 20
-            "dcb4 DCB 12"; // 12, n/a
-            "lsr r3, r4, r2"; // 13, 24
-            "aufwiedersehn MOV r2, #3"; //14, 28
-            "dcd2 DCD 500";//15, n/a
-            "\n   ";//16, n/a
-            "MOV r3, #4";//17, 32
-            "add r1, r2, r3, lsl r2";//18, 36
-            "dcd3 DCD 700";//19, n/a
-            "aurevoir MOV r4, #0x100";//20, 40
-            "   ";//21, n/a
-            "aGoodBranch mov r0, #0"; //22, 44
-            "add r0, r0, #7"; //23, 48 
-            "B aGoodBranch";//24, 52
+            "adr R0, dcd1";
             "END";
         ]
 

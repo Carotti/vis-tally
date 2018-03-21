@@ -14,6 +14,7 @@ module ExecutionTop
     open Helpers
     open Branch
     open ErrorMessages
+    open FsCheck
 
 
     let setMemInstr (contents: Parse<CommonTop.Instr>) (addr: uint32) (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
@@ -80,11 +81,11 @@ module ExecutionTop
                 | Ok instr' ->
                     match instr'.PInstr with
                     | CommonTop.IMISC (Misc instr'') ->
-                        let label =
+                        let symTableNew = 
                             match instr'.PLabel with
-                            | Some s -> s
-                            | _ -> failwith "2222Woaaaaaaaaaaaaaah we need to sort this"
-                        let symTableNew = symTable'.Add((label |> fst), (dataAddr))
+                            | Some s -> symTable'.Add((s |> fst), (dataAddr))
+                            | None -> symTable'
+                            
                         let resInstr = miscResolve instr'' symTableNew
                         
                         executeMisc resInstr dataAddr cpuData'
