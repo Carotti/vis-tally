@@ -23,7 +23,7 @@
 
 # Doug (King) and Maccth (Sultan)
 - Ask Nippy about `Currently assume that valueSize is always 1` in MiscExecution.fs
-
+- Sort Helpers and Execution files
 - Checking line number and message for execution error
 - Debugging DP execution (add tests)
 - Create headless mode
