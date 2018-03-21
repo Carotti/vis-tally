@@ -77,9 +77,14 @@
             |> mapErrorApplyResult (dp |> Ok)
             |> Result.bind (id)
             
+        let executeADR aIns = 
+            match aIns.exp with
+                | ExpResolved x -> (setReg aIns.reg x dp, mem) |> Ok
+                | _ -> failwithf "Trying to execute unresolved ADR Instruction"
 
         match ins with
         | DCD lst -> executeDCD lst
         | DCB lst -> executeDCB lst
         | FILL fIns -> executeFILL fIns
+        | ADR aIns -> executeADR aIns
         | EQU _ -> failwithf "Can't execute EQU"

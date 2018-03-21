@@ -8,15 +8,20 @@ module Misc
     open Expressions
 
     open Errors
+    open DP
+    open FsCheck
 
     // Don't support valueSize yet, always set to 1
     type FILLInstr = {numBytes : SymbolExp ; value : SymbolExp ; valueSize : int}
+
+    type ADRInstr = {reg : RName ; exp : SymbolExp}
 
     type MiscInstr =
         | DCD of SymbolExp list
         | DCB of SymbolExp list
         | FILL of FILLInstr
         | EQU of SymbolExp
+        | ADR of ADRInstr
 
     type Instr =
         | Misc of MiscInstr
@@ -90,6 +95,11 @@ module Misc
             (evalSymExp syms) exp
             |> Result.map EQU
             |> Result.mapError SymbolErrors 
+        | ADR {reg = r ; exp = e} ->
+            (evalSymExp syms) e
+            |> Result.map (fun x -> {reg = r ; exp = x})
+            |> Result.map ADR
+            |> Result.mapError SymbolErrors
     
     let parseExpr txt =
         match txt with
@@ -99,6 +109,17 @@ module Misc
             ||> makeError
             |> ``Invalid expression``
             |> Error
+
+    let (|ADROp|_|) txt = 
+        match txt with
+        | RegexPrefix "ADR" (_, cond) ->
+            let uCond = cond.ToUpper()
+            match Map.containsKey uCond condMap with
+            | true -> Some condMap.[uCond]
+            | false -> None
+        | _ -> None
+
+    let commaSplit (x : string) =  x.Split([|','|]) |> Array.toList
 
     let rec parseExprList txt =
         match txt with
@@ -185,7 +206,7 @@ module Misc
 
         let parseFILL () =
             let parseFILL' = 
-                match ls.Operands.Split([|','|]) |> Array.toList with
+                match commaSplit ls.Operands with
                 | [Expr (num, "") ; Expr (v, "")] -> 
                     Ok (num, v, 1)
                 | [Expr (num, "")] -> 
@@ -222,12 +243,41 @@ module Misc
                     }) |> Result.map Misc
             fillMap parseSPACE'
 
+        let parseADR cond = 
+            let parseOperands =
+                match commaSplit ls.Operands with
+                | [reg ; s] ->
+                    let uReg = reg.ToUpper()
+                    match Map.tryFind uReg regNames with
+                    | Some r -> 
+                        parseExpr s |> Result.map (fun x ->
+                            {reg = r ; exp = x}
+                        )
+                    | None -> (reg, "is an invalid register.")
+                            ||> makeError
+                            |> ``Invalid register``
+                            |> Error
+                    
+                | _ -> (ls.Operands, "are invalid operands.")
+                        ||> makeError
+                        |> ``Invalid instruction``
+                        |> Error
+            parseOperands |> Result.map (ADR >> Misc) |> Result.map (fun x ->
+                {
+                    PInstr = x;
+                    PLabel = ls.Label |> Option.map (fun lab -> lab, la);
+                    PSize = 4u;
+                    PCond = cond;
+                }
+            )
+
         match ls.OpCode.ToUpper() with
         | "DCD" -> parseDCD () |> Some
         | "DCB" -> parseDCB () |> Some
         | "EQU" -> parseEQU () |> Some
         | "FILL" -> parseFILL () |> Some
         | "SPACE" -> parseSPACE () |> Some
+        | ADROp cond -> parseADR cond |> Some
         | _ -> None
 
     /// Parse Active Pattern used by top-level code
