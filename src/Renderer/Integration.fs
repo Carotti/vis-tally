@@ -1,0 +1,83 @@
+module Integration
+
+open Tabs
+open Update
+open Helpers
+open CommonData
+open CommonLex
+open CommonTop
+open ExecutionTop
+
+open Errors
+
+open Fable.Core.JsInterop
+open Fable.Import
+open Fable.Import.Browser
+open Fable.Core
+
+open Fable.Import.Electron
+open Node.Exports
+open System.IO
+
+let fNone = Microsoft.FSharp.Core.option.None
+
+let parseInstr input =
+    parseLine fNone (WA 0u) (uppercase input)
+
+let instrToParse err = 
+    match err with
+    | ERRIMEM x -> x
+    | ERRIDP x -> x
+    | ERRMISC x -> x
+    | ERRBRANCH x -> x
+    | ERRTOPLEVEL x -> x
+
+let highlightError (err, lineNo) tId = 
+    let getErrNames = 
+        match err with
+        | ``Invalid literal`` x -> "Invalid literal", x
+        | ``Invalid second operand`` x -> "Invalid second operand", x
+        | ``Invalid flexible second operand`` x -> "Invalid flexible second operand", x
+        | ``Invalid memory address`` x  -> "Invalid memory address", x
+        | ``Invalid offset`` x  -> "Invalid offset", x
+        | ``Invalid register`` x  -> "Invalid register", x
+        | ``Invalid shift`` x  -> "Invalid shift", x
+        | ``Invalid suffix`` x  -> "Invalid suffix", x
+        | ``Invalid instruction`` x  -> "Invalid instruction", x
+        | ``Invalid expression`` x  -> "Invalid expression", x
+        | ``Invalid expression list`` x  -> "Invalid expression list", x
+        | ``Invalid fill`` x  -> "Invalid fill", x
+        | ``Label required`` x  -> "Label required", x
+        | ``Unimplemented instruction`` x -> "Invalid instruction", x
+    let errUnpacker (errName, err : ErrorBase) =
+        makeErrorInEditor tId lineNo (err.errorTxt + err.errorMessage) 
+
+    errUnpacker getErrNames
+let tryParseCode tId =
+    match isTabUnsaved tId with
+    | true -> Browser.window.alert("File is unsaved, please save and try again")
+    | false ->
+        let onceFileRead (fileData : Node.Buffer.Buffer) =
+            let stringList = fileData.toString("utf8") |> (fun (x : string) -> x.Split [|'\n'|]) |> Array.toList
+
+            let parsedList = List.map parseInstr stringList
+
+            let errors = 
+                parsedList
+                |> List.map (Result.mapError instrToParse)
+                |> lineNumList
+                |> generateErrorList
+
+            Browser.console.log(sprintf "%A" errors)
+
+            match List.length errors with
+            | 0 -> failwithf "Will do some execution"
+            | _ -> List.map (fun x -> highlightError x tId) errors
+            |> ignore
+
+            Browser.console.log("Working")
+
+        fs.readFile(getTabFilePath tId, (fun err data -> // TODO: find out what this error does
+            onceFileRead data
+        ))
+

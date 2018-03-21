@@ -3,8 +3,25 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Common.fs" />
-    <Compile Include="Tests.fs" />
+<Compile Include="CommonData.fs" />
+    <Compile Include="CommonLex.fs" />    
+    <Compile Include="Helpers.fs" />
+    <Compile Include="ErrorMessages.fs" />
+    <Compile Include="Errors.fs" />
+    <Compile Include="Expressions.fs" />
+    <Compile Include="Symbols.fs" />
+    <Compile Include="Memory.fs" />
+    <Compile Include="DP.fs" />
+    <Compile Include="Branch.fs" />
+    <Compile Include="Misc.fs" />
+    <Compile Include="CommonTop.fs" />
+    <Compile Include="Execution.fs" />
+    <Compile Include="MiscExecution.fs" />
+    <Compile Include="BranchExecution.fs" />
+    <Compile Include="MemExecution.fs" />
+    <Compile Include="DPExecution.fs" />
+    <Compile Include="ExecutionTop.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

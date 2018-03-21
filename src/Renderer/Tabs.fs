@@ -157,6 +157,7 @@ let createTab name =
     fileTabList <- fileTabList @ [id]
 
     fileTabMenu.insertBefore(tab, newFileTab) |> ignore
+    setTabUnsaved id
     id
 
 let createNamedFileTab name =
@@ -240,7 +241,7 @@ let editorLineDecorate editor number decoration =
     let model = editor?getModel()
     let lineWidth = model?getLineMaxColumn(number)
     decorations <- lineDecoration editor
-                    decorations
+                    []
                     (monacoRange number 1 number lineWidth)
                     decoration
 
@@ -254,12 +255,7 @@ let highlightLine tId number =
             "inlineClassName" ==> "editor-line-highlight"
         ])
 
-
-
-[<Emit "{isWholeLine: true, inlineClassName: 'editor-line-error', hoverMessage: {value: $2}}">]
-let errorMsg _text = jsNative
-
-let makeError tId lineNumber text = 
+let makeErrorInEditor tId lineNumber text = 
     editorLineDecorate 
         editors.[tId]
         lineNumber 

@@ -10,6 +10,7 @@
     <Compile Include="Settings.fs" />
     <Compile Include="Update.fs" />
     <Compile Include="MenuBar.fs" />
+    <Compile Include="Integration.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -20,8 +20,9 @@ Browser.console.log "Hi from the renderer.js" |> ignore
 open Ref
 open Update
 open MenuBar
-open Emulator
+open Program
 open Tabs
+open Integration
 
 // TODO: Delete this piece of shit
 let testMemory = Map.ofList [
@@ -36,9 +37,6 @@ let testSyms = Map.ofList [
                     "Hello", 100u;
                     "TestSymbol", 123u;
                 ]
-
-/// Access to `Emulator` project
-let dummyVariable = Emulator.Common.A
 
 // Attach a click event on each of the map elements to a function f
 // Which accepts the map element as an argument
@@ -63,7 +61,9 @@ let init () =
         saveFile ()
     )
     Ref.run.addEventListener_click(fun _ ->
-        disableEditors ()
+        let tId = currentFileTabId
+        removeEditorDecorations tId
+        tryParseCode tId
     )
     // just for fun!
     (Ref.register 0).addEventListener_click(fun _ ->
