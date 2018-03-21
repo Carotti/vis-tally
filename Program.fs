@@ -25,7 +25,7 @@
         | Ok cpuData ->
             cpuData.Regs |> Map.toList |> List.map (fun (r, v) -> printfn "(%A : 0x%x)" r v) |> ignore
             cpuData.Fl |> qp |> ignore
-            // cpuData.MM |> Map.toList |> qpl |> ignore
+            cpuData.MM |> Map.toList |> qpl |> ignore
         | Error e -> e |> qp
         
     let replParse() =
@@ -163,7 +163,7 @@
                     listExecute' cpuData' symTable tail
             | [] -> "Finished" |> qp
 
-        let parsedList = List.map parseInstr lst
+        let parsedList = List.map parseInstr lst // TODO: Rearrange the parsed list and do symbol resolution on it
         let errorList = 
             parsedList
             |> lineNumList

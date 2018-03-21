@@ -5,3 +5,5 @@ Not doing this...
 * LSR shift length from 1 to 32
 * ROR shift length from 1 to 31.
 Will modulo it later
+
+Fill Instruction value size is always 1 means that it always fills as a byte, this cannot be specified
