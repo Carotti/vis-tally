@@ -42,10 +42,11 @@ let listResToResList state (nxt, lineNo) =
 //     newSyms
 
 // All the parsedInfo
-type parsedInfo = {
+type ParsedInfo = {
         dp : DataPath<Parse<CommonTop.Instr>>
         lineNo : Map<uint32, uint32>
         syms : Map<string, uint32>
+        equs : Parse<CommonTop.Instr> list
         pc : uint32
     }
 
@@ -74,6 +75,7 @@ let pInfoPlaceIns pInfo ins ln insSize addLineNo =
                 | true -> Map.add pInfo.pc ln pInfo.lineNo
                 | false -> pInfo.lineNo
             syms = x
+            equs = pInfo.equs
             pc = pInfo.pc + insSize
     }) newSyms
 
@@ -100,7 +102,8 @@ let placeDirectives lst parseInfo =
             match ins.PInstr with
             | IMISC ins' ->
                 match ins' with
-                | Misc (ADR _) -> pInfo
+                | Misc (ADR _) 
+                | Misc (EQU _) -> {pi with equs = (ins :: pi.equs)} |> Ok
                 | _ -> pInfoPlaceIns pi ins ln ins.PSize false
             | _ -> pInfo
         Result.bind resPInfo pInfo
@@ -112,8 +115,8 @@ let placeDirectives lst parseInfo =
 // a symbol table with corresponding symbols
 // and a mapping from program counters to line numbers
 let getInfoFromParsed (lst : (Parse<CommonTop.Instr> * uint32) list) =
-    let initialParsedInfo = {dp = initDataPath ; lineNo = Map.ofList [] ; syms = Map.ofList []; pc = 0u}
+    let initialParsedInfo = {dp = initDataPath ; lineNo = Map.ofList [] ; equs = [] ; syms = Map.ofList []; pc = 0u}
 
     placeInstructions lst initialParsedInfo
     |> Result.map (fun x -> {x with pc = nearestHexHundred x.pc})
-    |> Result.map (placeDirectives lst)
+    |> Result.map (placeDirectives lst) // At this point, all the info required is in the ParsedInfo
