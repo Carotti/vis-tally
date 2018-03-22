@@ -97,6 +97,7 @@ module CommonTop
                     |> ERRTOPLEVEL
                     |> Error
                 | Some pa -> pa
+            | None, [label] -> {Blank with PLabel = Some (label, 0u)} |> Ok
             | None, [] -> Blank |> Ok
             | _ ->
                 (List.reduce (+) words, notImplementedInsEM)

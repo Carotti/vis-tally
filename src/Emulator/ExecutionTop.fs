@@ -17,7 +17,7 @@ module ExecutionTop
     open ErrorMessages
 
 
-    let setMemInstr (contents: Parse<CommonTop.Instr>) (addr: uint32) (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
+    let setMemInstr contents (addr: uint32) (cpuData: DataPath<Parse<CommonTop.Instr>>) = 
     // let updateMem contents addr (cpuData: DataPath<CommonTop.Instr>) =
         match addr % 4u with
         | 0u -> {cpuData with MM = Map.add (WA addr) (Code contents) cpuData.MM}
@@ -44,7 +44,7 @@ module ExecutionTop
         | Ok resInstr -> resInstr
         | Error _ -> failwithf "Invalid Symbol"
 
-    let lineNumList (instrLst: Result<CommonLex.Parse<CommonTop.Instr>, ErrParse> list) =
+    let lineNumList instrLst =
         [1u..(List.length instrLst) |> uint32]
         |> List.zip instrLst
 

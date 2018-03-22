@@ -43,6 +43,7 @@ module Misc
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is
     /// the first symbol which causes this
+    /// Also return the resolved value
     let resolve (syms : SymbolTable) ins = 
         /// Take a list of results and transform it to a Result of either the
         /// first error in the list or the Ok list if every element is Ok

@@ -62,7 +62,6 @@ let init () =
     )
     Ref.run.addEventListener_click(fun _ ->
         let tId = currentFileTabId
-        removeEditorDecorations tId
         tryParseCode tId
     )
     // just for fun!

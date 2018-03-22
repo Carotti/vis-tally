@@ -220,7 +220,8 @@ let enableEditors () =
     fileViewPane.onclick <- ignore
     darkenOverlay.classList.add("invisible")
 
-let mutable decorations : obj = createObj []
+let mutable decorations : obj list = []
+let mutable lineDecorations : obj list = []
 
 [<Emit "new monaco.Range($0,$1,$2,$3)">]
 let monacoRange _ _ _ _ = jsNative
@@ -230,20 +231,23 @@ let monacoRange _ _ _ _ = jsNative
   ]);">]
 let lineDecoration _editor _decorations _range _name = jsNative
 
-[<Emit "$0.deltaDecorations($1, []);">]
-let removeDecorations _editor _decorations = jsNative
+[<Emit "$0.deltaDecorations($1, [{ range: new monaco.Range(1,1,1,1), options : { } }]);">]
+let removeDecorations _editor _decorations = 
+    jsNative
 
 // Remove all text decorations associated with an editor
 let removeEditorDecorations tId =
-    decorations <- removeDecorations editors.[tId] decorations
+    List.map (fun x -> removeDecorations editors.[tId] x) decorations |> ignore
+    decorations <- []
 
 let editorLineDecorate editor number decoration =
     let model = editor?getModel()
     let lineWidth = model?getLineMaxColumn(number)
-    decorations <- lineDecoration editor
-                    []
+    let newDecs = lineDecoration editor
+                    decorations
                     (monacoRange number 1 number lineWidth)
                     decoration
+    decorations <- List.append decorations [newDecs]
 
 // Remove all the other decorations and highlight a particular line
 let highlightLine tId number = 

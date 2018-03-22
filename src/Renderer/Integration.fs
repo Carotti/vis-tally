@@ -7,6 +7,7 @@ open CommonData
 open CommonLex
 open CommonTop
 open ExecutionTop
+open ParseTop
 
 open Errors
 
@@ -49,31 +50,37 @@ let highlightError (err, lineNo) tId =
         | ``Invalid fill`` x  -> "Invalid fill", x
         | ``Label required`` x  -> "Label required", x
         | ``Unimplemented instruction`` x -> "Invalid instruction", x
-    let errUnpacker (errName, err : ErrorBase) =
+    let errUnpacker (_errName, err : ErrorBase) =
         makeErrorInEditor tId lineNo (err.errorTxt + err.errorMessage) 
-
     errUnpacker getErrNames
 let tryParseCode tId =
     match isTabUnsaved tId with
-    | true -> Browser.window.alert("File is unsaved, please save and try again")
+    | true -> Browser.window.alert("File is unsaved, please save and try again") 
     | false ->
+        // Remove the old editor decorations first
+        removeEditorDecorations tId
         let onceFileRead (fileData : Node.Buffer.Buffer) =
             let stringList = fileData.toString("utf8") |> (fun (x : string) -> x.Split [|'\n'|]) |> Array.toList
 
+            // Parse each line of the file first
             let parsedList = List.map parseInstr stringList
 
-            let errors = 
+            // Convert list of Results to a Result of lists
+            // Also tuple with corresponding line numbers
+            let parsedLst = 
                 parsedList
                 |> List.map (Result.mapError instrToParse)
                 |> lineNumList
-                |> generateErrorList
+                |> List.fold listResToResList (Result.Ok [])
+                |> Result.map List.rev
+                |> Result.mapError List.rev
 
-            Browser.console.log(sprintf "%A" errors)
-
-            match List.length errors with
-            | 0 -> failwithf "Will do some execution"
-            | _ -> List.map (fun x -> highlightError x tId) errors
-            |> ignore
+            // See if any errors exist, if they do display them
+            match parsedLst with
+            | Result.Ok insLst -> 
+                Browser.console.log(sprintf "%A" (getInfoFromParsed insLst))
+            | Result.Error errLst -> 
+                List.map (fun x -> highlightError x tId) errLst |> ignore
 
             Browser.console.log("Working")
 

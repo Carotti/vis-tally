@@ -25,8 +25,7 @@ module Branch
         | _ -> Ok ins // Symbol is already resolved
 
     let resolve (syms : SymbolTable) ins =
-        resolvePInstr syms ins.PInstr
-        |> Result.map (fun x -> {ins with PInstr = x})
+        resolvePInstr syms ins
 
     // Branch instructions have no suffixes
     let branchSpec = {
