@@ -20,7 +20,6 @@ Browser.console.log "Hi from the renderer.js" |> ignore
 open Ref
 open Update
 open MenuBar
-open Program
 open Tabs
 open Integration
 

@@ -35,7 +35,7 @@ module Misc
 
 
     /// Errors which can occur during resolving of an expression
-    type ErrResolve =
+    type ErrMiscResolve =
         | InvalidByteExp of uint32
         | SymbolErrors of EvalErr list
         | InvalidFillMultiple // When numBytes is not a multiple of valueSize

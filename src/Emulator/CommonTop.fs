@@ -99,12 +99,12 @@ module CommonTop
                 | Some pa -> pa
             | None, [label] -> {Blank with PLabel = Some (label, 0u)} |> Ok
             | None, [] -> Blank |> Ok
-            | _ ->
-                (List.reduce (+) words, notImplementedInsEM)
-                ||> makeError
-                |> ``Unimplemented instruction``
-                |> ERRTOPLEVEL
-                |> Error
+            // | _ ->
+            //     (List.reduce (+) words, notImplementedInsEM)
+            //     ||> makeError
+            //     |> ``Unimplemented instruction``
+            //     |> ERRTOPLEVEL
+            //     |> Error
 
         asmLine
         |> removeComment

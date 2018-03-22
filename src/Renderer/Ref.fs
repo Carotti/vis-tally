@@ -17,6 +17,8 @@ open Microsoft.FSharp.Collections
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
 
+let fNone = Microsoft.FSharp.Core.option.None
+
 type Representations =
     | Hex
     | Bin
@@ -59,6 +61,10 @@ let save: HTMLButtonElement =
     Browser.document.getElementById("save") :?> HTMLButtonElement
 let run: HTMLButtonElement =
     Browser.document.getElementById("run") :?> HTMLButtonElement
+
+let stepfBtn : HTMLButtonElement =
+    Browser.document.getElementById("stepf") :?> HTMLButtonElement
+
 let flag (id: string): HTMLElement =
     Browser.document.getElementById(sprintf "flag_%s" id)
 

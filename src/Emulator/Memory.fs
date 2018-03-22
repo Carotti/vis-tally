@@ -335,6 +335,7 @@ module Memory
 
             let checkSingleSuffix = function
                 | "B" -> Some B |> Ok
+                | "" -> None |> Ok
                 | _ -> 
                     (suffix, notValidSuffixEM)
                     ||> makeError
@@ -385,8 +386,8 @@ module Memory
                 }
             Result.map (make) ops
 
-        let parse' (_instrC, (root,suffix,pCond)) =
-            match root with
+        let parse' (_instrC, (root : string,suffix,pCond)) =
+            match root.ToUpper() with
             | "LDR" -> parseSingle root suffix pCond
             | "STR" -> parseSingle root suffix pCond
             | "LDM" -> parseMult root suffix pCond

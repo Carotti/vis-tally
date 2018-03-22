@@ -22,12 +22,12 @@ module Expressions
             (removeWs var, rst) |> Some
         | _ -> None
 
-    [<CustomEquality; NoComparison>]
+    // [<CustomEquality; NoComparison>]
     type Expression =
         | BinOp of (uint32->uint32->uint32) * Expression * Expression
         | Label of string
         | Literal of uint32
-        override _x.Equals (_y) = false
+        // override _x.Equals (_y) = false
 
     type SymbolExp =
         | ExpUnresolved of Expression

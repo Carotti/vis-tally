@@ -29,12 +29,6 @@ module Errors
         | ``Run time warning`` of ErrorBase
         | EXIT // Used to exit execution of the simulation
 
-    type ErrResolve =
-        | ``Symbol already defined`` of ErrorBase
-        | ``Symbol not resolved`` of ErrorBase
-
-
-
     let makeError txt message =
         {
             errorTxt = txt;

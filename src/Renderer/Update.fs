@@ -23,6 +23,8 @@ open Fable
 open Settings
 open Tabs
 
+open ExecutionTop
+
 // The current number representation being used
 let mutable currentRep = Hex
 let mutable currentView = Registers
@@ -352,22 +354,22 @@ let saveFileAs () =
         |> Result.map pathUpdater
         |> Result.map baseFilePath
         |> Result.map (setTabName currentFileTabId)
+        |> Result.map (fun _ -> setTabSaved (currentFileTabId))
         |> ignore
-
-        setTabSaved (currentFileTabId)
 
 // If a path already exists for a file, write it straight to disk without the dialog
 let saveFile () =
     // Save the settings if the current tab is the settings tab
     match settingsTab with
-    | Some x when x = currentFileTabId -> saveSettings()
+    | Some x when x = currentFileTabId -> 
+        saveSettings()
+        setTabSaved (currentFileTabId)
     | _ ->
         match getTabFilePath currentFileTabId with
         | "" -> saveFileAs () // No current path exists
-        | path -> writeCurrentCodeToFile path
-
-    setTabSaved (currentFileTabId)
-
+        | path -> 
+            writeCurrentCodeToFile path
+            setTabSaved (currentFileTabId)
 // Figure out if any of the tabs are unsaved
 let unsavedFiles () =
     fileTabList

@@ -8,6 +8,7 @@ module DP
     open System.Text.RegularExpressions
     open Errors
     open ErrorMessages
+    open Helpers
 
     /// Rotation values for the `Literal` type in the flexible second operand.
     [<Struct>]
@@ -659,6 +660,7 @@ module DP
                     match rDest, rOp1 with
                     | RegCheck rDest', RegCheck rOp1' ->
                         combineErrorMapResult rDest' rOp1' consDPRRX
+                    | _ -> failwithf "maccth?"
                 | _ ->
                     (ld.OpCode + " " + ld.Operands, notValidFormatEM)
                     ||> makeError
@@ -721,55 +723,58 @@ module DP
         
         /// A function to initiate parsing of an instruction, and return a result
         ///  based on this parsing.
-        let parse' (_instrC, (root, suffix, cond)) =
-            let suff = match suffix with "S" -> Some S | _ -> None
+        let parse' (_instrC, (root : string, suffix : string, cond)) =
+            let uRoot = uppercase root
+            let uSuffix = uppercase suffix
+
+            let suff = match uSuffix with "S" -> Some S | _ -> None
             let instr =
-                match (Map.containsKey root opcodesDP2 || Map.containsKey root opcodesDP2S || Map.containsKey root opcodesDP2RS) with
+                match (Map.containsKey uRoot opcodesDP2 || Map.containsKey uRoot opcodesDP2S || Map.containsKey uRoot opcodesDP2RS) with
                 | true ->
                     let operands = operandsDP2.Force()
-                    match Map.containsKey root opcodesDP2, suff with
+                    match Map.containsKey uRoot opcodesDP2, suff with
                     | true, None ->
-                        let opcode = opcodesDP2.[root]
+                        let opcode = opcodesDP2.[uRoot]
                         operands
                         |> Result.map (opcode) 
                         |> Result.map (DP2)
                     | false, _ ->
-                        match Map.containsKey root opcodesDP2S, suff with
+                        match Map.containsKey uRoot opcodesDP2S, suff with
                         | true, _ ->               
-                            let opcode = opcodesDP2S.[root]
+                            let opcode = opcodesDP2S.[uRoot]
                             operands
                             |> Result.map (consDP2S suff)
                             |> Result.map (opcode) 
                             |> Result.map (DP2S)
                         | false, _ ->
                             let operands = operandsDP2RS.Force()
-                            let opcode = opcodesDP2RS.[root]
+                            let opcode = opcodesDP2RS.[uRoot]
                             operands
                             |> Result.map (consDP2RS suff)
                             |> Result.map (opcode)
                             |> Result.map (DP2RS)
                     | true, Some _suff' ->
-                        (suffix, notValidSuffixEM)
+                        (uSuffix, notValidSuffixEM)
                         ||> makeError
                         |> ``Invalid suffix``
                         |> Error
                 | false ->
-                    match (Map.containsKey root opcodesDP3RS) with
+                    match (Map.containsKey uRoot opcodesDP3RS) with
                     | true ->
-                        let opcode = opcodesDP3RS.[root]
+                        let opcode = opcodesDP3RS.[uRoot]
                         operandsDP3R.Force()
                         |> Result.map (consDP3RS suff)
                         |> Result.map (opcode)
                         |> Result.map (DP3RS)
                     | false ->
-                        let opcode = opcodesDP3.[root]
+                        let opcode = opcodesDP3.[uRoot]
                         operandsDP3.Force()
                         |> Result.map (consDP3S suff)
                         |> Result.map (opcode) 
                         |> Result.map (DP3S)
             Result.map(makeInstr cond) instr
                     
-        Map.tryFind ld.OpCode opCodes
+        Map.tryFind (uppercase ld.OpCode) opCodes
         |> Option.map parse' 
 
     let (|IMatch|_|) = parse

@@ -7,9 +7,9 @@ open CommonData
 open CommonLex
 open CommonTop
 open ExecutionTop
-open ParseTop
 
 open Errors
+open Ref
 
 open Fable.Core.JsInterop
 open Fable.Import
@@ -20,10 +20,8 @@ open Fable.Import.Electron
 open Node.Exports
 open System.IO
 
-let fNone = Microsoft.FSharp.Core.option.None
-
 let parseInstr input =
-    parseLine fNone (WA 0u) (uppercase input)
+    parseLine fNone (WA 0u) (input)
 
 let instrToParse err = 
     match err with
@@ -33,7 +31,10 @@ let instrToParse err =
     | ERRBRANCH x -> x
     | ERRTOPLEVEL x -> x
 
-let highlightError (err, lineNo) tId = 
+let errUnpacker (_errName, err : ErrorBase) tId lineNo =
+    makeErrorInEditor tId lineNo (err.errorTxt + err.errorMessage) 
+
+let highlightErrorParse (err, lineNo) tId = 
     let getErrNames = 
         match err with
         | ``Invalid literal`` x -> "Invalid literal", x
@@ -50,9 +51,30 @@ let highlightError (err, lineNo) tId =
         | ``Invalid fill`` x  -> "Invalid fill", x
         | ``Label required`` x  -> "Label required", x
         | ``Unimplemented instruction`` x -> "Invalid instruction", x
-    let errUnpacker (_errName, err : ErrorBase) =
-        makeErrorInEditor tId lineNo (err.errorTxt + err.errorMessage) 
-    errUnpacker getErrNames
+    errUnpacker getErrNames tId lineNo
+
+let highlightErrorResolve e tId =
+    List.map (fun x -> errUnpacker ("resolve", x.error) tId x.lineNumber) e
+
+let makeMemoryMap mm =
+    Map.toList mm
+    |> List.map (fun (wAddr, value) ->
+        let addr = match wAddr with
+                    | WA x -> x 
+        match value with
+        | DataLoc x -> Some (addr, x)
+        | _ -> fNone
+    )
+    |> List.choose id
+    |> Map.ofList
+
+let execute pInfo =
+    let newDp = dataPathStep pInfo.dp
+    match newDp with
+    | Error e ->
+        match e with
+        | EXIT ->
+            
 let tryParseCode tId =
     match isTabUnsaved tId with
     | true -> Browser.window.alert("File is unsaved, please save and try again") 
@@ -78,9 +100,12 @@ let tryParseCode tId =
             // See if any errors exist, if they do display them
             match parsedLst with
             | Result.Ok insLst -> 
+                match getInfoFromParsed insLst with
+                | Result.Ok x -> execute x |> ignore
+                | Result.Error x -> highlightErrorResolve x tId |> ignore
                 Browser.console.log(sprintf "%A" (getInfoFromParsed insLst))
             | Result.Error errLst -> 
-                List.map (fun x -> highlightError x tId) errLst |> ignore
+                List.map (fun x -> highlightErrorParse x tId) errLst |> ignore
 
             Browser.console.log("Working")
 
