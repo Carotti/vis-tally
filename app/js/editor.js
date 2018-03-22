@@ -37,7 +37,7 @@ amdRequire(['vs/editor/editor.main'], function () {
     ],
 
     operators: [
-      '=', '>', '!'
+      '+', '-', '*'
     ],
 
     keywords: [

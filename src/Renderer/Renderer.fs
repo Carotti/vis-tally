@@ -54,15 +54,6 @@ let init () =
     resetBtn.addEventListener_click(fun _ ->
         resetEmulator()
     )
-    // just for fun!
-    (Ref.register 0).addEventListener_click(fun _ ->
-        Browser.console.log "register R0 changed!" |> ignore
-        Update.setRegister 0 (uint32 (System.Random().Next 1000))
-    )
-    (Ref.flag "N").addEventListener_click(fun _ ->
-        Browser.console.log "flag N changed!" |> ignore
-        Update.flag "N" true
-    )
 
     mapClickAttacher repToId Ref.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore

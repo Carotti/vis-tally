@@ -8,7 +8,7 @@ module CommonTop
 
     open Errors
     open ErrorMessages
-    open Branch
+    open Expressions
 
     /// allows different modules to return different instruction types
     type Instr =
@@ -87,17 +87,33 @@ module CommonTop
             match pNoLabel, words with
             | Some pa, _ -> pa
             | None, label :: opc :: operands -> 
-                match { makeLineData opc operands 
-                        with Label=Some label} 
-                      |> IMatch with
-                | None -> 
-                    (opc, notImplementedInsEM)
+                match label with
+                | LabelExpr (l, "") ->
+                    match { makeLineData opc operands 
+                            with Label=Some label} 
+                          |> IMatch with
+                    | None -> 
+                        (opc, notImplementedInsEM)
+                        ||> makeError
+                        |> ``Unimplemented instruction``
+                        |> ERRTOPLEVEL
+                        |> Error
+                    | Some pa -> pa
+                | _ ->
+                    (label, notImplementedInsEM)
                     ||> makeError
                     |> ``Unimplemented instruction``
                     |> ERRTOPLEVEL
                     |> Error
-                | Some pa -> pa
-            | None, [label] -> {Blank with PLabel = Some (label, 0u)} |> Ok
+            | None, [label] -> 
+                match label with
+                | LabelExpr (l, "") -> {Blank with PLabel = Some (l, 0u)} |> Ok
+                | _ -> 
+                    (label, notImplementedInsEM)
+                    ||> makeError
+                    |> ``Unimplemented instruction``
+                    |> ERRTOPLEVEL
+                    |> Error
             | None, [] -> Blank |> Ok
             // | _ ->
             //     (List.reduce (+) words, notImplementedInsEM)

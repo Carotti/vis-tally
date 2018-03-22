@@ -402,8 +402,7 @@ let dataPathStep (dp : DataPath<Parse<CommonTop.Instr>>) =
                 executeMisc instr' 0u dp
                 |> Result.map fst
             | CommonTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-        | false -> 
-            updatePC instr dp |> Ok
+        | false -> dp |> Ok
         |> Result.map (updatePC instr)
     | DataLoc _ ->
         NotInstrMem dp.Regs.[R15] |> Error

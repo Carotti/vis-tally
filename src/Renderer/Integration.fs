@@ -144,6 +144,7 @@ let mutable currentPInfo : ParsedInfo option = fNone
 
 let rec stepCode () =
     let tId = currentFileTabId
+    removeEditorDecorations tId
     match currentPInfo with
     | Some pInfo ->
         let newDp = dataPathStep pInfo.dp
