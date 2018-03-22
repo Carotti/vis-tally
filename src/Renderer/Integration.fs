@@ -68,13 +68,26 @@ let makeMemoryMap mm =
     |> List.choose id
     |> Map.ofList
 
-let execute pInfo =
+let setRegs regs =
+    Map.map (fun r value ->
+        setRegister regNums.[r] value
+    ) regs |> ignore
+    
+let rec pExecute pInfo =
     let newDp = dataPathStep pInfo.dp
     match newDp with
-    | Error e ->
+    | Result.Error e ->
         match e with
         | EXIT ->
-            
+            symbolMap <- pInfo.syms
+            updateSymTable()
+            memoryMap <- makeMemoryMap pInfo.dp.MM
+            updateMemory()
+            setRegs pInfo.dp.Regs
+        | _ -> failwithf "Some execution error, handle later"
+    | Result.Ok ndp ->
+        pExecute {pInfo with dp = ndp}
+
 let tryParseCode tId =
     match isTabUnsaved tId with
     | true -> Browser.window.alert("File is unsaved, please save and try again") 
@@ -96,14 +109,15 @@ let tryParseCode tId =
                 |> List.fold listResToResList (Result.Ok [])
                 |> Result.map List.rev
                 |> Result.mapError List.rev
+                |> Result.map (fun x -> x @ [(endInstruction, 0u)])
 
             // See if any errors exist, if they do display them
             match parsedLst with
             | Result.Ok insLst -> 
-                match getInfoFromParsed insLst with
-                | Result.Ok x -> execute x |> ignore
-                | Result.Error x -> highlightErrorResolve x tId |> ignore
                 Browser.console.log(sprintf "%A" (getInfoFromParsed insLst))
+                match getInfoFromParsed insLst with
+                | Result.Ok x -> pExecute x |> ignore
+                | Result.Error x -> highlightErrorResolve x tId |> ignore
             | Result.Error errLst -> 
                 List.map (fun x -> highlightErrorParse x tId) errLst |> ignore
 

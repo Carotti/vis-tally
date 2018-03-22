@@ -1,6 +1,8 @@
 module Errors
     open ErrorMessages
 
+    open CommonData
+
     type ErrorBase =
         {
             errorTxt : string;
@@ -27,9 +29,9 @@ module Errors
         | NotInstrMem of uint32 // Address where there is no instruction
         | ``Run time error`` of ErrorBase
         | ``Run time warning`` of ErrorBase
-        | EXIT // Used to exit execution of the simulation
+        | EXIT
 
-    let makeError txt message =
+    let makeError txt message = 
         {
             errorTxt = txt;
             errorMessage = message;

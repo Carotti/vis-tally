@@ -25,16 +25,15 @@ let setMemInstr contents (addr: uint32) (cpuData: DataPath<Parse<CommonTop.Instr
     match addr % 4u with
     | 0u -> {cpuData with MM = Map.add (WA addr) (Code contents) cpuData.MM}
     | _ -> failwithf "Not aligned, but should have been checked already."
-    // match contents.PInstr with
-    // | CommonTop.IDP (DPTop instr') ->
-    //     updateMem instr' addr cpuData
-    // | CommonTop.IMEM (Mem instr') ->
-    //     updateMem instr' addr cpuData
-    // | CommonTop.IBRANCH (Branch instr') ->
-    //     updateMem instr' addr cpuData
-    // | _ -> failwithf "Shouldnt be in mem."
-    
-    
+
+let endInstruction : Parse<CommonTop.Instr>=
+    {
+        PInstr = IBRANCH (Branch END)
+        PLabel = None
+        PSize = 4u 
+        PCond = Cal
+    }
+
 let miscResolve instr symTable =
     let resolved = Misc.resolve symTable instr
     match resolved with
