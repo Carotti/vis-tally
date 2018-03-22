@@ -28,7 +28,6 @@ module Errors
     type ErrExe =
         | NotInstrMem of uint32 // Address where there is no instruction
         | ``Run time error`` of ErrorBase
-        | ``Run time warning`` of ErrorBase
         | EXIT
 
     let makeError txt message = 

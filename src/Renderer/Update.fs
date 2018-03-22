@@ -31,8 +31,10 @@ let mutable currentView = Registers
 
 let mutable byteView = false
 
+let initialMemoryMap : Map<uint32, uint32> = Map.ofList []
 let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
 
+let initialSymbolMap : Map<string, uint32> = Map.ofList []
 let mutable symbolMap : Map<string, uint32> = Map.ofList []
 
 // Returns a formatter for the given representation
@@ -66,7 +68,7 @@ let registerValue (id : int) : uint32 =
     | 'u' -> uint32 html.[1..]
     | _ -> uint32 html
 
-let flag (id: string) (value: bool) =
+let setFlag (id: string) (value: bool) =
     let el = Ref.flag id
     match value with
         | false ->
@@ -392,3 +394,14 @@ let editorRedo () =
 
 let editorSelectAll () = 
     editors.[currentFileTabId]?trigger("Update.fs", "selectAll") |> ignore
+
+let resetRegs () =
+    [0..15]
+    |> List.map (fun x -> setRegister x 0u)
+    |> ignore
+
+let resetFlags () =
+    setFlag "N" false
+    setFlag "C" false
+    setFlag "Z" false
+    setFlag "V" false

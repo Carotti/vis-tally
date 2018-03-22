@@ -157,7 +157,7 @@ let createTab name =
     fileTabList <- fileTabList @ [id]
 
     fileTabMenu.insertBefore(tab, newFileTab) |> ignore
-    setTabUnsaved id
+    setTabSaved id
     id
 
 let createNamedFileTab name =

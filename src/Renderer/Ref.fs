@@ -62,6 +62,9 @@ let save: HTMLButtonElement =
 let run: HTMLButtonElement =
     Browser.document.getElementById("run") :?> HTMLButtonElement
 
+let resetBtn : HTMLButtonElement =
+    Browser.document.getElementById("reset") :?> HTMLButtonElement
+
 let stepfBtn : HTMLButtonElement =
     Browser.document.getElementById("stepf") :?> HTMLButtonElement
 

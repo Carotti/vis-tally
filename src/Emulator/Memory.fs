@@ -386,12 +386,14 @@ module Memory
                 }
             Result.map (make) ops
 
-        let parse' (_instrC, (root : string,suffix,pCond)) =
+        let parse' (_instrC, (root : string,suffix : string,pCond)) =
+            let uRoot = root.ToUpper()
+            let uSuffix = suffix.ToUpper()
             match root.ToUpper() with
-            | "LDR" -> parseSingle root suffix pCond
-            | "STR" -> parseSingle root suffix pCond
-            | "LDM" -> parseMult root suffix pCond
-            | "STM" -> parseMult root suffix pCond
+            | "LDR" -> parseSingle uRoot uSuffix pCond
+            | "STR" -> parseSingle uRoot uSuffix pCond
+            | "LDM" -> parseMult uRoot uSuffix pCond
+            | "STM" -> parseMult uRoot uSuffix pCond
             | _ -> failwith "We appear to have a rogue root"
            
 

@@ -73,57 +73,101 @@ let setRegs regs =
         setRegister regNums.[r] value
     ) regs |> ignore
     
+let setFlags flags =
+    setFlag "N" flags.N
+    setFlag "C" flags.C
+    setFlag "Z" flags.Z
+    setFlag "V" flags.V
+
+let showInfo pInfo =
+    symbolMap <- pInfo.syms
+    updateSymTable()
+    memoryMap <- makeMemoryMap pInfo.dp.MM
+    updateMemory()
+    setRegs pInfo.dp.Regs
+    setFlags pInfo.dp.Fl
+
+let handleRunTimeError e pInfo =
+    match e with
+    | EXIT -> showInfo pInfo
+    | NotInstrMem x -> 
+        Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
+    | ``Run time error`` {errorTxt = txt ; errorMessage = msg} ->
+        Browser.window.alert(txt + " " + msg)
+            
 let rec pExecute pInfo =
     let newDp = dataPathStep pInfo.dp
     match newDp with
-    | Result.Error e ->
-        match e with
-        | EXIT ->
-            symbolMap <- pInfo.syms
-            updateSymTable()
-            memoryMap <- makeMemoryMap pInfo.dp.MM
-            updateMemory()
-            setRegs pInfo.dp.Regs
-        | _ -> failwithf "Some execution error, handle later"
+    | Result.Error e -> handleRunTimeError e pInfo
     | Result.Ok ndp ->
         pExecute {pInfo with dp = ndp}
 
 let tryParseCode tId =
-    match isTabUnsaved tId with
-    | true -> Browser.window.alert("File is unsaved, please save and try again") 
-    | false ->
-        // Remove the old editor decorations first
-        removeEditorDecorations tId
-        let onceFileRead (fileData : Node.Buffer.Buffer) =
-            let stringList = fileData.toString("utf8") |> (fun (x : string) -> x.Split [|'\n'|]) |> Array.toList
+    let stringList = getCode tId |> (fun (x : string) -> x.Split [|'\n'|]) |> Array.toList
 
-            // Parse each line of the file first
-            let parsedList = List.map parseInstr stringList
+    // Parse each line of the file first
+    let parsedList = List.map parseInstr stringList
 
-            // Convert list of Results to a Result of lists
-            // Also tuple with corresponding line numbers
-            let parsedLst = 
-                parsedList
-                |> List.map (Result.mapError instrToParse)
-                |> lineNumList
-                |> List.fold listResToResList (Result.Ok [])
-                |> Result.map List.rev
-                |> Result.mapError List.rev
-                |> Result.map (fun x -> x @ [(endInstruction, 0u)])
+    // Convert list of Results to a Result of lists
+    // Also tuple with corresponding line numbers
+    let parsedLst = 
+        parsedList
+        |> List.map (Result.mapError instrToParse)
+        |> lineNumList
+        |> List.fold listResToResList (Result.Ok [])
+        |> Result.map List.rev
+        |> Result.mapError List.rev
+        |> Result.map (fun x -> x @ [(endInstruction, 0u)])
 
-            // See if any errors exist, if they do display them
-            match parsedLst with
-            | Result.Ok insLst -> 
-                Browser.console.log(sprintf "%A" (getInfoFromParsed insLst))
-                match getInfoFromParsed insLst with
-                | Result.Ok x -> pExecute x |> ignore
-                | Result.Error x -> highlightErrorResolve x tId |> ignore
-            | Result.Error errLst -> 
-                List.map (fun x -> highlightErrorParse x tId) errLst |> ignore
+    // See if any errors exist, if they do display them
+    match parsedLst with
+    | Result.Ok insLst -> 
+        Browser.console.log(sprintf "%A" (getInfoFromParsed insLst))
+        match getInfoFromParsed insLst with
+        | Result.Ok x -> Some x
+        | Result.Error x -> 
+            highlightErrorResolve x tId |> ignore
+            fNone
+    | Result.Error errLst -> 
+        List.map (fun x -> highlightErrorParse x tId) errLst |> ignore
+        fNone
+let runCode () =
+    let tId = currentFileTabId
+    removeEditorDecorations tId
+    match tryParseCode tId with
+    | Some p -> 
+        disableEditors()
+        pExecute p
+    | _ -> ()
 
-            Browser.console.log("Working")
+let mutable currentPInfo : ParsedInfo option = fNone
 
-        fs.readFile(getTabFilePath tId, (fun err data -> // TODO: find out what this error does
-            onceFileRead data
-        ))
+let rec stepCode () =
+    let tId = currentFileTabId
+    match currentPInfo with
+    | Some pInfo ->
+        let newDp = dataPathStep pInfo.dp
+        match newDp with
+        | Result.Error e ->
+            handleRunTimeError e pInfo
+        | Result.Ok ndp ->
+            let newP = {pInfo with dp = ndp}
+            currentPInfo <- Some newP
+            showInfo newP
+    | _ ->
+        currentPInfo <- tryParseCode tId
+        match currentPInfo with
+        | Some _ -> 
+            disableEditors()
+            stepCode ()
+        | _ -> ()
 
+let resetEmulator () =
+    enableEditors()   
+    memoryMap <- initialMemoryMap
+    symbolMap <- initialSymbolMap
+    updateMemory()
+    updateSymTable()
+    resetRegs()
+    resetFlags()
+    currentPInfo <- fNone

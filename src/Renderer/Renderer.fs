@@ -23,20 +23,6 @@ open MenuBar
 open Tabs
 open Integration
 
-// TODO: Delete this piece of shit
-let testMemory = Map.ofList [
-                        0x0u, 0xAABBCCDDu;
-                        0x4u, 0x11223344u;
-                        0x8u, 0x11111111u;
-                        0x100u, 0x22222222u;
-                        0x104u, 0xAABBCCDDu;
-                    ]
-
-let testSyms = Map.ofList [
-                    "Hello", 100u;
-                    "TestSymbol", 123u;
-                ]
-
 // Attach a click event on each of the map elements to a function f
 // Which accepts the map element as an argument
 let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
@@ -60,8 +46,13 @@ let init () =
         saveFile ()
     )
     Ref.run.addEventListener_click(fun _ ->
-        let tId = currentFileTabId
-        tryParseCode tId
+        runCode ()
+    )
+    stepfBtn.addEventListener_click(fun _ ->
+        stepCode ()
+    )
+    resetBtn.addEventListener_click(fun _ ->
+        resetEmulator()
     )
     // just for fun!
     (Ref.register 0).addEventListener_click(fun _ ->
@@ -95,12 +86,6 @@ let init () =
         Browser.console.log "Creating a new file tab" |> ignore
         createFileTab ()
     )
-
-    memoryMap <- testMemory
-    updateMemory ()
-
-    symbolMap <- testSyms
-    updateSymTable ()
 
     // Create an empty tab to start with
     createFileTab ()
