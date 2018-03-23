@@ -6,6 +6,9 @@ module CommonTop
     open CommonLex
     open CommonData
 
+    open Errors
+    open ErrorMessages
+    open Expressions
 
     /// allows different modules to return different instruction types
     type Instr =
@@ -18,12 +21,12 @@ module CommonTop
     /// allows different modules to return different error info
     /// by default all return string so this is not needed
     type ErrInstr =
-        | ERRIMEM of Memory.ErrInstr
-        | ERRIDP of DP.ErrInstr
-        | ERRMISC of Misc.ErrInstr
-        | ERRBRANCH of Branch.ErrInstr
-        | ERRTOPLEVEL of string
-    
+        | ERRIMEM of ErrParse
+        | ERRIDP of ErrParse
+        | ERRMISC of ErrParse
+        | ERRBRANCH of ErrParse
+        | ERRTOPLEVEL of ErrParse
+            
     let Blank = {
         PCond = Cal;
         PInstr = EMPTY;
@@ -34,7 +37,7 @@ module CommonTop
     /// Note that Instr in Mem and DP modules is NOT same as Instr in this module
     /// Instr here is all possible isntruction values combines with a D.U.
     /// that tags the Instruction class
-    /// Similarly ErrInstr
+    /// Similarly ErrParse
     /// Similarly IMatch here is combination of module IMatches
     let IMatch (ld: LineData) : Result<Parse<Instr>,ErrInstr> option =
         let pConv fr fe p = pResultInstrMap fr fe p |> Some
@@ -84,14 +87,40 @@ module CommonTop
             match pNoLabel, words with
             | Some pa, _ -> pa
             | None, label :: opc :: operands -> 
-                match { makeLineData opc operands 
-                        with Label=Some label} 
-                      |> IMatch with
-                | None -> 
-                    Error (ERRTOPLEVEL (sprintf "Unimplemented instruction %s" opc))
-                | Some pa -> pa
+                match label with
+                | LabelExpr (l, "") ->
+                    match { makeLineData opc operands 
+                            with Label=Some label} 
+                          |> IMatch with
+                    | None -> 
+                        (opc, notImplementedInsEM)
+                        ||> makeError
+                        |> ``Unimplemented instruction``
+                        |> ERRTOPLEVEL
+                        |> Error
+                    | Some pa -> pa
+                | _ ->
+                    (label, notImplementedInsEM)
+                    ||> makeError
+                    |> ``Unimplemented instruction``
+                    |> ERRTOPLEVEL
+                    |> Error
+            | None, [label] -> 
+                match label with
+                | LabelExpr (l, "") -> {Blank with PLabel = Some (l, 0u)} |> Ok
+                | _ -> 
+                    (label, notImplementedInsEM)
+                    ||> makeError
+                    |> ``Unimplemented instruction``
+                    |> ERRTOPLEVEL
+                    |> Error
             | None, [] -> Blank |> Ok
-            | _ -> Error (ERRTOPLEVEL (sprintf "Unimplemented instruction %A" words))
+            // | _ ->
+            //     (List.reduce (+) words, notImplementedInsEM)
+            //     ||> makeError
+            //     |> ``Unimplemented instruction``
+            //     |> ERRTOPLEVEL
+            //     |> Error
 
         asmLine
         |> removeComment

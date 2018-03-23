@@ -26,7 +26,7 @@ module Execution
         | _ -> failwith "Lists given to setMultRegs function were of different sizes."
         
     /// Blank dataPath with all regs set to Zero and flags to false
-    let initDataPath : DataPath<Parse<CommonTop.Instr>> =
+    let initDataPath : DataPath<Parse<Instr>> =
         let flags =
             {N = false; C = false; Z = false; V = false}
 

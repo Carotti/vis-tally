@@ -30,6 +30,7 @@ module ErrorMessages
     /// Error message for `Invalid suffix`
     let notValidSuffixEM = " is not a valid suffix for this instruction."
 
+    let notImplementedInsEM = " is not a recognised instruction."
     // *************************************************************************
     // Error messages for instruction execution
     // *************************************************************************

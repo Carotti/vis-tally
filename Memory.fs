@@ -71,15 +71,6 @@ module Memory
     type Instr = 
         | Mem of MemInstr
 
-    /// Error types for parsing.
-    type ErrInstr =
-        | ``Invalid memory address`` of ErrorBase
-        | ``Invalid offset`` of ErrorBase
-        | ``Invalid register`` of ErrorBase
-        | ``Invalid shift`` of ErrorBase
-        | ``Invalid suffix`` of ErrorBase
-        | ``Invalid instruction`` of ErrorBase
-
     let memSpec = {
         InstrC = MEM
         Roots = ["LDR";"STR";"STM";"LDM"]
@@ -130,7 +121,7 @@ module Memory
             |> Some
 
     /// Where everything happens
-    let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
+    let parse (ls: LineData) : Result<Parse<Instr>,ErrParse> option =
         let (WA la) = ls.LoadAddr
         /// Partial Active pattern for matching regexes
         /// Looking for something like [r1] or [r13
@@ -222,18 +213,18 @@ module Memory
             | ParseRegex "([rR][0-9]+)" preOffReg -> preOffReg |> regNoPrePost |> Some
             | ParseRegex "([rR][0-9]+)\]" preOffReg -> preOffReg |> regPreNoPost |> Some
             | ParseRegex "([rR][0-9]+)\]!" preOffReg -> preOffReg |> regPreAndPost |> Some
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost |> Some
+            | ParseRegex "#0[xX]([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost |> Some
             | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost |> Some
-            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost |> Some
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost |> Some
+            | ParseRegex "#0[bB]([0-1]+)" preOffBin -> ("0b" + preOffBin) |> immNoPrePost |> Some
+            | ParseRegex "#0[xX]([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost |> Some
             | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost |> Some
-            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost |> Some
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost |> Some
+            | ParseRegex "#0[bB]([0-1]+)\]" preOffBin -> ("0b" + preOffBin) |> immPreNoPost |> Some
+            | ParseRegex "#0[xX]([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost |> Some
             | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost |> Some
-            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost |> Some
+            | ParseRegex "#0[bB]([0-1]+)\]!" preOffBin -> ("0b" + preOffBin) |> immPreAndPost |> Some
             | _ -> 
                 (str, notValidOffsetEM)
                 ||> makeError
@@ -242,7 +233,7 @@ module Memory
                 |> Some
 
         /// parse for LDM, STM
-        let parseMult (root: string) suffix pCond : Result<Parse<Instr>, ErrInstr> =
+        let parseMult (root: string) suffix pCond : Result<Parse<Instr>, ErrParse> =
 
             /// Regex match the numbers in a hyphen list {r1 - r7}
             /// in order to construct full reg list.
@@ -337,13 +328,14 @@ module Memory
                 }
             Result.map make ops
 
-        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,ErrInstr> =         
+        let parseSingle (root: string) suffix pCond : Result<Parse<Instr>,ErrParse> =         
 
             /// split operands at ','
             let splitOps = splitAny ls.Operands ','
 
             let checkSingleSuffix = function
                 | "B" -> Some B |> Ok
+                | "" -> None |> Ok
                 | _ -> 
                     (suffix, notValidSuffixEM)
                     ||> makeError
@@ -394,16 +386,18 @@ module Memory
                 }
             Result.map (make) ops
 
-        let parse' (_instrC, (root,suffix,pCond)) =
-            match root with
-            | "LDR" -> parseSingle root suffix pCond
-            | "STR" -> parseSingle root suffix pCond
-            | "LDM" -> parseMult root suffix pCond
-            | "STM" -> parseMult root suffix pCond
+        let parse' (_instrC, (root : string,suffix : string,pCond)) =
+            let uRoot = root.ToUpper()
+            let uSuffix = suffix.ToUpper()
+            match root.ToUpper() with
+            | "LDR" -> parseSingle uRoot uSuffix pCond
+            | "STR" -> parseSingle uRoot uSuffix pCond
+            | "LDM" -> parseMult uRoot uSuffix pCond
+            | "STM" -> parseMult uRoot uSuffix pCond
             | _ -> failwith "We appear to have a rogue root"
            
 
-        Map.tryFind ls.OpCode opCodes
+        Map.tryFind (uppercase ls.OpCode) opCodes
         |> Option.map parse'
 
     /// Parse Active Pattern used by top-level code

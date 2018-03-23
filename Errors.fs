@@ -1,19 +1,36 @@
 module Errors
     open ErrorMessages
 
+    open CommonData
+
     type ErrorBase =
         {
             errorTxt : string;
             errorMessage : string;
         }
 
+    type ErrParse =
+        | ``Invalid literal`` of ErrorBase
+        | ``Invalid second operand`` of ErrorBase
+        | ``Invalid flexible second operand`` of ErrorBase
+        | ``Invalid memory address`` of ErrorBase
+        | ``Invalid offset`` of ErrorBase
+        | ``Invalid register`` of ErrorBase
+        | ``Invalid shift`` of ErrorBase
+        | ``Invalid suffix`` of ErrorBase
+        | ``Invalid instruction`` of ErrorBase
+        | ``Invalid expression`` of ErrorBase
+        | ``Invalid expression list`` of ErrorBase
+        | ``Invalid fill`` of ErrorBase
+        | ``Label required`` of ErrorBase
+        | ``Unimplemented instruction`` of ErrorBase
+
     type ErrExe =
         | NotInstrMem of uint32 // Address where there is no instruction
         | ``Run time error`` of ErrorBase
-        | ``Run time warning`` of ErrorBase
-        | EXIT // Used to exit execution of the simulation
+        | EXIT
 
-    let makeError txt message =
+    let makeError txt message = 
         {
             errorTxt = txt;
             errorMessage = message;

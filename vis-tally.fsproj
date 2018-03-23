@@ -27,6 +27,7 @@
     <Compile Include="MemExecution.fs" />
     <Compile Include="DPExecution.fs" />
     <Compile Include="ExecutionTop.fs" />
+    <Compile Include="Integration.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

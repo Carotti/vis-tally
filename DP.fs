@@ -5,9 +5,10 @@
 module DP
     open CommonData
     open CommonLex
-    open System.Text.RegularExpressions
     open Errors
     open ErrorMessages
+    open Helpers
+    open Expressions
 
     /// Rotation values for the `Literal` type in the flexible second operand.
     [<Struct>]
@@ -236,16 +237,6 @@ module DP
     /// Top level instruction type compatible withcCommon code.
     type Instr =
         | DPTop of DPInstr
-    
-    /// Error types for parsing.
-    type ErrInstr =
-        | ``Invalid literal`` of ErrorBase
-        | ``Invalid register`` of ErrorBase
-        | ``Invalid shift`` of ErrorBase
-        | ``Invalid second operand`` of ErrorBase
-        | ``Invalid flexible second operand`` of ErrorBase
-        | ``Invalid suffix`` of ErrorBase
-        | ``Invalid instruction`` of ErrorBase
             
     /// Constructs a `DP2S` from an optional suffix and a `DP2`
     let consDP2S suffix (dp2:DP2Form) =
@@ -374,51 +365,49 @@ module DP
     /// Constructs a literal record of type `FlexOp2` from a rotation values
     ///  specified as an `int`.
     let consLitOp (b', r') =
-        consLit (b', r')
-        |> Lit
+        let cLit =
+            consLit (b', r')
+            |> Lit
+        cLit
 
-    
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
+
+    let rotRight (x : uint32) n = (uint64 x >>> n) ||| (uint64 x <<< (32 - n)) |> uint32
+
+    /// A function to check the validity of literals according to the ARM spec.
+    let checkLiteral lit =
+        let lst = [0..2..30] 
+                    |> List.map (fun x -> rotRight lit x, x)
+                    |> List.filter (fun (x, _) -> x < 256u)
+        match lst with
+        | [] ->
+            let txt = lit |> string
+            (txt, notValidLiteralEM)
+            ||> makeError
+            |> ``Invalid literal``
+            |> Error
+        | (x, r) :: _ -> 
+            match r = 0 with
+            | true -> Ok (byte x, 0)
+            | false -> Ok (byte x, 32 - r)
+
+
     /// Top level parsing function called from the `IMatch` active pattern.
-    let parse (ld: LineData) : Result<Parse<Instr>,ErrInstr> option =
-      
-        /// A function to check the validity of literals according to the ARM spec.
-        let checkLiteral lit =
-            let rotMask n = (0xFFu >>> n) ||| (0xFFu <<< 32 - n)
-            [0..2..30] 
-            |> List.map (fun r -> rotMask r, r)
-            |> List.filter (fun (mask, _r) -> (mask &&& lit) = lit)
-            |> function
-            | hd :: _tl ->
-                let rotB = fst hd |> (&&&) lit
-                let B = (rotB <<< snd hd) ||| (rotB >>> 32 - snd hd) |> byte
-                Ok (B, snd hd)
-            | [] ->
-                let txt = lit |> string
-                (txt, notValidLiteralEM)
-                ||> makeError
-                |> ``Invalid literal``
-                |> Error
-
-        /// A partially active pattern to parse regexes, and return the matched group.
-        let (|ParseRegex|_|) regex txt =
-            let m = Regex.Match(txt, "^[\\s]*" + regex + "[\\s]*" + "$")
-            match m.Success with
-            | true -> Some (m.Groups.[1].Value)
-            | false -> None
-
+    let parse (ld: LineData) : Result<Parse<Instr>,ErrParse> option =
         /// A partially active pattern to match literals according to the ARM spec,
         ///  and return a numerical representation of the literal if it is valid.
         let (|LitMatch|_|) txt =
             match txt with
-            | ParseRegex "#&([0-9a-fA-F]+)" num -> 
+            | RegexPrefix "#&" (_, RegexPrefix "[0-9a-fA-F]+" (num, _))  -> 
                 (uint32 ("0x" + num)) |> checkLiteral |> Some
-            | ParseRegex "#(0B[0-1]+)" num
-            | ParseRegex "#(0X[0-9a-fA-F]+)" num
-            | ParseRegex "#([0-9]+)" num ->
-                num |> uint32 |> checkLiteral |> Some
+            | RegexPrefix "#0[bB]" (_, RegexPrefix "[0-1]+" (num, _)) ->
+                (uint32 ("0b" + num)) |> checkLiteral |> Some
+            | RegexPrefix "#0[xX]" (_, RegexPrefix "[0-9a-fA-F]+" (num, _)) ->
+                (uint32 ("0x" + num)) |> checkLiteral |> Some
+            | RegexPrefix "#" (_, RegexPrefix "[0-9]+" (num, _)) ->
+                uint32 num |> checkLiteral |> Some
             | _ ->
                 None
 
@@ -669,6 +658,7 @@ module DP
                     match rDest, rOp1 with
                     | RegCheck rDest', RegCheck rOp1' ->
                         combineErrorMapResult rDest' rOp1' consDPRRX
+                    | _ -> failwithf "maccth?"
                 | _ ->
                     (ld.OpCode + " " + ld.Operands, notValidFormatEM)
                     ||> makeError
@@ -731,55 +721,58 @@ module DP
         
         /// A function to initiate parsing of an instruction, and return a result
         ///  based on this parsing.
-        let parse' (_instrC, (root, suffix, cond)) =
-            let suff = match suffix with "S" -> Some S | _ -> None
+        let parse' (_instrC, (root : string, suffix : string, cond)) =
+            let uRoot = uppercase root
+            let uSuffix = uppercase suffix
+
+            let suff = match uSuffix with "S" -> Some S | _ -> None
             let instr =
-                match (Map.containsKey root opcodesDP2 || Map.containsKey root opcodesDP2S || Map.containsKey root opcodesDP2RS) with
+                match (Map.containsKey uRoot opcodesDP2 || Map.containsKey uRoot opcodesDP2S || Map.containsKey uRoot opcodesDP2RS) with
                 | true ->
                     let operands = operandsDP2.Force()
-                    match Map.containsKey root opcodesDP2, suff with
+                    match Map.containsKey uRoot opcodesDP2, suff with
                     | true, None ->
-                        let opcode = opcodesDP2.[root]
+                        let opcode = opcodesDP2.[uRoot]
                         operands
                         |> Result.map (opcode) 
                         |> Result.map (DP2)
                     | false, _ ->
-                        match Map.containsKey root opcodesDP2S, suff with
+                        match Map.containsKey uRoot opcodesDP2S, suff with
                         | true, _ ->               
-                            let opcode = opcodesDP2S.[root]
+                            let opcode = opcodesDP2S.[uRoot]
                             operands
                             |> Result.map (consDP2S suff)
                             |> Result.map (opcode) 
                             |> Result.map (DP2S)
                         | false, _ ->
                             let operands = operandsDP2RS.Force()
-                            let opcode = opcodesDP2RS.[root]
+                            let opcode = opcodesDP2RS.[uRoot]
                             operands
                             |> Result.map (consDP2RS suff)
                             |> Result.map (opcode)
                             |> Result.map (DP2RS)
                     | true, Some _suff' ->
-                        (suffix, notValidSuffixEM)
+                        (uSuffix, notValidSuffixEM)
                         ||> makeError
                         |> ``Invalid suffix``
                         |> Error
                 | false ->
-                    match (Map.containsKey root opcodesDP3RS) with
+                    match (Map.containsKey uRoot opcodesDP3RS) with
                     | true ->
-                        let opcode = opcodesDP3RS.[root]
+                        let opcode = opcodesDP3RS.[uRoot]
                         operandsDP3R.Force()
                         |> Result.map (consDP3RS suff)
                         |> Result.map (opcode)
                         |> Result.map (DP3RS)
                     | false ->
-                        let opcode = opcodesDP3.[root]
+                        let opcode = opcodesDP3.[uRoot]
                         operandsDP3.Force()
                         |> Result.map (consDP3S suff)
                         |> Result.map (opcode) 
                         |> Result.map (DP3S)
             Result.map(makeInstr cond) instr
                     
-        Map.tryFind ld.OpCode opCodes
+        Map.tryFind (uppercase ld.OpCode) opCodes
         |> Option.map parse' 
 
     let (|IMatch|_|) = parse

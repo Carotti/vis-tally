@@ -38,7 +38,9 @@ module DPExecution
         ///  in finding the new value of the CPSR flags.
         let getBitBool n (value:uint32) =
             getBit n value
-            |> System.Convert.ToBoolean
+            |> function
+                | x when x = 0u -> false
+                | _ -> true
 
         /// A function an RRX and return the would-be values of the CPSR.
         let calcRRX reg (dp:DataPath<Parse<CommonTop.Instr>>) =
@@ -51,7 +53,7 @@ module DPExecution
         
         /// A function to calculate a ROR.
         let doROR b r : uint32 =
-            (b >>> r) ||| (b <<< (32-r))
+            ((uint64 b) >>> r) ||| ((uint64 b) <<< (32-r)) |> uint32
         
         /// A function to calculate the values of literals from the underlying
         ///  byte and rotation.
@@ -118,20 +120,10 @@ module DPExecution
         /// A function to determine the new value of the C flag if a subtractive
         ///  instruction was executed.
         let subtractiveCarryCheck (flags, op1, op2, value) =
-            let value' = (op1 |> uint64) - (op2 |> uint64)
-            value' |> printfn "Hello from the subtractiveCarryCheck: %x"
-            value' |> uint32 |> printfn "Hello from the subtractiveCarryCheck: %x"
-            value' |> uint32 |> getBit 31 |> printfn "Hello from the subtractiveCarryCheck: %x"
-            match value' with
-            | 0UL                                       ->
-                "C IS HIGH" |> qp
-                {flags with C = true}, op1, op2, value
-            | v when ( v |> uint32 |> getBit 31 = 0u)   ->
-                "C IS HIGH" |> qp
-                {flags with C = true}, op1, op2, value
-            | _                                         ->
-                "C IS LOW" |> qp
-                {flags with C = false}, op1, op2, value
+            match int value with
+            | x when x >= 0 -> {flags with C = true}, op1, op2, value
+            | _ -> {flags with C = false}, op1, op2, value
+
             
         /// A function to determine the new value of the V flag if an additive
         ///  instruction was executed.
@@ -295,7 +287,6 @@ module DPExecution
             | LSL _ -> execute dp (fun op1 op2 -> (op1 <<< (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | LSR _ -> execute dp (fun op1 op2 -> (op1 >>> (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | ROR _ -> execute dp (fun op1 op2 -> doROR op1 (int32 op2)) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
-
 
         /// A function to determine which `DP2` instruction is to be executed, 
         ///  execute it, and return the new datapath.

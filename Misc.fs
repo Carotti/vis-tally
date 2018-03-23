@@ -9,7 +9,6 @@ module Misc
 
     open Errors
     open DP
-    open FsCheck
 
     // Don't support valueSize yet, always set to 1
     type FILLInstr = {numBytes : SymbolExp ; value : SymbolExp ; valueSize : int}
@@ -33,24 +32,10 @@ module Misc
     //     | InvalidFill of string
     //     | LabelRequired
     /// Error types for parsing.
-    type ErrInstr =
-        | ``Invalid literal`` of ErrorBase
-        | ``Invalid second operand`` of ErrorBase
-        | ``Invalid flexible second operand`` of ErrorBase
-        | ``Invalid memory address`` of ErrorBase
-        | ``Invalid offset`` of ErrorBase
-        | ``Invalid register`` of ErrorBase
-        | ``Invalid shift`` of ErrorBase
-        | ``Invalid suffix`` of ErrorBase
-        | ``Invalid instruction`` of ErrorBase
-        | ``Invalid expression`` of ErrorBase
-        | ``Invalid expression list`` of ErrorBase
-        | ``Invalid fill`` of ErrorBase
-        | ``Label required`` of ErrorBase
 
 
     /// Errors which can occur during resolving of an expression
-    type ErrResolve =
+    type ErrMiscResolve =
         | InvalidByteExp of uint32
         | SymbolErrors of EvalErr list
         | InvalidFillMultiple // When numBytes is not a multiple of valueSize
@@ -58,6 +43,7 @@ module Misc
     /// Resolve all MISC instructions which have unresolved `SymbolExp`s
     /// Any evaluation can fail with an undefined symbol, Error return is
     /// the first symbol which causes this
+    /// Also return the resolved value
     let resolve (syms : SymbolTable) ins = 
         /// Take a list of results and transform it to a Result of either the
         /// first error in the list or the Ok list if every element is Ok
@@ -139,7 +125,7 @@ module Misc
             |> ``Invalid expression list``
             |> Error
 
-    let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
+    let parse (ls: LineData) : Result<Parse<Instr>,ErrParse> option =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
 
         let labelBinder f = 

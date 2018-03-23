@@ -17,9 +17,6 @@ module Branch
     type Instr =
         | Branch of BranchInstr
 
-    type ErrInstr =
-        | ``Invalid expression`` of ErrorBase
-
     /// Resolve the symbols for an instruction which requires it
     let resolvePInstr (syms : SymbolTable) ins =
         match ins with
@@ -28,8 +25,7 @@ module Branch
         | _ -> Ok ins // Symbol is already resolved
 
     let resolve (syms : SymbolTable) ins =
-        resolvePInstr syms ins.PInstr
-        |> Result.map (fun x -> {ins with PInstr = x})
+        resolvePInstr syms ins
 
     // Branch instructions have no suffixes
     let branchSpec = {
@@ -41,7 +37,7 @@ module Branch
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand branchSpec
 
-    let parse (ls: LineData) : Result<Parse<Instr>,ErrInstr> option =
+    let parse (ls: LineData) : Result<Parse<Instr>,ErrParse> option =
 
         let bindB t =
             match ls.Operands with
