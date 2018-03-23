@@ -34,7 +34,6 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
 
 /// Initialization after `index.html` is loaded
 let init () =
-
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
 

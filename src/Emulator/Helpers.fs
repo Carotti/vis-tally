@@ -1,7 +1,20 @@
 module Helpers
     open CommonData    
     open System.Text.RegularExpressions
-    open Expecto
+
+    /// A function to check the validity of literals according to the ARM spec.
+    let checkLiteral lit =
+        let lst = [0..2..30] 
+                    |> List.map (fun x -> rotRight lit x, x)
+                    |> List.filter (fun (x, _) -> x < 256u)
+        match lst with
+        | [] ->
+            let txt = lit |> string
+            (txt, notValidLiteralEM)
+            ||> makeError
+            |> ``Invalid literal``
+            |> Error
+        | (x, r) :: _ -> Ok (byte x, r)
     
     /// Visuals apparent minimum data address may be useful?
     let minAddress = 0x100u
