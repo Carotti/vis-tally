@@ -1,86 +1,117 @@
 ﻿module Test
     open Expecto
-    open Helpers
-    open VisualTest.VData
-    open VisualTest.VCommon
-    open VisualTest.Visual
-    open VisualTest.VTest
+
+    open Integration
     open CommonData
+    open Mono.Cecil.Cil
 
-    // from given files
-    let memReadBase = 0x1000u
-    let expectoConfig = { Expecto.Tests.defaultConfig with 
-                            parallel = testParas.Parallel
-                            parallelWorkers = 6 // try increasing this if CPU use is less than 100%
-                    }
-    let fsConfig = {FsCheckConfig.defaultConfig with replay = Some (0,0); maxTest = 100}
+    type Flags =
+        | N
+        | Z
+        | C
+        | V
 
-    let visualTestProperty name test = testPropertyWithConfig fsConfig name test
-    let runVisualTests () = 
-        initCaches testParas
-        let rc = runTestsInAssembly expectoConfig [||]
-        finaliseCaches testParas
-        rc // return an integer exit code - 0 if all tests pass    
+    let expectRegSet rNum value dp =
+        Expect.equal dp.Regs.[rNum] value (sprintf "%A value" rNum)
 
-    let visualToReg = function
-        | R reg -> makeReg (makeRegFn reg)
-        
-    let visualToRegs vRegs = 
-        List.map (fun (rOut, rInt) -> (visualToReg rOut, rInt |> uint32)) vRegs
-        |> Map.ofList
-    
-    // make an address list from base address of data 0x100 
-    // up to 0x200 by 0x4 each time
-    let visualToMem vMem = 
-        let alst = 
-            [memReadBase..word..memReadBase + 0x30u] // need this to stop list complaints
-            |> List.map WA
-            |> List.rev
-        List.zip alst (List.map DataLoc vMem)
-        |> Map.ofList
+    let expectMemSet addr value dp =
+        match dp.MM.[WA addr] with
+        | DataLoc x -> Expect.equal x value (sprintf "Mem Value at 0x%x" addr)
+        | Code _ -> failwithf "Expecting on code memory"
 
-    let returnData _ d =
-        match d with
-        | DataLoc dl -> dl
-        | _ -> 0u
+    let expectFlagSet flag value dp =
+        let fVal =
+            match flag with
+            | N -> dp.Fl.N
+            | Z -> dp.Fl.Z
+            | C -> dp.Fl.C
+            | V -> dp.Fl.V
+        Expect.equal fVal value (sprintf "%A flag" flag)
 
-    let visualToDataPath visual =   
-        let flags = {
-                        N = visual.State.VFlags.FN; 
-                        C = visual.State.VFlags.FC;
-                        Z = visual.State.VFlags.FZ;
-                        V = visual.State.VFlags.FV;
-                    }
-        let regs = visualToRegs visual.Regs
-        let mem = visualToMem visual.State.VMemData
-        {Fl = flags; Regs = regs; MM = mem}
-    let returnVisualCpuData param src = 
-        RunVisualWithFlagsOut param src 
-        |> snd |> visualToDataPath
+    let unitTest name code expecters =
+        let result = 
+            match runCode code with
+            | Some x -> x
+            | None -> failwithf "Error in unit test"
+        testCase name <|
+            (fun () -> List.fold (fun _ exp -> exp result) () expecters)
 
-    let valList = 0u :: [2u..13u];
-    let addrList = [4096u..4u..4144u];
+    let sanityTests =
+        testList "Sanity Tests" [
+            unitTest "Basic Mov" <|
+            "
+                mov r0, #1
+            " <|
+            [
+                expectRegSet R0 1u
+                expectRegSet R1 0u
+            ]
 
-    let storer = 
-        List.zip valList addrList
-        |> List.map (fun (a, b) -> STORELOC a b)
-        |> List.fold (+) "\n"
-    
-    let resetR2R0 = "MOV R2, #0x1000\nMOV R0, #0x1000\n"
-    let returnMemVisualCpuData paras src =
-        let main, post = VisualTest.VData.GETWRAPPER paras.InitRegs paras.InitFlags paras.MemReadBase
-        let res = RunVisual {paras with Prelude=main + storer + resetR2R0; Postlude=post} src
-        let output = 
-            match res with
-            | Error e -> failwithf "Error reading Visual Log %A" e
-            | Ok ({ Regs=_; State={VFlags=fl}} as vso) -> fl, vso
-        snd output |> visualToDataPath
+            unitTest "Valid rotation literal" <|
+            "
+                mov r0, #0xff000000
+            " <|
+            [
+                expectRegSet R0 0xff000000u
+            ]
 
-    let returnCpuDataMem (cpuData: DataPath<CommonTop.Instr>) = 
-        Map.map returnData cpuData.MM
+            unitTest "Zero flag test" <|
+            "
+                movs r0, #0
+            " <|
+            [
+                expectFlagSet Z true
+            ]
+        ]
 
-    let returnCpuDataRegs (cpuData: DataPath<CommonTop.Instr>) =
-        cpuData.Regs
-    
-    let returnCpuDataFlags (cpuData: DataPath<CommonTop.Instr>) =
-        cpuData.Fl
+    let directiveTests =
+        testList "Directives" [
+            unitTest "Forward label dependence" <|
+            "
+                label1 EQU label2
+                label2 EQU label3
+                label3 EQU label4
+                label4 EQU label5
+                label5 EQU hello
+
+                mov r0, #0
+                hello ADR R0, label1
+            " <|
+            [
+                expectRegSet R0 4u
+            ]
+        ]
+
+    let branchTests =
+        testList "Branches" [
+            unitTest "First multiple of 3 >= 100" <|
+                "
+                    start add r0, r0, #3
+                    cmp r0, #100
+                    blt start
+                    end
+                " <|
+                [
+                    expectRegSet R0 102u
+                ]
+
+            unitTest "Branchlink basic" <|
+                "
+                    mov r0, #100
+                    bl fin
+                    mov r0, #50
+                    fin end
+                " <|
+                [
+                    expectRegSet R14 8u
+                    expectRegSet R0 100u
+                ]
+        ]
+
+    [<Tests>]
+    let allTests =
+        testList "Tests" [
+            sanityTests
+            directiveTests
+            branchTests
+        ]

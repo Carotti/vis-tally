@@ -87,9 +87,11 @@ let runCode code =
         match getInfoFromParsed insLst with
         | Result.Ok x -> 
             match pExecute x with
-            | Some pInfo -> printfn "%A" pInfo
-            | None -> ()
+            | Some pInfo -> Some pInfo.dp
+            | None -> None
         | Result.Error x -> 
             highlightErrorResolve x |> ignore
+            None
     | Result.Error errLst -> 
         List.map highlightErrorParse errLst |> ignore
+        None

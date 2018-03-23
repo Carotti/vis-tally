@@ -158,6 +158,7 @@ module DPExecution
             let result = func op1 op2
             let dp' =
                 match dest with
+                | Some R15 -> updateReg R15 (result - word) dp // Don't update pc if it is set explicitly
                 | Some destReg -> updateReg destReg result dp
                 | None -> dp
             match suffix with
