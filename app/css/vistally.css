@@ -133,6 +133,7 @@
 
 .editor-line-highlight {
     font-weight: bolder;
+    text-decoration: underline;
 	/* width: 5px !important;
 	left: 3px; */
 }
@@ -153,4 +154,9 @@
 
 .editor-line-error {
     border-bottom: 2px dotted red;
+}
+
+#status-bar {
+    width: 200px;
+    align-self: center;
 }

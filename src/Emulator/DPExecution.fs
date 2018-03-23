@@ -120,20 +120,9 @@ module DPExecution
         /// A function to determine the new value of the C flag if a subtractive
         ///  instruction was executed.
         let subtractiveCarryCheck (flags, op1, op2, value) =
-            let value' = (op1 |> uint64) - (op2 |> uint64)
-            value' |> printfn "Hello from the subtractiveCarryCheck: %x"
-            value' |> uint32 |> printfn "Hello from the subtractiveCarryCheck: %x"
-            value' |> uint32 |> getBit 31 |> printfn "Hello from the subtractiveCarryCheck: %x"
-            match value' with
-            | 0UL                                       ->
-                "C IS HIGH" |> qp
-                {flags with C = true}, op1, op2, value
-            | v when ( v |> uint32 |> getBit 31 = 0u)   ->
-                "C IS HIGH" |> qp
-                {flags with C = true}, op1, op2, value
-            | _                                         ->
-                "C IS LOW" |> qp
-                {flags with C = false}, op1, op2, value
+            match int value with
+            | x when x >= 0 -> {flags with C = true}, op1, op2, value
+            | _ -> {flags with C = false}, op1, op2, value
             
         /// A function to determine the new value of the V flag if an additive
         ///  instruction was executed.

@@ -5,10 +5,10 @@
 module DP
     open CommonData
     open CommonLex
-    open System.Text.RegularExpressions
     open Errors
     open ErrorMessages
     open Helpers
+    open Expressions
 
     /// Rotation values for the `Literal` type in the flexible second operand.
     [<Struct>]
@@ -393,23 +393,18 @@ module DP
                 |> ``Invalid literal``
                 |> Error
 
-        /// A partially active pattern to parse regexes, and return the matched group.
-        let (|ParseRegex|_|) regex txt =
-            let m = Regex.Match(txt, "^[\\s]*" + regex + "[\\s]*" + "$")
-            match m.Success with
-            | true -> Some (m.Groups.[1].Value)
-            | false -> None
-
         /// A partially active pattern to match literals according to the ARM spec,
         ///  and return a numerical representation of the literal if it is valid.
         let (|LitMatch|_|) txt =
             match txt with
-            | ParseRegex "#&([0-9a-fA-F]+)" num -> 
+            | RegexPrefix "#&" (_, RegexPrefix "[0-9a-fA-F]+" (num, _))  -> 
                 (uint32 ("0x" + num)) |> checkLiteral |> Some
-            | ParseRegex "#(0B[0-1]+)" num
-            | ParseRegex "#(0X[0-9a-fA-F]+)" num
-            | ParseRegex "#([0-9]+)" num ->
-                num |> uint32 |> checkLiteral |> Some
+            | RegexPrefix "#0[bB]" (_, RegexPrefix "[0-1]+" (num, _)) ->
+                (uint32 ("0b" + num)) |> checkLiteral |> Some
+            | RegexPrefix "#0[xX]" (_, RegexPrefix "[0-9a-fA-F]+" (num, _)) ->
+                (uint32 ("0x" + num)) |> checkLiteral |> Some
+            | RegexPrefix "#" (_, RegexPrefix "[0-9]+" (num, _)) ->
+                uint32 num |> checkLiteral |> Some
             | _ ->
                 None
 

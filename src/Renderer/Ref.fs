@@ -123,3 +123,6 @@ let tabFilePath id =
 
 let darkenOverlay =
     Browser.document.getElementById("darken-overlay")
+
+let statusBar =
+    Browser.document.getElementById("status-bar")

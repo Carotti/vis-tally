@@ -405,3 +405,18 @@ let resetFlags () =
     setFlag "C" false
     setFlag "Z" false
     setFlag "V" false
+
+let setErrorStatus () = 
+    statusBar.classList.remove("btn-positive")
+    statusBar.classList.add("btn-negative")
+    statusBar.innerHTML <- "Errors in code"
+
+let setExecutionCompleteStatus () =
+    statusBar.classList.remove("btn-negative")
+    statusBar.classList.add("btn-positive")
+    statusBar.innerHTML <- "Execution Complete"
+
+let setNoStatus () =
+    statusBar.classList.remove("btn-negative")
+    statusBar.classList.remove("btn-positive")
+    statusBar.innerHTML <- "-"

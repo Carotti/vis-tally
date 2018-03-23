@@ -213,18 +213,18 @@ module Memory
             | ParseRegex "([rR][0-9]+)" preOffReg -> preOffReg |> regNoPrePost |> Some
             | ParseRegex "([rR][0-9]+)\]" preOffReg -> preOffReg |> regPreNoPost |> Some
             | ParseRegex "([rR][0-9]+)\]!" preOffReg -> preOffReg |> regPreAndPost |> Some
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)" preOffHex -> preOffHex |> immNoPrePost |> Some
+            | ParseRegex "#0[xX]([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost |> Some
             | ParseRegex "#([0-9]+)" preOffDec -> preOffDec |> immNoPrePost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)" preOffHex -> ("0x" + preOffHex) |> immNoPrePost |> Some
-            | ParseRegex "#(0[bB][0-1]+)" preOffBin -> preOffBin |> immNoPrePost |> Some
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]" preOffHex -> preOffHex |> immPreNoPost |> Some
+            | ParseRegex "#0[bB]([0-1]+)" preOffBin -> ("0b" + preOffBin) |> immNoPrePost |> Some
+            | ParseRegex "#0[xX]([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost |> Some
             | ParseRegex "#([0-9]+)\]" preOffDec -> preOffDec |> immPreNoPost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)\]" preOffHex -> ("0x" + preOffHex) |> immPreNoPost |> Some
-            | ParseRegex "#(0[bB][0-1]+)\]" preOffBin -> preOffBin |> immPreNoPost |> Some
-            | ParseRegex "#(0[xX][0-9a-fA-F]+)\]!" preOffHex -> preOffHex |> immPreAndPost |> Some
+            | ParseRegex "#0[bB]([0-1]+)\]" preOffBin -> ("0b" + preOffBin) |> immPreNoPost |> Some
+            | ParseRegex "#0[xX]([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost |> Some
             | ParseRegex "#([0-9]+)\]!" preOffDec -> preOffDec |> immPreAndPost |> Some
             | ParseRegex "#&([0-9a-fA-F]+)\]!" preOffHex -> ("0x" + preOffHex) |> immPreAndPost |> Some
-            | ParseRegex "#(0[bB][0-1]+)\]!" preOffBin -> preOffBin |> immPreAndPost |> Some
+            | ParseRegex "#0[bB]([0-1]+)\]!" preOffBin -> ("0b" + preOffBin) |> immPreAndPost |> Some
             | _ -> 
                 (str, notValidOffsetEM)
                 ||> makeError
@@ -397,7 +397,7 @@ module Memory
             | _ -> failwith "We appear to have a rogue root"
            
 
-        Map.tryFind ls.OpCode opCodes
+        Map.tryFind (uppercase ls.OpCode) opCodes
         |> Option.map parse'
 
     /// Parse Active Pattern used by top-level code

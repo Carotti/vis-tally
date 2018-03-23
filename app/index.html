@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>ARM REPL</title>
+    <title>VisTally</title>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/photon.css">
@@ -14,8 +14,6 @@
     <div class="window">
         <!-- .toolbar-header sits at the top of your app -->
         <header class="toolbar toolbar-header">
-            <h1 class="title">ARM7TDMI</h1>
-
             <div class="toolbar-actions">
                 <div class="btn-group">
                     <button id="explore" class="btn btn-default">
@@ -40,6 +38,10 @@
 
                 <button id="stepf" class="btn btn-default">
                     Step Forward
+                </button>
+
+                <button id="status-bar" class="btn btn-large btn-default" disabled>
+                    -
                 </button>
 
                 <div class="btn-group pull-right">
@@ -216,7 +218,6 @@
         </div>
         <!-- window-content -->
         <footer class="toolbar toolbar-footer">
-            <div class="pull-left footer-margin">Group Name</div>
             <div id="flags" class="pull-right" style="margin: 5px">
                 <div class="btn-group btn-flag-group">
                     <button class="btn btn-flag">N</button>

@@ -52,9 +52,11 @@ let highlightErrorParse (err, lineNo) tId =
         | ``Label required`` x  -> "Label required", x
         | ``Unimplemented instruction`` x -> "Invalid instruction", x
     errUnpacker getErrNames tId lineNo
+    setErrorStatus ()
 
 let highlightErrorResolve e tId =
-    List.map (fun x -> errUnpacker ("resolve", x.error) tId x.lineNumber) e
+    List.map (fun x -> errUnpacker ("resolve", x.error) tId x.lineNumber) e |> ignore
+    setErrorStatus ()
 
 let makeMemoryMap mm =
     Map.toList mm
@@ -89,12 +91,16 @@ let showInfo pInfo =
 
 let handleRunTimeError e pInfo =
     match e with
-    | EXIT -> showInfo pInfo
+    | EXIT ->
+        showInfo pInfo
+        setExecutionCompleteStatus ()
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
+        setErrorStatus ()
     | ``Run time error`` {errorTxt = txt ; errorMessage = msg} ->
         Browser.window.alert(txt + " " + msg)
-            
+        setErrorStatus ()
+
 let rec pExecute pInfo =
     let newDp = dataPathStep pInfo.dp
     match newDp with
@@ -142,6 +148,10 @@ let runCode () =
 
 let mutable currentPInfo : ParsedInfo option = fNone
 
+let highlightCurrentIns pInfo tId =
+    removeEditorDecorations tId
+    highlightLine tId pInfo.lineNo.[pInfo.dp.Regs.[R15]]
+
 let rec stepCode () =
     let tId = currentFileTabId
     removeEditorDecorations tId
@@ -153,6 +163,7 @@ let rec stepCode () =
             handleRunTimeError e pInfo
         | Result.Ok ndp ->
             let newP = {pInfo with dp = ndp}
+            highlightCurrentIns pInfo tId
             currentPInfo <- Some newP
             showInfo newP
     | _ ->
@@ -172,3 +183,4 @@ let resetEmulator () =
     resetRegs()
     resetFlags()
     currentPInfo <- fNone
+    setNoStatus ()
