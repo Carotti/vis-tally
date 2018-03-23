@@ -1,10 +1,199 @@
-# maccth diary
-- 10/02/18: Nothing too important to report. I found a team. Nice people. Douglas, a halfling bard, from the realm of Hurstpoint. I must say, he baffles me. He spends his time singing, and wandering the land. He does walk in a funny way. Feet angled like a sextant. Probably because he wanders too much. He left us early. He said he had some business to clear up. Probably some dark stuff he doesn't want to tell us about. I'll watch him closely. But you see, you can always trust a man with angled flappers. That's one thing my father taught me. The other, a gnome from the Brocken. He speaks fast and generally holds a confused face. He seems to have good intentions. He said he's off on a big trip to Amerika if he makes it out of this alive. We probably won't. We camped out at his hut in the old fort of general H. Ammersmith and delegated tasks. Team moral is on a high. I'll keep an eye on the bard, but trust the gnome.
+# Some Highlights
+Functions for handling multiple `Result` monads. All in `DP.fs`.
+```fsharp
 
-- 11/02/18: The gnome and I trekked to the safe haven of South Kensingbert. We spent the morning planning. We generally worked alone, and I guess we will continue to do so for the next three or so weeks. A good tactic is to spend the first three weeks of war fighting alone. No sign of the bard. He also did some planning, and had it sent by Gittad, a pigeon we have invested in. The bard's planning generally looks quite similar to what the gnome produced. Interesting, right? In the afternoon, the gnome went to see Heimdall and Magsonian. No one is sure how useful Heimdall ever is, but I trust the gnome is working towards the betterment of our chances as a group in the war to come.
+let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =
+    match res1, res2 with
+    | Error e1, _ -> Error e1
+    | _, Error e2 -> Error e2
+    | Ok rt1, Ok rt2 -> Ok (rt1, rt2)
 
-- 12/02/18: The war started yesterday. Horrendous. Absolutely horrendous. I was working on getting the literal parsing cannons up and running to fire at the flexible second operands. I was surrounded on all sides. flexOp2s everywhere. Can you imagine the scenes. I was knocked out by an ADDSEQ and taken into the enemy camp. Luckily, and by some tremendously large miracle, my unconscious body made the wise decision to grab a (then not working) literal parsing cannon. So when I regained consciousness in small cage deep inside the flexOp2 camp, I had this wonderful cannon with me. Silly little flexOp2s. The worst part was that this all happened right in front of the gnome, who did very little to help. In fact, as the whole shit show was unfolding, he pulled down his trouser  and just waved his recursive active pattern in my face. I decided that my best chance of getting out of the flexOp2 camp would be to get the cannon working. Lo and behold the bard turns up! He suggests that instead of working on the cannon we should go the cinema and figure out how to get out of here another day. That is one thing I must say about the flexOp2s, they do treat their prisoners of war well.
 
-- 13/02/18: I ask the bard how he got here. He said that he just couldn’t be bothered to do anything, so when the flexOp2s ambushed him, he just decided that it was in the interest of his cultural knowledge of the land to go the flexOp2 camp. It was a part of the land he had never been to. I started to get the feeling that the bard has had a very sheltered life thus far. He enjoyed the film. I had already seen it. We ate turtles for dinner and went to bed.
+let combineErrorMapResult (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) (mapf:'T1 -> 'T2 -> 'T3) : Result<'T3,'E> =
+    combineError res1 res2
+    |> Result.map (fun (r1,r2) -> mapf r1 r2)
 
-- 14/02/18: Deep in the enemy camp, I woke up. No bard. Just me and the broken cannon. I got to work immediately. Within a few hours I had a working monad cannon. Hmmmm. Wasn’t this supposed to be an active pattern cannon? I thought so too. But here I was. In the middle of the enemy camp. Beggars can’t be choosers. I pressed on.  I wonder where the hell the bard has gone? No matter. I began sneaking around. I don’t know how it got to that stage. I stood there, face to face with an ADD. The hexadecimal literal glared at my monad cannon. We all appreciated the distinct lack of optional values. The air was thick. The tension was very raw and very real. The kind of tension you could cut though with an anonymous function. The ADD knew I only had a monad cannon. He lit a cohiba cigar, smiling mercilessly at me. We made eye contact. For a moment we could see deep into each other’s soul. He hadn’t always been an ADD instruction. He grew up in Portland, Oregon with a loving family. But then he went off the rails. Started hanging out with the wrong crowd. Hell I think if I asked he would let me go. I wonder what he saw in me. I knew I had to go for it. Suddenly, as all hope began to fade from the world, and all colour began to dry up we both began pattern matching as fast possible. He dodged my first move, went straight for the don’t care, and died. Poor old lad. Laid before me was a choice. I could carry on my escape out of the flexOp2 camp, or, I could Barry’s body back to Portland, Oregon. I decided I should sleep on the decision, I went back to my cage and slept.
+let applyResultMapError (res:Result<'T1->'T2,'E>) (arg:Result<'T1,'E>) =
+    match arg, res with
+    | Ok arg', Ok res' -> res' arg' |> Ok
+    | _, Error e -> e |> Error
+    | Error e, _ -> e |> Error
+```
+
+Higher order function `execute` to handle execution of instructions. In `DPExecution.fs`.
+
+The `List.fold` is used to weave the data path through all the checks for CPSR flags which are passed as a list.
+```fsharp
+let execute dp func dest op1 op2 suffix flagTests : (Result<DataPath<Instr>,ErrExe>) =
+    let result = func op1 op2
+    let dp' =
+        match dest with
+        | Some destReg -> updateReg destReg result dp
+        | None -> dp
+    match suffix with
+    | Some S ->
+        flagTests
+        |> List.collect id
+        |> List.fold (fun flags test -> test flags) (dp'.Fl, op1, op2, result)
+        |> fun (f, _op1, _op2, _res) -> f
+        |> fun f -> {dp' with Fl = f}
+        |> Ok
+    | None ->
+        dp'
+        |> Ok
+```
+An example of how the `execute` function is used. Also in `DPExecution.fs`.
+
+```Fsharp
+match opcode with
+   | ADD _ -> execute dp' (fun op1 op2 -> op1 + op2) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
+   | ADC _ -> execute dp' (fun op1 op2 -> op1 + op2) dest (op1+C) op2 operands.suff [CVCheckAdd; NZCheck]
+   | SUB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 op2 operands.suff [CVCheckSub; NZCheck]
+   | SBC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op1 (op2 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff [CVCheckSub; NZCheck]
+   | RSB _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op2 op1 operands.suff [CVCheckSub; NZCheck]
+   | RSC _ -> execute dp' (fun op1 op2 -> op1 - op2) dest op2 (op1 + (Cb |> not |> System.Convert.ToUInt32)) operands.suff [CVCheckSub; NZCheck]
+   | AND _ -> execute dp' (fun op1 op2 -> op1 &&& op2) dest op1 op2 operands.suff [NZCheck]
+   | ORR _ -> execute dp' (fun op1 op2 -> op1 ||| op2) dest op1 op2 operands.suff [NZCheck]
+   | EOR _ -> execute dp' (fun op1 op2 -> op1 ^^^ op2) dest op1 op2 operands.suff [NZCheck]
+   | BIC _ -> execute dp' (fun op1 op2 -> op1 &&& (~~~op2)) dest op1 op2 operands.suff [NZCheck]
+```
+
+
+# Contribution to Group
+## Flexible Second Operand
+I parse into a data domain type model all forms of the flexible second operand. For example for `ADDS r1, r2, r3, LSL #0xf0000002`
+```
+Ok {PInstr = IDP (DP3S (ADD {rDest = R1;
+                             rOp1 = R2;
+                             fOp2 = Shift {rOp2 = R3;
+                                           sInstr = LSL;
+                                           sOp = ConstShift {b = 47uy;
+                                                             r = Rot4;};};
+                             suff = Some S;}));
+    PLabel = None;
+    PSize = 4u;
+    PCond = Cal;}
+```
+The modelling is done with a number of DUs with `FlexOp2` at the top level, making it easy to integrate into an existing code base simply by adding in the DUs.
+I also execute data processing instructions using this model. Since all possible values are defined within their DUs, it is easy to get information out by series of pattern matching in order to unpack the types. This means that even if my execution code isn't used. The data modelling can be. A bonus of this tight-typing is that `Result` monads can flow through very easily. Furthermore, in order to establish a well defined interface between Doug and Tom's potential `Result` monads I have defined descriptive error types:
+```Fsharp
+type ErrInstr =
+    | ``Invalid literal``                   of string
+    | ``Invalid register``                  of string
+    | ``Invalid shift``                     of string
+    | ``Invalid flexible second operand``   of string
+    | ``Invalid suffix``                    of string
+    | ``Invalid instruction``               of string
+    | ``Syntax error``                      of string
+```
+which allows for the nice error detection mentioned above:
+
+```
+~> add r20, r21, r22, rpr #10
+Error (ERRIDP (Invalid register "R20 is not a valid register."))
+
+~> add r0, r21, r22, rpr #hello
+Error (ERRIDP (Invalid register "R21 is not a valid register."))
+
+~> add r0, r1, r22, rpr #hello
+Error
+  (ERRIDP
+     (Invalid flexible second operand
+        "R22, RPR#HELLO is an invalid flexible second operand"))
+
+~> add r0, r1, r2, ror #hello
+Error (ERRIDP (Invalid shift "#HELLO is not a valid literal or register."))
+```        
+
+## Interfaces
+All data processing instructions fit under a top level DU which fans out to two other DUs `DP3S` and `DP2`. `DP3S` for data processing instructions with three operands and an optional `S` suffix, for example `ADD`. `DP2` is for data processing instructions with two operands and no suffix, for example `CMP`. These are, however, made up of the same constituent types:
+
+```fsharp
+type DP3SForm =
+    {
+        rDest:RName;
+        rOp1:RName;
+        fOp2:FlexOp2;
+        suff:Option<Suffix>;
+    }
+
+type DP2Form =
+    {
+        rOp1:RName;
+        fOp2:FlexOp2;
+    }
+```
+and the functions that transform data work on these constituent types, such as `FlexOp2`, rather than `DP3SForm` and `DP2Form`. This means that adding potential `DP2S` (such as `MOV`) instructions from Doug's work is easy since only a top level function (which calls the already existing functions and combines their output) needs to be added.
+
+## Naming Conventions
+Modelling things with a data domain types means a lot of _helper_ functions are needed to get things _out of_ or _in to_ a certain format. In order to make my code easy to read and use I have generally stuck to a few naming conventions `cons` followed by something means a constructor function of that _thing_. For example:
+```Fsharp
+let consReg reg =
+    regNames.[reg]
+```
+# Specification
+## Nuances
+It was initially unclear which formats of the flexible second operand could affect the CPSR. Originally I thought that logical instructions should affect C only if there is register shift or rotate, not an immediate value. Upon closer inspection of ARM documentation on this, the following excerpt was found:
+```
+When an Operand2 constant is used with the instructions MOVS, MVNS, ANDS, ORRS, ORNS, EORS, BICS, TEQ or TST, the carry flag is updated to bit[31] of the constant, if the constant is greater than 255 and can be produced by shifting an 8-bit value. These instructions do not affect the carry flag if Operand2 is any other constant.
+```
+Comparing with VisUAL, the instruction `EORS r1, r2, #0xe0000007` was setting the C flag. We consulted Dr Clarke and agreed that this suggests the specification uses the concept of **shifting** to mean both **shifting** and **rotating**, furthermore, a shift should set C to the last bit shifted out and not necessarily bit 31. We plan to implement this functionality in the group stage. It is **not** currently implemented.
+
+## Testing
+### Parser
+The parser was tested by first stripping my Computer Architecture 1 coursework (back when I was EIE1) of any instructions that I was not implementing with a simple grep. This code was then passed through and checked. Testing a parser (before writing the execution code) is interesting because it requires a reference parser which in this case I did not have. VisUAL's parsing AFAIK is internal and cannot be obtained from framework provided. At this stage I implemented a REPL for parsing which can be used by entering `p` after running `dotnet run`.
+### Execution
+Initial execution was tested using property based tests. Something like:
+```Fsharp
+let visTest3Params src (r0,r1,r2) n c z v =
+    let regs = r0 :: r1 :: r2 :: [0u..11u]
+    visCompare src regs n c z v
+
+let ADDSpropTest1 =
+    let compare src (r0,r1,r2) c z v =
+        (visTest3Params src (r0, r1, r2) false c z v)
+    testProperty "ADDS, reg, N clear"  <| (compare "ADDS r0, r1, r2")
+```
+**Note:** in the above code `visCompare` is a function that executes `src`, with registers and flags as passed in, on my implementation and on VisUAL and returns a bool to indicate success or failure.
+
+These worked well because they give a quick indication of whether the general implementation was correct or not. Expecto seems to have an affinity towards [small numbers](https://en.wikipedia.org/wiki/Strong_Law_of_Small_Numbers)... so after some initial property based testing, unit tests against VisUAL were used. Some property based tests have been left in the code as examples.
+
+Unit tests against VisUAL for corner cases provided a good way to test the correctness of implementation.
+
+Finally, some work was done to be able to test a sequence of instructions. Namely the functions `visSequenceTest` and `visCompareSequence`. These are currently not working 100% as expected. The goal is, of course, to be able to run my Computer Architecture 1 coursework.
+
+## Functionality
+The instructions I was to implement were:
+`ADD` `ADC` `SUB` `SBC` `RSB` `RSC` `AND` `EOR` `BIC` `ORR` `CMP` `CMN` `TST` `TEQ` in all forms.
+
+- Instructions work correctly (using VisUAL as a reference) if not setting the flags (`S` suffix is not used).
+
+- There are also issues with the setting of flags before/after the barrel shifter in the flexible second operand.
+
+**These are currently being addressed.**
+
+- The instruction format `op{cond} {Rd,} Rn, #imm12` is currently not accepted.
+
+# Things learnt
+- Data domain modelling using types means one will probably spend longer writing the parsing code than  writing the execution code (a good thing!). This is because unpacking is done quickly through `match` statements. This also provides a strong guarantee that if the instructions reaches execution there will not be a runtime error. Furthermore, this is interesting since data domain modelling using types allows for some semantic (over the usual syntactic) analysis while parsing: `r30` is caught in the parsing stage!
+
+- Data domain modelling also allows for easier property based testing since. Since invariances about the data are more obvious.
+
+- Active patterns work well with result monads!
+
+# Running things and files
+- `DP.fs` contains the parsing code and (parsing helper functions) for data processing instructions.
+- `DPExecution.fs` contains the execution code (and execution helper functions) for data processing instructions.
+- `DPTests.fs` contains the testing functions (and, you guessed it, the testing helper functions).
+- `Tests.fs` contains some tests.
+
+To get things going run `dotnet run` and you will see:
+```
+Enter...
+         'p' for a parsing REPL
+         'e' fot an execution REPL
+         'v' for a VisUAL comparison REPL
+      or 't' to run some cool tests
+
+```
+and then the world is your oyster!
