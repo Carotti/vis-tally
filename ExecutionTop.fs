@@ -233,7 +233,7 @@ let resolveDirectives lst parseInfo =
                 | EQU _ -> pi |> Ok
                 | _ ->
                     match Misc.resolve pi.syms miscIns with
-                    | Ok resolved -> 
+                    | Ok resolved ->
                         match executeMisc resolved pi.syms.[getLabel ins] pi.dp with
                         | Ok x -> {pi with dp = x |> fst} |> Ok
                         | Error _ -> failwithf "Shouldn't error executing misc"

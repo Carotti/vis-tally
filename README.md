@@ -6,6 +6,8 @@
 
 `FILL`, `SPACE`, `EQU`, `DCB` and `DCD` all require labels (`FILL` and `SPACE` wouldn't usually, but we require it for sanity)
 
+`FILL` and `SPACE` are currently broken due to variable sizes possibly not being knowne when they are placed, but they do work on their own.
+
 `DCB` is Little Endian, the same as visUAL.
 `DCD` should also behave the same way as visUAL.
 

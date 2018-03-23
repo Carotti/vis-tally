@@ -80,6 +80,28 @@
             [
                 expectRegSet R0 4u
             ]
+
+            unitTest "Fill dependent on EQU" <|
+            "
+                some FILL amount, 5
+                amount EQU 5
+            " <|
+            [
+                expectMemSet 0x100u 0x05050505u
+                expectMemSet 0x104u 0x5u
+            ]
+
+            unitTest "ADR LDR" <|
+            "
+                foo DCD 178, 130
+                ADR R0, foo
+                LDR R1, [R0]
+                LDR R2, [R0, #4]
+            " <|
+            [
+                expectRegSet R1 178u
+                expectRegSet R2 130u
+            ]
         ]
 
     let branchTests =
