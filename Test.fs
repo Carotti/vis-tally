@@ -106,6 +106,21 @@
                     expectRegSet R14 8u
                     expectRegSet R0 100u
                 ]
+
+            unitTest "subroutine" <|
+                "
+                    mov r0, #50
+                    bl double
+                    bl double
+                    bl double
+                    end
+
+                    double add r0, r0, r0
+                    mov pc, lr
+                " <|
+                [
+                    expectRegSet R0 400u
+                ]
         ]
 
     [<Tests>]
