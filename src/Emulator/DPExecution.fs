@@ -287,7 +287,6 @@ module DPExecution
             | LSR _ -> execute dp (fun op1 op2 -> (op1 >>> (int32 op2)) |> uint32) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
             | ROR _ -> execute dp (fun op1 op2 -> doROR op1 (int32 op2)) dest op1 op2 operands.suff [CVCheckAdd; NZCheck]
 
-
         /// A function to determine which `DP2` instruction is to be executed, 
         ///  execute it, and return the new datapath.
         let executeDP2 dp opcode (operands:DP2Form) : (Result<DataPath<Parse<CommonTop.Instr>>,ErrExe>) =
