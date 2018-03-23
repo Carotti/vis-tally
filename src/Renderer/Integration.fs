@@ -71,9 +71,11 @@ let makeMemoryMap mm =
     |> Map.ofList
 
 let setRegs regs =
-    Map.map (fun r value ->
-        setRegister regNums.[r] value
-    ) regs |> ignore
+    regMap <-
+        Map.toList regs
+        |> List.map (fun (r, value) -> regNums.[r], value)
+        |> Map.ofList
+    updateRegisters()
     
 let setFlags flags =
     setFlag "N" flags.N
@@ -175,11 +177,14 @@ let rec stepCode () =
         | _ -> ()
 
 let resetEmulator () =
+    removeEditorDecorations currentFileTabId
     enableEditors()   
     memoryMap <- initialMemoryMap
     symbolMap <- initialSymbolMap
+    regMap <- initialRegMap
     updateMemory()
     updateSymTable()
+    updateRegisters ()
     resetRegs()
     resetFlags()
     currentPInfo <- fNone

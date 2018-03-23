@@ -37,21 +37,50 @@ let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
 let initialSymbolMap : Map<string, uint32> = Map.ofList []
 let mutable symbolMap : Map<string, uint32> = Map.ofList []
 
+let initialRegMap : Map<int, uint32> = Map.ofList [
+                                            0, 0u
+                                            1, 0u
+                                            2, 0u
+                                            3, 0u
+                                            4, 0u
+                                            5, 0u
+                                            6, 0u
+                                            7, 0u
+                                            8, 0u
+                                            9, 0u
+                                            10, 0u
+                                            11, 0u
+                                            12, 0u
+                                            13, 0u
+                                            14, 0u
+                                            15, 0u
+                                        ]
+let mutable regMap : Map<int, uint32> = initialRegMap
+
+[<Emit "'0x' + ($0 >>> 0).toString(16)">]
+let hexFormatter _ : string = jsNative
+
+[<Emit "'u' + ($0 >>> 0).toString(10)">]
+let uDecFormatter _ : string = jsNative
+
 // Returns a formatter for the given representation
 let formatter rep = 
 // TODO: Use binformatter from testformats.fs
     let binFormatter fmt x =
-        let rec bin a =
-            let bit = string (a % 2u)
-            match a with 
-            | 0u | 1u -> bit
-            | _ -> bin (a / 2u) + bit
+        let bin a =
+            [0..31]
+            |> List.fold (fun s x -> 
+                match ((a >>> x) % 2u) with
+                | 1u -> "1" + s
+                | 0u -> "0" + s
+                | _ -> failwithf "modulo is broken"
+            ) ""
         sprintf fmt (bin x)
     match rep with
-    | Hex -> (sprintf "0x%X")
+    | Hex -> hexFormatter
     | Bin -> (binFormatter "0b%s")
     | Dec -> (int32 >> sprintf "%d")
-    | UDec -> (sprintf "u%u")
+    | UDec -> uDecFormatter
 
 let fontSize (size: int) =
     let options = createObj ["fontSize" ==> size]
@@ -61,12 +90,9 @@ let setRegister (id: int) (value: uint32) =
     let el = Ref.register id
     el.innerHTML <- formatter currentRep value
 
-let registerValue (id : int) : uint32 =
-    let el = Ref.register id
-    let html = el.innerHTML
-    match html.[0] with
-    | 'u' -> uint32 html.[1..]
-    | _ -> uint32 html
+let updateRegisters () =
+    Map.map setRegister regMap
+    |> ignore
 
 let setFlag (id: string) (value: bool) =
     let el = Ref.flag id
@@ -90,12 +116,7 @@ let setRepresentation rep =
     // Reassign currentRep, ew mutability required
     currentRep <- rep
 
-    // Update all of the current register values to update the formatting
-    [0..15]
-    |> List.map (
-        (fun r -> (r, registerValue r)) 
-        >> (fun (r, v) -> setRegister r v)
-    )
+    updateRegisters()
 
 let setView view =
     // Change the active tab
