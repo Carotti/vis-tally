@@ -23,6 +23,12 @@ Symbols can be multiple forward dependent on each other. Note that filling by an
 
 The `FILL` value size is always assumed to be 1 and cannot be specified.
 
+# Memory instruction notes
+
+`LDR` and `STR` instruction correctly loads/stores a word from/at a given address, with the suffix `B` it will load/store a byte. It is executing correctly with no offsets, pre-offsets, post-offsets and both. These offsets can be either a number or register. Unprivileged loads/stores `op{type}T{cond} Rt, [Rn {, #offset}]`, Register FlexOp2 `op{type}{cond} Rt, [Rn, Rm {, LSL #n}]` and two word memory instructions `opD{cond} Rt, Rt2, [Rn {, #offset}]` are not being parsed.
+
+`LDM` and `STM` accept all suffixes `IA`, `IB`, `DA`, `DB`, `FD`, `ED`, `FA`, `EA` and execute them correctly. All forms of these instructions are parsed, `op{addr_mode}{cond} Rn{!}, reglist` however, the writeback suffix `!` does not update the address register during execution so is not functional.
+
 # Order of operations
 Every line is parsed, if any parse errors exist, these are displayed
 Instructions are placed in memory.
