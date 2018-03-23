@@ -326,7 +326,7 @@ module DPExecution
             | DP2Match (instr', ops) -> executeDP2 dp instr' ops
             | DP2SMatch (instr', ops) -> executeDP2S dp instr' ops
             | DP2RSMatch (intr', ops) ->
-                failwithf "I am Odin brother of Freya"
+                failwithf "RRX is yet to be implemented unfortunately"
             | _ ->
                 ("instr", "Instruction has not been implemented")
                 ||> makeError

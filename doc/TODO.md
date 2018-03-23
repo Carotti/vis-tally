@@ -19,9 +19,7 @@
 - Maintaining line number to currently executing instruction
 - Checking line number and message for parse error
 - Fix byte in MEM
-- Ask Nippy about `Currently assume that valueSize is always 1` in MiscExecution.fs
-
-# Doug (King) and Maccth (Sultan)
+- Ask Tom about `Currently assume that valueSize is always 1` in MiscExecution.fs
 - Sort Helpers and Execution files
 - Checking line number and message for execution error
 - Debugging DP execution (add tests)
@@ -29,3 +27,5 @@
 - Marrying the GUI
 - Removing code redunduncy
 - Make helper documentation
+
+# Doug (King) and Maccth (Sultan)
