@@ -173,11 +173,11 @@ module Misc
                 ) (parseExpr ls.Operands) 
             labelBinder parseEQU'
 
-        let fillMap parseFunc = 
+        let fillMap parseFunc lab = 
             Result.map (fun ins ->
                 {
                     PInstr = ins;
-                    PLabel = ls.Label |> Option.map (fun lab -> lab, la);
+                    PLabel = Some (lab, la);
                     PSize = 0u;
                     PCond = Cal;
                 }
@@ -216,7 +216,7 @@ module Misc
                     |> ``Invalid fill``
                     |> Error
                 |> Result.map fillPack |> Result.map Misc
-            fillMap parseFILL'
+            labelBinder (fillMap parseFILL')
 
         let parseSPACE () =
             let parseSPACE' =
@@ -227,7 +227,7 @@ module Misc
                         value = ExpUnresolved (Literal 0u)
                         valueSize = 1
                     }) |> Result.map Misc
-            fillMap parseSPACE'
+            labelBinder (fillMap parseSPACE')
 
         let parseADR cond = 
             let parseOperands =
