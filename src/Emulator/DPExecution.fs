@@ -53,7 +53,7 @@ module DPExecution
         
         /// A function to calculate a ROR.
         let doROR b r : uint32 =
-            (b >>> r) ||| (b <<< (32-r))
+            ((uint64 b) >>> r) ||| ((uint64 b) <<< (32-r)) |> uint32
         
         /// A function to calculate the values of literals from the underlying
         ///  byte and rotation.
@@ -123,6 +123,7 @@ module DPExecution
             match int value with
             | x when x >= 0 -> {flags with C = true}, op1, op2, value
             | _ -> {flags with C = false}, op1, op2, value
+
             
         /// A function to determine the new value of the V flag if an additive
         ///  instruction was executed.

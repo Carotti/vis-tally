@@ -365,31 +365,35 @@ module DP
     /// Constructs a literal record of type `FlexOp2` from a rotation values
     ///  specified as an `int`.
     let consLitOp (b', r') =
-        consLit (b', r')
-        |> Lit
+        let cLit =
+            consLit (b', r')
+            |> Lit
+        cLit
 
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand DPSpec
 
+
+    let rotRight (x : uint32) n = (uint64 x >>> n) ||| (uint64 x <<< (32 - n)) |> uint32
+
+    /// A function to check the validity of literals according to the ARM spec.
+    let checkLiteral lit =
+        let lst = [0..2..30] 
+                    |> List.map (fun x -> rotRight lit x, x)
+                    |> List.filter (fun (x, _) -> x < 256u)
+        match lst with
+        | [] ->
+            let txt = lit |> string
+            (txt, notValidLiteralEM)
+            ||> makeError
+            |> ``Invalid literal``
+            |> Error
+        | (x, r) :: _ -> 
+            Ok (byte x, 32 - r)
+
+
     /// Top level parsing function called from the `IMatch` active pattern.
     let parse (ld: LineData) : Result<Parse<Instr>,ErrParse> option =
-
-        let rotRight (x : uint32) n = (uint64 x >>> n) ||| (uint64 x <<< (32 - n)) |> uint32
-
-        /// A function to check the validity of literals according to the ARM spec.
-        let checkLiteral lit =
-            let lst = [0..2..30] 
-                        |> List.map (fun x -> rotRight lit x, x)
-                        |> List.filter (fun (x, _) -> x < 256u)
-            match lst with
-            | [] ->
-                let txt = lit |> string
-                (txt, notValidLiteralEM)
-                ||> makeError
-                |> ``Invalid literal``
-                |> Error
-            | (x, r) :: _ -> Ok (byte x, r)
-
         /// A partially active pattern to match literals according to the ARM spec,
         ///  and return a numerical representation of the literal if it is valid.
         let (|LitMatch|_|) txt =
