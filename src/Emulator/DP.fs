@@ -389,7 +389,9 @@ module DP
             |> ``Invalid literal``
             |> Error
         | (x, r) :: _ -> 
-            Ok (byte x, 32 - r)
+            match r = 0 with
+            | true -> Ok (byte x, 0)
+            | false -> Ok (byte x, 32 - r)
 
 
     /// Top level parsing function called from the `IMatch` active pattern.
