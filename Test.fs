@@ -294,6 +294,154 @@
                 ]
         ]
 
+        // edge case tests for flags
+    // the instructions used to set/clear the flags have been tested (and passed those tests!)
+    // at the individual stage and so are assumed to be correct
+    let flagTests =
+        testList "flags" [
+            unitTest "small numbers, zero" <|
+                "
+                    adds r0, r0, #0
+                " <|
+                [
+                    expectRegSet R0 0u
+                    expectFlagSet N false
+                    expectFlagSet C false
+                    expectFlagSet Z true
+                    expectFlagSet V false
+                ]
+
+            unitTest "large numbers, no flags" <|
+                "   
+                    mov r0, #0x7e000000
+                    mov r1, #0x01000000
+                    adds r2, r1, r0
+                " <|
+                [
+                    expectRegSet R2 0x7f000000u
+                    expectFlagSet N false
+                    expectFlagSet C false
+                    expectFlagSet Z false
+                    expectFlagSet V false
+                ]
+            
+            unitTest "large numbers, overflow" <|
+                "   
+                    mov r0, #0x7f000000
+                    mov r1, #0x01000000
+                    adds r2, r1, r0
+                " <|
+                [
+                    expectRegSet R2 0x80000000u
+                    expectFlagSet N true
+                    expectFlagSet C false
+                    expectFlagSet Z false
+                    expectFlagSet V true
+                ]
+            
+            unitTest "large numbers, carry" <|
+                "   
+                    mov r0, #0xff000000
+                    mov r1, #0x01000000
+                    adds r2, r1, r0
+                " <|
+                [
+                    expectRegSet R2 0x00000000u
+                    expectFlagSet N false
+                    expectFlagSet C true
+                    expectFlagSet Z true
+                    expectFlagSet V false
+                ]
+            
+            unitTest "large numbers, zero" <|
+                "   
+                    mov r0, #0x14000000
+                    mvn r0, r0
+                    add r0, r0, #1
+                    mov r1, #0x14000000
+                    adds r2, r1, r0
+                " <|
+                [
+                    expectRegSet R2 0x00000000u
+                    expectFlagSet N false
+                    expectFlagSet C true
+                    expectFlagSet Z true
+                    expectFlagSet V false
+                ]
+        ]
+    
+    // edge case tests for the flexible second operand
+    // the instructions used to set/clear the flags have been tested (and passed those tests!)
+    // at the individual stage and so are assumed to be correct
+    let flexOp2Tests =
+        testList "flex op 2" [
+            unitTest "modulo 32 shifting left symmetry" <|
+                "
+                    adds r1, r0, #1 lsl #32 
+                " <|
+                [
+                    expectRegSet R1 1u
+                    expectFlagSet N false
+                    expectFlagSet C false
+                    expectFlagSet Z false
+                    expectFlagSet V false
+                ]
+            
+            unitTest "modulo 32 shifting right symmetry" <|
+                "
+                    adds r1, r0, #1 lsr #32 
+                " <|
+                [
+                    expectRegSet R1 1u
+                    expectFlagSet N false
+                    expectFlagSet C false
+                    expectFlagSet Z false
+                    expectFlagSet V false
+                ]
+
+            unitTest "rotation 32 symmetry" <|
+                "
+                    adds r1, r0, #1 ror #32 
+                " <|
+                [
+                    expectRegSet R1 1u
+                    expectFlagSet N false
+                    expectFlagSet C false
+                    expectFlagSet Z false
+                    expectFlagSet V false
+                ]
+            
+            unitTest "rrx with c set" <|
+                "
+                    mov r0, #0xff000000
+                    mov r1, #0x01000000
+                    adds r2, r1, r0
+                    mov r0, #0
+                    adds r1, r0, r0, rrx
+                " <|
+                [
+                    expectRegSet R1 0x80000000u
+                    expectFlagSet N true
+                    expectFlagSet C false
+                    expectFlagSet Z false
+                    expectFlagSet V false
+                ]
+            
+            unitTest "rrx with c not set" <|
+                "
+                    adds r1, r0, #0 rrx
+                " <|
+                [
+                    expectRegSet R1 0u
+                    expectFlagSet N false
+                    expectFlagSet C false
+                    expectFlagSet Z true
+                    expectFlagSet V false
+                ]
+            
+        ]
+      
+
     [<Tests>]
     let allTests =
         testList "Tests" [
@@ -301,4 +449,6 @@
             directiveTests
             branchTests
             memoryTests
+            flagTests
+            flexOp2Tests
         ]
