@@ -103,6 +103,155 @@
                 expectRegSet R2 130u
             ]
         ]
+    
+    let memoryTests = 
+        testList "Memory" [
+            unitTest "Testing pre-increment single store" <|
+            "
+                mov r0, #1
+                mov r1, #2
+                mov r2, #3
+                mov r3, #0x100
+                str r0, [r3]
+                str r1, [r3, #4]
+                str r2, [r3, #8]
+            " <|
+            [
+                expectMemSet 0x100u 1u
+                expectMemSet 0x104u 2u
+                expectMemSet 0x108u 3u
+            ]
+
+            unitTest "Testing post-increment single store" <|
+            "
+                mov r0, #0xff
+                mov r1, #0xfe
+                mov r2, #0xfd
+                mov r3, #0x100
+                str r0, [r3], #4
+                str r1, [r3], #4
+                str r2, [r3], #4
+            " <|
+            [
+                expectMemSet 0x100u 0xffu
+                expectMemSet 0x104u 0xfeu
+                expectMemSet 0x108u 0xfdu
+            ]
+
+            unitTest "Testing pre and post-increment single store" <|
+            "
+                mov r0, #0b01
+                mov r1, #0b11
+                mov r2, #0b111
+                mov r3, #0x100
+                str r0, [r3, #4]!
+                str r1, [r3, #4]!
+                str r2, [r3, #4]!
+            " <|
+            [
+                expectMemSet 0x104u 1u
+                expectMemSet 0x108u 3u
+                expectMemSet 0x10Cu 7u
+            ]
+
+            unitTest "Testing single load from DCD with register pre-increment" <|
+            "
+                foo dcd 10, 11, 12
+                adr r0, foo
+                mov r4, #8
+                ldr r1, [r0]
+                ldr r2, [r0, #4]
+                ldr r3, [r0, r4]
+            " <|
+            [
+                expectRegSet R1 10u
+                expectRegSet R2 11u
+                expectRegSet R3 12u
+            ]
+
+            unitTest "Testing single load byte from DCB" <|
+            "
+                foo dcb 1, 2, 3, 4, 5
+                adr r0, foo
+                mov r4, #8
+                ldrb r1, [r0]
+                ldrb r2, [r0, #1]
+                ldrb r3, [r0, #2]
+                ldrb r4, [r0, #4]
+                ldr  r5, [r0]
+                ldr  r6, [r0, #4]
+            " <|
+            [
+                expectRegSet R1 1u
+                expectRegSet R2 2u
+                expectRegSet R3 3u
+                expectRegSet R4 5u
+                expectRegSet R5 0x4030201u
+                expectRegSet R6 5u
+            ]
+
+            unitTest "Testing single store byte" <|
+            "
+                mov r0, #0b1
+                mov r1, #0b11
+                mov r3, #0x100
+                strb r0, [r3]
+                strb r1, [r3, #2]
+            " <|
+            [
+                expectMemSet 0x100u 0x30001u
+            ]
+
+            unitTest "Testing multiple load with suffixes" <|
+            "
+                foo dcd 1, 2, 3, 4, 5, 6, 7, 8
+                adr r0, foo
+                ldmia r0, {r1, r2}
+                add r0, r0, #4
+                ldmib r0, {r3-r4}
+                add r0, r0, #20
+                ldmda r0, {r5, r6}
+                ldmdb r0, {r7-r8}
+            " <|
+            [
+                expectRegSet R1 1u
+                expectRegSet R2 2u
+                expectRegSet R3 3u
+                expectRegSet R4 4u
+                expectRegSet R5 6u
+                expectRegSet R6 7u
+                expectRegSet R7 5u
+            ]
+
+            unitTest "Testing multiple store with suffixes" <|
+            "
+                mov r0, #0x100
+                mov r1, #1
+                mov r2, #2
+                mov r3, #3
+                mov r4, #4
+                mov r5, #5
+                mov r6, #6
+                stmia r0, {r1, r2}
+                add r0, r0, #8
+                stmib r0, {r3-r4}
+                add r0, r0, #20
+                stmda r0, {r5, r6}
+                add r0, r0, #12
+                stmdb r0, {r1-r2}
+            " <|
+            [
+                expectMemSet 0x100u 1u
+                expectMemSet 0x104u 2u
+                expectMemSet 0x10Cu 3u
+                expectMemSet 0x110u 4u
+                expectMemSet 0x118u 5u
+                expectMemSet 0x11Cu 6u
+                expectMemSet 0x120u 1u
+                expectMemSet 0x124u 2u
+
+            ]   
+        ]
 
     let branchTests =
         testList "Branches" [
@@ -151,4 +300,5 @@
             sanityTests
             directiveTests
             branchTests
+            memoryTests
         ]
